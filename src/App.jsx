@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Finance from './pages/Finance';
 import Meeting from './pages/Meeting';
 import Document from './pages/Document';
+import Warning from './pages/Warning';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
               <Route path="/dashboard/finance" element={<Finance />} />
               <Route path="/dashboard/meetings" element={<Meeting />} />
               <Route path="/dashboard/documents" element={<Document />} />
+              <Route path="/dashboard/warnings" element={<Warning />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
