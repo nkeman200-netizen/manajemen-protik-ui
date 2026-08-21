@@ -410,14 +410,14 @@ export default function Finance() {
           {/* Search Deskripsi */}
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
-              Cari Deskripsi
+              Cari Rincian / Deskripsi
             </label>
             <div className="relative">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Ketik deskripsi transaksi..."
+                placeholder="Ketik rincian transaksi..."
                 className="w-full rounded-xl border border-slate-300 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
               />
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -487,13 +487,16 @@ export default function Finance() {
                   Tipe
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Deskripsi
+                  Rincian
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Sumber Dana
+                  Vol/Satuan
                 </th>
                 <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Nominal
+                  Harga Satuan
+                </th>
+                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Total
                 </th>
                 <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Aksi
@@ -520,17 +523,26 @@ export default function Finance() {
                         </span>
                       )}
                     </td>
-                    <td className="max-w-xs truncate px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {item.description}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {item.funding_source ? (
-                        <span className="rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
+                    <td className="max-w-xs px-6 py-4">
+                      <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                        {item.title || item.description || '-'}
+                      </div>
+                      {item.notes && (
+                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                          {item.notes}
+                        </div>
+                      )}
+                      {item.funding_source && (
+                        <span className="mt-1 inline-block rounded-md bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:text-primary-400">
                           {item.funding_source}
                         </span>
-                      ) : (
-                        <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
                       )}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                      {item.qty ?? 1} {item.unit || ''}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-300">
+                      {formatRupiah(item.unit_price ?? item.amount)}
                     </td>
                     <td
                       className={`whitespace-nowrap px-6 py-4 text-right text-sm font-semibold ${
@@ -538,7 +550,7 @@ export default function Finance() {
                       }`}
                     >
                       {item.type === 'income' ? '+' : '-'}{' '}
-                      {formatRupiah(item.amount)}
+                      {formatRupiah(item.amount ?? ((item.qty || 1) * (item.unit_price || 0)))}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
                       {canEdit ? (
@@ -582,7 +594,7 @@ export default function Finance() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                     Belum ada data transaksi untuk ruang kerja ini.
                   </td>
                 </tr>

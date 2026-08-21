@@ -3,19 +3,23 @@ import { X, Loader2 } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
-const FUNDING_SOURCES = [
-  { value: '', label: 'Pilih Sumber Dana (Opsional)' },
-  { value: 'IOM', label: 'IOM' },
-  { value: 'DIPA', label: 'DIPA' },
-  { value: 'KAS', label: 'KAS' },
-  { value: 'SPONSOR', label: 'SPONSOR' },
-];
+function formatRupiah(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
 
 const initialForm = {
   type: 'income',
-  amount: '',
-  description: '',
+  title: '',
+  qty: 1,
+  unit: '',
+  unit_price: '',
   date: '',
+  notes: '',
   funding_source: '',
   event_id: '',
 };
@@ -37,9 +41,12 @@ export default function FinanceModal({
     if (initialData) {
       setForm({
         type: initialData.type || 'income',
-        amount: initialData.amount ?? '',
-        description: initialData.description || '',
+        title: initialData.title || initialData.description || '',
+        qty: initialData.qty ?? 1,
+        unit: initialData.unit || '',
+        unit_price: initialData.unit_price ?? initialData.amount ?? '',
         date: initialData.date ? initialData.date.substring(0, 10) : '',
+        notes: initialData.notes || '',
         funding_source: initialData.funding_source || '',
         event_id: initialData.event_id ?? (activeEventId ?? ''),
       });
@@ -61,6 +68,8 @@ export default function FinanceModal({
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
+  const calculatedTotal = (Number(form.qty) || 0) * (Number(form.unit_price) || 0);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly) return;
@@ -76,9 +85,12 @@ export default function FinanceModal({
       const payload = {
         user_id: currentUserId,
         type: form.type,
-        amount: Number(form.amount),
-        description: form.description,
+        title: form.title,
+        qty: Number(form.qty) || 1,
+        unit: form.unit || null,
+        unit_price: Number(form.unit_price) || 0,
         date: form.date,
+        notes: form.notes || null,
         funding_source: form.funding_source || null,
         event_id: targetEventId,
       };
@@ -137,9 +149,9 @@ export default function FinanceModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white/80 px-6 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
           <button
             onClick={onClose}
@@ -149,116 +161,213 @@ export default function FinanceModal({
           </button>
         </div>
 
+        {/* Datalist Options */}
+        <datalist id="funding-list">
+          <option value="Pribadi" />
+          <option value="IKM" />
+          <option value="KAS" />
+          <option value="SPONSOR" />
+          <option value="LAINNYA" />
+        </datalist>
+
+        <datalist id="unit-list">
+          <option value="Pcs" />
+          <option value="Pack" />
+          <option value="Box" />
+          <option value="Ls" />
+          <option value="Rim" />
+          <option value="Kg" />
+          <option value="Liter" />
+          <option value="Orang" />
+          <option value="Hari" />
+          <option value="Bulan" />
+          <option value="Kegiatan" />
+        </datalist>
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Type */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tipe Transaksi
-            </label>
-            <select
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              className={inputClass('type')}
-            >
-              <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pemasukan</option>
-              <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pengeluaran</option>
-            </select>
-            {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
+          {/* Row 1: Tipe Transaksi & Sumber Dana */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tipe Transaksi
+              </label>
+              <select
+                name="type"
+                value={form.type}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                className={inputClass('type')}
+              >
+                <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pemasukan (Income)</option>
+                <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pengeluaran (Expense)</option>
+              </select>
+              {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Sumber Dana
+              </label>
+              <input
+                type="text"
+                name="funding_source"
+                list="funding-list"
+                value={form.funding_source}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="Pribadi / IKM / KAS..."
+                className={inputClass('funding_source')}
+              />
+              {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
+            </div>
           </div>
 
-          {/* Amount */}
+          {/* Row 2: Tanggal & Event ID */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tanggal Transaksi
+              </label>
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                className={inputClass('date')}
+              />
+              {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
+            </div>
+
+            {!activeEventId ? (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Event ID (Opsional)
+                </label>
+                <input
+                  type="text"
+                  name="event_id"
+                  value={form.event_id}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="ID Event (kosongkan jika Kas Umum)"
+                  className={inputClass('event_id')}
+                />
+                {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
+              </div>
+            ) : (
+              <div className="flex items-end">
+                <div className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-400">
+                  Ruang Kerja: <span className="font-semibold text-primary-600 dark:text-primary-400">Event ID #{activeEventId}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Row 3: Rincian (Title) */}
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Nominal (Rp)
+              Rincian Item / Pengeluaran
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="Contoh: Konsumsi Panitia, Pembelian Kertas..."
+              className={inputClass('title')}
+            />
+            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
+          </div>
+
+          {/* Row 4: Volume (Qty) & Satuan (Unit) */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Volume / Kuantitas (Qty)
+              </label>
+              <input
+                type="number"
+                name="qty"
+                value={form.qty}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="1"
+                min="0.01"
+                step="any"
+                className={inputClass('qty')}
+              />
+              {errors.qty && <p className="mt-1 text-xs text-red-400">{errors.qty[0]}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Satuan (Unit)
+              </label>
+              <input
+                type="text"
+                name="unit"
+                list="unit-list"
+                value={form.unit}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="Pcs / Pack / Box / Ls..."
+                className={inputClass('unit')}
+              />
+              {errors.unit && <p className="mt-1 text-xs text-red-400">{errors.unit[0]}</p>}
+            </div>
+          </div>
+
+          {/* Row 5: Harga Satuan */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Harga Satuan (Rp)
             </label>
             <input
               type="number"
-              name="amount"
-              value={form.amount}
+              name="unit_price"
+              value={form.unit_price}
               onChange={handleChange}
               disabled={isReadOnly}
               placeholder="0"
               min="0"
-              className={inputClass('amount')}
+              className={inputClass('unit_price')}
             />
-            {errors.amount && <p className="mt-1 text-xs text-red-400">{errors.amount[0]}</p>}
+            {errors.unit_price && <p className="mt-1 text-xs text-red-400">{errors.unit_price[0]}</p>}
           </div>
 
-          {/* Description */}
+          {/* Row 6: Keterangan (Notes) */}
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Deskripsi
+              Keterangan Tambahan / Catatan
             </label>
-            <input
-              type="text"
-              name="description"
-              value={form.description}
+            <textarea
+              name="notes"
+              rows={3}
+              value={form.notes}
               onChange={handleChange}
               disabled={isReadOnly}
-              placeholder="Keterangan transaksi"
-              className={inputClass('description')}
+              placeholder="Catatan tambahan (opsional)..."
+              className={inputClass('notes')}
             />
-            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
+            {errors.notes && <p className="mt-1 text-xs text-red-400">{errors.notes[0]}</p>}
           </div>
 
-          {/* Date */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tanggal
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              className={inputClass('date')}
-            />
-            {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
-          </div>
-
-          {/* Funding Source */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Sumber Dana
-            </label>
-            <select
-              name="funding_source"
-              value={form.funding_source}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              className={inputClass('funding_source')}
-            >
-              {FUNDING_SOURCES.map((src) => (
-                <option key={src.value} value={src.value} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
-                  {src.label}
-                </option>
-              ))}
-            </select>
-            {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
-          </div>
-
-          {/* Event ID */}
-          {!activeEventId && (
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Event ID (Opsional)
-              </label>
-              <input
-                type="text"
-                name="event_id"
-                value={form.event_id}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="Masukkan ID event terkait"
-                className={inputClass('event_id')}
-              />
-              {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
+          {/* Kalkulasi Otomatis (Read-Only Total Box) */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Total Kalkulasi (Vol × Harga)
+              </span>
+              <span className={`text-base font-bold ${
+                form.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
+              }`}>
+                {formatRupiah(calculatedTotal)}
+              </span>
             </div>
-          )}
+          </div>
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
