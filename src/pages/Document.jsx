@@ -91,8 +91,8 @@ export default function Document() {
       return (
         <div className="flex h-full items-center justify-center">
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary-400" />
-            <p className="text-sm text-slate-400">Memuat direktori dokumen...</p>
+            <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Memuat direktori dokumen...</p>
           </div>
         </div>
       );
@@ -101,11 +101,11 @@ export default function Document() {
     if (eventsError) {
       return (
         <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-8 py-6">
-            <AlertCircle className="h-10 w-10 text-red-400" />
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
+            <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
             <div className="text-center">
-              <p className="font-semibold text-red-300">Gagal memuat direktori</p>
-              <p className="mt-1 text-sm text-red-400/70">Terjadi kesalahan saat mengambil daftar event.</p>
+              <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat direktori</p>
+              <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil daftar event.</p>
             </div>
           </div>
         </div>
@@ -123,8 +123,8 @@ export default function Document() {
               <Layers className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Direktori Dokumen & Surat</h1>
-              <p className="text-xs text-slate-400">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">Direktori Dokumen & Surat</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Pilih ruang kerja dokumen umum BPH Pusat atau kepanitiaan event untuk mengelola arsip surat.
               </p>
             </div>
@@ -139,28 +139,28 @@ export default function Document() {
               setActiveWorkspace({ id: null, name: 'Dokumen Umum BPH Pusat', type: 'global' });
               setPage(1);
             }}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-950/40 via-slate-900/70 to-slate-950/80 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-2xl hover:shadow-violet-500/15"
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-xl hover:shadow-violet-500/10 dark:from-violet-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-violet-500/15"
           >
             <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-violet-500/30" />
             <div className="relative flex flex-col justify-between h-full space-y-6">
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-400">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-600 dark:text-violet-400">
                     <FileText className="h-6 w-6" />
                   </div>
-                  <span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-violet-400 border border-violet-500/20">
+                  <span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-violet-600 border border-violet-500/20 dark:text-violet-400">
                     BPH Pusat
                   </span>
                 </div>
-                <h3 className="mt-4 text-lg font-bold text-white group-hover:text-violet-300 transition-colors">
+                <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-violet-600 transition-colors dark:text-white dark:group-hover:text-violet-300">
                   Dokumen Umum BPH Pusat
                 </h3>
-                <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+                <p className="mt-1.5 text-xs text-slate-600 leading-relaxed dark:text-slate-400">
                   Pencatatan dan arsip surat keluar umum BPH Pusat organisasi.
                 </p>
               </div>
 
-              <div className="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-medium text-violet-400">
+              <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-violet-600 dark:border-white/10 dark:text-violet-400">
                 <span>Buka Ruang Kerja</span>
                 <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </div>
@@ -181,37 +181,37 @@ export default function Document() {
                   setActiveWorkspace(event);
                   setPage(1);
                 }}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-white/[0.08] hover:shadow-2xl hover:shadow-primary-500/10"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
               >
                 <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary-500/10 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/20" />
                 <div className="relative flex flex-col justify-between h-full space-y-6">
                   <div>
                     <div className="flex items-center justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600/15 text-primary-400">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600/15 text-primary-600 dark:text-primary-400">
                         <Calendar className="h-6 w-6" />
                       </div>
-                      <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-400 border border-primary-500/20">
+                      <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 border border-primary-500/20 dark:text-primary-400">
                         Event
                       </span>
                     </div>
 
-                    <h3 className="mt-4 text-lg font-bold text-white group-hover:text-primary-300 transition-colors line-clamp-1">
+                    <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors line-clamp-1 dark:text-white dark:group-hover:text-primary-300">
                       {event.name}
                     </h3>
 
-                    <div className="mt-3 space-y-2 text-xs text-slate-400">
+                    <div className="mt-3 space-y-2 text-xs text-slate-600 dark:text-slate-400">
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                        <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
                         <span>{formatTanggal(dateDisplay)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <User className="h-3.5 w-3.5 text-slate-500" />
+                        <User className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
                         <span className="truncate">Sekretaris: {sekretaris}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-medium text-slate-400 group-hover:text-primary-400 transition-colors">
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-slate-500 group-hover:text-primary-600 transition-colors dark:border-white/10 dark:text-slate-400 dark:group-hover:text-primary-400">
                     <span>Buka Ruang Kerja</span>
                     <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
@@ -231,8 +231,8 @@ export default function Document() {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-400" />
-          <p className="text-sm text-slate-400">Memuat data dokumen {activeWorkspace.name}...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data dokumen {activeWorkspace.name}...</p>
         </div>
       </div>
     );
@@ -241,11 +241,11 @@ export default function Document() {
   if (documentsError) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-8 py-6">
-          <AlertCircle className="h-10 w-10 text-red-400" />
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
           <div className="text-center">
-            <p className="font-semibold text-red-300">Gagal memuat data dokumen</p>
-            <p className="mt-1 text-sm text-red-400/70">Terjadi kesalahan saat mengambil data surat.</p>
+            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data dokumen</p>
+            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data surat.</p>
           </div>
         </div>
       </div>
@@ -264,7 +264,7 @@ export default function Document() {
             setActiveWorkspace(null);
             setPage(1);
           }}
-          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
           Kembali ke Direktori
@@ -285,18 +285,18 @@ export default function Document() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white">{activeWorkspace.name}</h1>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">{activeWorkspace.name}</h1>
               <span
                 className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                   activeWorkspace.id === null
-                    ? 'bg-violet-500/15 text-violet-400 border border-violet-500/20'
-                    : 'bg-primary-500/15 text-primary-400 border border-primary-500/20'
+                    ? 'bg-violet-500/15 text-violet-600 border border-violet-500/20 dark:text-violet-400'
+                    : 'bg-primary-500/15 text-primary-600 border border-primary-500/20 dark:text-primary-400'
                 }`}
               >
                 {activeWorkspace.id === null ? 'BPH Pusat' : 'Event'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {meta?.total ?? documents.length} surat terdaftar
             </p>
           </div>
@@ -319,41 +319,41 @@ export default function Document() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/10">
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Nomor Surat
                 </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Judul
                 </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Pembuat
                 </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Link Drive
                 </th>
-                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Aksi
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {documents.length > 0 ? (
                 documents.map((item) => (
-                  <tr key={item.id} className="transition-colors hover:bg-white/5">
+                  <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="rounded-lg bg-slate-700/50 px-2.5 py-1 text-xs font-mono font-semibold text-slate-200">
+                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 dark:bg-slate-700/50 dark:text-slate-200">
                         {item.letter_number}
                       </span>
                     </td>
-                    <td className="max-w-xs truncate px-6 py-4 text-sm font-medium text-white">
+                    <td className="max-w-xs truncate px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
                       {item.title}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-300">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
                       {item.creator?.name ?? '-'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
@@ -362,13 +362,13 @@ export default function Document() {
                           href={item.drive_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-400 transition hover:bg-primary-500/25"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400 transition hover:bg-primary-500/25"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                           Buka
                         </a>
                       ) : (
-                        <span className="text-xs text-slate-500">—</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
@@ -380,14 +380,14 @@ export default function Document() {
                               setIsReadOnlyModal(false);
                               setModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
                           </button>
                           <button
                             onClick={() => handleDelete(item.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20 hover:text-red-300"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             Hapus
@@ -401,7 +401,7 @@ export default function Document() {
                               setIsReadOnlyModal(true);
                               setModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
                           >
                             <Eye className="h-3.5 w-3.5" />
                             Detail
@@ -413,7 +413,7 @@ export default function Document() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                     Belum ada data dokumen untuk ruang kerja ini.
                   </td>
                 </tr>
@@ -424,15 +424,15 @@ export default function Document() {
 
         {/* Pagination */}
         {meta && meta.last_page > 1 && (
-          <div className="flex items-center justify-between border-t border-white/10 px-6 py-4">
-            <p className="text-xs text-slate-400">
+          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Halaman {meta.current_page} dari {meta.last_page}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Prev
@@ -440,7 +440,7 @@ export default function Document() {
               <button
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page >= meta.last_page || !documentsData?.links?.next}
-                className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
               >
                 Next
                 <ChevronRight className="h-4 w-4" />

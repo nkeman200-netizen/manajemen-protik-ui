@@ -62,10 +62,10 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
   };
 
   const inputClass = (field) =>
-    `w-full rounded-xl border bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 ${
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
       errors[field]
         ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-white/10 focus:border-primary-500 focus:ring-primary-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
     }`;
 
   return (
@@ -77,13 +77,13 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
       />
 
       {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-slate-900/95 shadow-2xl backdrop-blur-2xl">
+      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <h2 className="text-lg font-semibold text-white">Tambah Surat Peringatan</h2>
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Tambah Surat Peringatan</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
           >
             <X className="h-5 w-5" />
           </button>
@@ -93,7 +93,7 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
         <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
           {/* User ID */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               ID Anggota
             </label>
             <input
@@ -110,7 +110,7 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
 
           {/* Reason */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Alasan Peringatan
             </label>
             <textarea
@@ -126,7 +126,7 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
 
           {/* Date */}
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-400">
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Tanggal
             </label>
             <input
@@ -140,11 +140,11 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
           </div>
 
           {/* Submit */}
-          <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5"
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
             >
               Batal
             </button>
