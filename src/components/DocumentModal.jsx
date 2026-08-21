@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -10,14 +10,40 @@ const initialForm = {
   event_id: '',
 };
 
-export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserId }) {
+export default function DocumentModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  currentUserId,
+  initialData = null,
+  isReadOnly = false,
+  activeEventId = null,
+}) {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        letter_number: initialData.letter_number || '',
+        title: initialData.title || '',
+        drive_url: initialData.drive_url || '',
+        event_id: initialData.event_id ?? (activeEventId ?? ''),
+      });
+    } else {
+      setForm({
+        ...initialForm,
+        event_id: activeEventId ?? '',
+      });
+    }
+    setErrors({});
+  }, [initialData, activeEventId, isOpen]);
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
+    if (isReadOnly) return;
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: undefined }));
@@ -25,27 +51,38 @@ export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserI
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isReadOnly) return;
+
     setSubmitting(true);
     setErrors({});
 
     try {
+      const targetEventId = initialData
+        ? (form.event_id ? Number(form.event_id) : null)
+        : (activeEventId ? Number(activeEventId) : (form.event_id ? Number(form.event_id) : null));
+
       const payload = {
         created_by: currentUserId,
         letter_number: form.letter_number,
         title: form.title,
         drive_url: form.drive_url,
-        event_id: form.event_id ? Number(form.event_id) : null,
+        event_id: targetEventId,
       };
 
-      await api.post('/api/documents', payload);
-      toast.success('Surat berhasil ditambahkan.');
+      if (initialData?.id) {
+        await api.put(`/api/documents/${initialData.id}`, payload);
+        toast.success('Surat berhasil diperbarui.');
+      } else {
+        await api.post('/api/documents', payload);
+        toast.success('Surat berhasil ditambahkan.');
+      }
+
       setForm(initialForm);
       onSuccess();
       onClose();
     } catch (err) {
       if (err.response?.status === 422) {
         const data = err.response.data;
-        // Catches unique constraint on letter_number
         if (data.message) {
           toast.error(data.message);
         }
@@ -64,8 +101,14 @@ export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserI
     }
   };
 
+  const modalTitle = isReadOnly
+    ? 'Detail Dokumen'
+    : initialData?.id
+    ? 'Edit Surat'
+    : 'Tambah Surat';
+
   const inputClass = (field) =>
-    `w-full rounded-xl border bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 ${
+    `w-full rounded-xl border bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed ${
       errors[field]
         ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
         : 'border-white/10 focus:border-primary-500 focus:ring-primary-500/20'
@@ -83,7 +126,7 @@ export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserI
       <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-slate-900/95 shadow-2xl backdrop-blur-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-          <h2 className="text-lg font-semibold text-white">Tambah Surat</h2>
+          <h2 className="text-lg font-semibold text-white">{modalTitle}</h2>
           <button
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white"
@@ -104,6 +147,7 @@ export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserI
               name="letter_number"
               value={form.letter_number}
               onChange={handleChange}
+              disabled={isReadOnly}
               placeholder="Contoh: 001/PROTIK/VIII/2026"
               className={inputClass('letter_number')}
             />
@@ -120,6 +164,7 @@ export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserI
               name="title"
               value={form.title}
               onChange={handleChange}
+              disabled={isReadOnly}
               placeholder="Masukkan judul surat"
               className={inputClass('title')}
             />
@@ -136,6 +181,7 @@ export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserI
               name="drive_url"
               value={form.drive_url}
               onChange={handleChange}
+              disabled={isReadOnly}
               placeholder="https://drive.google.com/..."
               className={inputClass('drive_url')}
             />
@@ -143,38 +189,43 @@ export default function DocumentModal({ isOpen, onClose, onSuccess, currentUserI
           </div>
 
           {/* Event ID */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-400">
-              Event ID (Opsional)
-            </label>
-            <input
-              type="text"
-              name="event_id"
-              value={form.event_id}
-              onChange={handleChange}
-              placeholder="Masukkan ID event terkait"
-              className={inputClass('event_id')}
-            />
-            {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
-          </div>
+          {!activeEventId && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-400">
+                Event ID (Opsional)
+              </label>
+              <input
+                type="text"
+                name="event_id"
+                value={form.event_id}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="Masukkan ID event terkait"
+                className={inputClass('event_id')}
+              />
+              {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
+            </div>
+          )}
 
-          {/* Submit */}
+          {/* Actions */}
           <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
             <button
               type="button"
               onClick={onClose}
               className="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5"
             >
-              Batal
+              {isReadOnly ? 'Tutup' : 'Batal'}
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan'}
-            </button>
+            {!isReadOnly && (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            )}
           </div>
         </form>
       </div>

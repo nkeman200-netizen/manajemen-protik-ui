@@ -2,6 +2,8 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import FinanceModal from '../components/FinanceModal';
@@ -14,6 +16,14 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   Wallet,
+  ArrowLeft,
+  Calendar,
+  User,
+  Pencil,
+  Trash2,
+  Eye,
+  Layers,
+  ChevronRight as ChevronRightIcon,
 } from 'lucide-react';
 
 function formatRupiah(value) {
@@ -27,69 +37,289 @@ function formatRupiah(value) {
 
 function formatTanggal(dateStr) {
   if (!dateStr) return '-';
-  return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
+  try {
+    return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
+  } catch {
+    return dateStr;
+  }
 }
 
 export default function Finance() {
   const { user } = useAuth();
+  const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedFinance, setSelectedFinance] = useState(null);
+  const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
 
-  const isAdmin = user?.roles?.[0]?.name === 'admin';
+  // --- Directory Mode: Fetch Events ---
+  const {
+    data: eventsData,
+    error: eventsError,
+    isLoading: eventsLoading,
+  } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
 
-  const { data, error, isLoading, mutate } = useSWR(
-    `/api/finances?page=${page}`,
-    paginatedFetcher
+  // --- Workspace Mode: Fetch Finances ---
+  const financeUrl = activeWorkspace
+    ? activeWorkspace.id
+      ? `/api/finances?event_id=${activeWorkspace.id}&page=${page}`
+      : `/api/finances?page=${page}`
+    : null;
+
+  const {
+    data: financesData,
+    error: financesError,
+    isLoading: financesLoading,
+    mutate: mutateFinances,
+  } = useSWR(financeUrl, paginatedFetcher);
+
+  // --- RBAC: Row-Level Authorization ---
+  const isGlobalAdmin = user?.roles?.[0]?.name === 'admin';
+  const isCommittee = activeWorkspace?.committees?.some(
+    (c) => c.user_id === user?.id && ['Ketua', 'Bendahara'].includes(c.position)
   );
+  const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
 
-  // --- Loading ---
-  if (isLoading) {
+  // --- Delete Handler ---
+  const handleDelete = async (id) => {
+    if (window.confirm('Yakin hapus transaksi ini?')) {
+      try {
+        await api.delete(`/api/finances/${id}`);
+        toast.success('Transaksi berhasil dihapus.');
+        mutateFinances();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal menghapus transaksi.');
+      }
+    }
+  };
+
+  // ==========================================
+  // VIEW 1: DIRECTORY MODE (CARD DIRECTORY)
+  // ==========================================
+  if (!activeWorkspace) {
+    if (eventsLoading) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary-400" />
+            <p className="text-sm text-slate-400">Memuat direktori keuangan...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (eventsError) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-8 py-6">
+            <AlertCircle className="h-10 w-10 text-red-400" />
+            <div className="text-center">
+              <p className="font-semibold text-red-300">Gagal memuat direktori</p>
+              <p className="mt-1 text-sm text-red-400/70">Terjadi kesalahan saat mengambil daftar event.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const eventList = eventsData?.data?.data || (Array.isArray(eventsData?.data) ? eventsData.data : []) || [];
+
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-400" />
-          <p className="text-sm text-slate-400">Memuat data keuangan...</p>
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/25">
+              <Layers className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Direktori Kas & Keuangan</h1>
+              <p className="text-xs text-slate-400">
+                Pilih ruang kerja kas umum atau kepanitiaan event untuk mengelola transaksi.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Directory Grid */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Card: Kas Umum */}
+          <div
+            onClick={() => {
+              setActiveWorkspace({ id: null, name: 'Kas Umum', type: 'global' });
+              setPage(1);
+            }}
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900/70 to-slate-950/80 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/60 hover:shadow-2xl hover:shadow-emerald-500/15"
+          >
+            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-emerald-500/30" />
+            <div className="relative flex flex-col justify-between h-full space-y-6">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-400">
+                    <Wallet className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-400 border border-emerald-500/20">
+                    Kas Utama
+                  </span>
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">
+                  Kas Umum
+                </h3>
+                <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+                  Pencatatan pemasukan & pengeluaran operasional umum organisasi.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-medium text-emerald-400">
+                <span>Buka Ruang Kerja</span>
+                <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+          </div>
+
+          {/* Cards: Event Workspaces */}
+          {eventList.map((event) => {
+            const ketua =
+              event.committees?.find((c) => c.position === 'Ketua')?.user?.name ||
+              'Belum Ditentukan';
+            const dateDisplay = event.start_date || event.date;
+
+            return (
+              <div
+                key={event.id}
+                onClick={() => {
+                  setActiveWorkspace(event);
+                  setPage(1);
+                }}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-white/[0.08] hover:shadow-2xl hover:shadow-primary-500/10"
+              >
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary-500/10 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/20" />
+                <div className="relative flex flex-col justify-between h-full space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600/15 text-primary-400">
+                        <Calendar className="h-6 w-6" />
+                      </div>
+                      <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-400 border border-primary-500/20">
+                        Event
+                      </span>
+                    </div>
+
+                    <h3 className="mt-4 text-lg font-bold text-white group-hover:text-primary-300 transition-colors line-clamp-1">
+                      {event.name}
+                    </h3>
+
+                    <div className="mt-3 space-y-2 text-xs text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                        <span>{formatTanggal(dateDisplay)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3.5 w-3.5 text-slate-500" />
+                        <span className="truncate">Ketua: {ketua}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-medium text-slate-400 group-hover:text-primary-400 transition-colors">
+                    <span>Buka Ruang Kerja</span>
+                    <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
   }
 
-  // --- Error ---
-  if (error) {
+  // ==========================================
+  // VIEW 2: WORKSPACE MODE (FINANCE TABLE)
+  // ==========================================
+  if (financesLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary-400" />
+          <p className="text-sm text-slate-400">Memuat data transaksi {activeWorkspace.name}...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (financesError) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-8 py-6">
           <AlertCircle className="h-10 w-10 text-red-400" />
           <div className="text-center">
-            <p className="font-semibold text-red-300">Gagal memuat data</p>
-            <p className="mt-1 text-sm text-red-400/70">Terjadi kesalahan saat mengambil data keuangan.</p>
+            <p className="font-semibold text-red-300">Gagal memuat data keuangan</p>
+            <p className="mt-1 text-sm text-red-400/70">Terjadi kesalahan saat mengambil data transaksi.</p>
           </div>
         </div>
       </div>
     );
   }
 
-  const finances = data?.data ?? [];
-  const meta = data?.meta;
+  const finances = financesData?.data?.data || (Array.isArray(financesData?.data) ? financesData.data : []) || [];
+  const meta = financesData?.meta || (financesData?.data && !Array.isArray(financesData?.data) ? financesData.data : null);
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <div>
+        <button
+          onClick={() => {
+            setActiveWorkspace(null);
+            setPage(1);
+          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Kembali ke Direktori
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/25">
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg ${
+              activeWorkspace.id === null
+                ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-emerald-500/25'
+                : 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-500/25'
+            }`}
+          >
             <Wallet className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Manajemen Kas</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-white">{activeWorkspace.name}</h1>
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  activeWorkspace.id === null
+                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-primary-500/15 text-primary-400 border border-primary-500/20'
+                }`}
+              >
+                {activeWorkspace.id === null ? 'Kas Umum' : 'Event'}
+              </span>
+            </div>
             <p className="text-xs text-slate-400">
-              {meta?.total ?? 0} transaksi terdaftar
+              {meta?.total ?? finances.length} transaksi terdaftar
             </p>
           </div>
         </div>
-        {isAdmin && (
+
+        {/* Action: Add Button (Only if authorized) */}
+        {canEdit && (
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setSelectedFinance(null);
+              setIsReadOnlyModal(false);
+              setModalOpen(true);
+            }}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
           >
             <Plus className="h-4 w-4" />
@@ -119,15 +349,15 @@ export default function Finance() {
                 <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
                   Nominal
                 </th>
+                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Aksi
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {finances.length > 0 ? (
                 finances.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="transition-colors hover:bg-white/5"
-                  >
+                  <tr key={item.id} className="transition-colors hover:bg-white/5">
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-300">
                       {formatTanggal(item.date)}
                     </td>
@@ -164,12 +394,50 @@ export default function Finance() {
                       {item.type === 'income' ? '+' : '-'}{' '}
                       {formatRupiah(item.amount)}
                     </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                      {canEdit ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedFinance(item);
+                              setIsReadOnlyModal(false);
+                              setModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-500/20 hover:text-red-300"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Hapus
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end">
+                          <button
+                            onClick={() => {
+                              setSelectedFinance(item);
+                              setIsReadOnlyModal(true);
+                              setModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Detail
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-500">
-                    Belum ada data transaksi.
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500">
+                    Belum ada data transaksi untuk ruang kerja ini.
                   </td>
                 </tr>
               )}
@@ -194,7 +462,7 @@ export default function Finance() {
               </button>
               <button
                 onClick={() => setPage((p) => p + 1)}
-                disabled={page >= meta.last_page || !data?.links?.next}
+                disabled={page >= meta.last_page || !financesData?.links?.next}
                 className="flex items-center gap-1.5 rounded-xl border border-white/10 px-3.5 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 Next
@@ -208,9 +476,16 @@ export default function Finance() {
       {/* Modal */}
       <FinanceModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={() => mutate()}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedFinance(null);
+          setIsReadOnlyModal(false);
+        }}
+        onSuccess={() => mutateFinances()}
         currentUserId={user?.id}
+        initialData={selectedFinance}
+        isReadOnly={isReadOnlyModal}
+        activeEventId={activeWorkspace?.id}
       />
     </div>
   );
