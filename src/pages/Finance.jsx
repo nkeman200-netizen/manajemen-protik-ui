@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
@@ -24,6 +24,8 @@ import {
   Eye,
   Layers,
   ChevronRight as ChevronRightIcon,
+  Search,
+  Filter,
 } from 'lucide-react';
 
 function formatRupiah(value) {
@@ -48,9 +50,29 @@ export default function Finance() {
   const { user } = useAuth();
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [showFilter, setShowFilter] = useState(false);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedFinance, setSelectedFinance] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+
+  // Debounce search input (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset page when filter dropdowns or date range change
+  useEffect(() => {
+    setPage(1);
+  }, [typeFilter, dateRange.start, dateRange.end]);
 
   // --- Directory Mode: Fetch Events ---
   const {
@@ -60,11 +82,27 @@ export default function Finance() {
   } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
 
   // --- Workspace Mode: Fetch Finances ---
-  const financeUrl = activeWorkspace
-    ? activeWorkspace.id
-      ? `/api/finances?event_id=${activeWorkspace.id}&page=${page}`
-      : `/api/finances?page=${page}`
-    : null;
+  let financeUrl = null;
+  if (activeWorkspace) {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    if (activeWorkspace.id) {
+      params.append('event_id', String(activeWorkspace.id));
+    }
+    if (debouncedSearch) {
+      params.append('search', debouncedSearch);
+    }
+    if (typeFilter) {
+      params.append('type', typeFilter);
+    }
+    if (dateRange.start) {
+      params.append('start_date', dateRange.start);
+    }
+    if (dateRange.end) {
+      params.append('end_date', dateRange.end);
+    }
+    financeUrl = `/api/finances?${params.toString()}`;
+  }
 
   const {
     data: financesData,
@@ -142,12 +180,17 @@ export default function Finance() {
         </div>
 
         {/* Directory Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
           {/* Card: Kas Umum */}
           <div
             onClick={() => {
               setActiveWorkspace({ id: null, name: 'Kas Umum', type: 'global' });
               setPage(1);
+              setSearch('');
+              setDebouncedSearch('');
+              setTypeFilter('');
+              setDateRange({ start: '', end: '' });
+              setShowFilter(false);
             }}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/60 hover:shadow-xl hover:shadow-emerald-500/10 dark:from-emerald-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-emerald-500/15"
           >
@@ -190,6 +233,11 @@ export default function Finance() {
                 onClick={() => {
                   setActiveWorkspace(event);
                   setPage(1);
+                  setSearch('');
+                  setDebouncedSearch('');
+                  setTypeFilter('');
+                  setDateRange({ start: '', end: '' });
+                  setShowFilter(false);
                 }}
                 className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
               >
@@ -237,7 +285,7 @@ export default function Finance() {
   // ==========================================
   // VIEW 2: WORKSPACE MODE (FINANCE TABLE)
   // ==========================================
-  if (financesLoading) {
+  if (financesLoading && !financesData) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -273,6 +321,11 @@ export default function Finance() {
           onClick={() => {
             setActiveWorkspace(null);
             setPage(1);
+            setSearch('');
+            setDebouncedSearch('');
+            setTypeFilter('');
+            setDateRange({ start: '', end: '' });
+            setShowFilter(false);
           }}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
         >
@@ -328,8 +381,101 @@ export default function Finance() {
         )}
       </div>
 
+      {/* Advanced Collapsible Filter Panel */}
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        {/* Header Filter (Selalu tampil) */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-primary-500" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Pencarian & Filter
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFilter(!showFilter)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white md:hidden"
+          >
+            <Filter className="h-3.5 w-3.5" />
+            <span>{showFilter ? 'Tutup Filter' : 'Buka Filter'}</span>
+          </button>
+        </div>
+
+        {/* Grid Input Filter */}
+        <div
+          className={`mt-4 grid grid-cols-1 gap-4 md:mt-3 md:grid-cols-4 ${
+            showFilter ? 'grid' : 'hidden md:grid'
+          }`}
+        >
+          {/* Search Deskripsi */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Cari Deskripsi
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ketik deskripsi transaksi..."
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
+              />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            </div>
+          </div>
+
+          {/* Tipe Transaksi */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Tipe Transaksi
+            </label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+            >
+              <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                Semua Tipe Transaksi
+              </option>
+              <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                Pemasukan (Income)
+              </option>
+              <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                Pengeluaran (Expense)
+              </option>
+            </select>
+          </div>
+
+          {/* Tanggal Mulai */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Tanggal Mulai
+            </label>
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value }))}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+            />
+          </div>
+
+          {/* Tanggal Selesai */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Tanggal Selesai
+            </label>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value }))}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

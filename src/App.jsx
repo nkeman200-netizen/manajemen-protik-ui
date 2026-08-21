@@ -7,6 +7,7 @@ import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import EventManagement from './pages/EventManagement';
+import MasterData from './pages/MasterData';
 import Finance from './pages/Finance';
 import Meeting from './pages/Meeting';
 import Document from './pages/Document';
@@ -23,6 +24,7 @@ export default function App() {
               <Route element={<DashboardLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/events" element={<EventManagement />} />
+                <Route path="/dashboard/master-data" element={<MasterData />} />
                 <Route path="/dashboard/finance" element={<Finance />} />
                 <Route path="/dashboard/meetings" element={<Meeting />} />
                 <Route path="/dashboard/documents" element={<Document />} />

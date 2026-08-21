@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import {
   LayoutDashboard,
   CalendarRange,
+  Database,
   CalendarClock,
   Wallet,
   FileText,
@@ -18,6 +19,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
+  { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
   { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
@@ -81,6 +83,7 @@ export default function DashboardLayout() {
               <NavLink
                 key={item.name}
                 to={item.href}
+                end={item.href === '/dashboard'}
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
                   `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
@@ -23,6 +23,7 @@ import {
   Eye,
   Layers,
   ChevronRight as ChevronRightIcon,
+  Search,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -38,9 +39,21 @@ export default function Document() {
   const { user } = useAuth();
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+
+  // Debounce search input (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // --- Directory Mode: Fetch Events ---
   const {
@@ -50,11 +63,18 @@ export default function Document() {
   } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
 
   // --- Workspace Mode: Fetch Documents ---
-  const documentUrl = activeWorkspace
-    ? activeWorkspace.id
-      ? `/api/documents?event_id=${activeWorkspace.id}&page=${page}`
-      : `/api/documents?page=${page}`
-    : null;
+  let documentUrl = null;
+  if (activeWorkspace) {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    if (activeWorkspace.id) {
+      params.append('event_id', String(activeWorkspace.id));
+    }
+    if (debouncedSearch) {
+      params.append('search', debouncedSearch);
+    }
+    documentUrl = `/api/documents?${params.toString()}`;
+  }
 
   const {
     data: documentsData,
@@ -132,12 +152,14 @@ export default function Document() {
         </div>
 
         {/* Directory Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
           {/* Card: Dokumen Umum BPH Pusat */}
           <div
             onClick={() => {
               setActiveWorkspace({ id: null, name: 'Dokumen Umum BPH Pusat', type: 'global' });
               setPage(1);
+              setSearch('');
+              setDebouncedSearch('');
             }}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-xl hover:shadow-violet-500/10 dark:from-violet-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-violet-500/15"
           >
@@ -180,6 +202,8 @@ export default function Document() {
                 onClick={() => {
                   setActiveWorkspace(event);
                   setPage(1);
+                  setSearch('');
+                  setDebouncedSearch('');
                 }}
                 className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
               >
@@ -227,7 +251,7 @@ export default function Document() {
   // ==========================================
   // VIEW 2: WORKSPACE MODE (DOCUMENT TABLE)
   // ==========================================
-  if (documentsLoading) {
+  if (documentsLoading && !documentsData) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -263,6 +287,8 @@ export default function Document() {
           onClick={() => {
             setActiveWorkspace(null);
             setPage(1);
+            setSearch('');
+            setDebouncedSearch('');
           }}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
         >
@@ -318,8 +344,25 @@ export default function Document() {
         )}
       </div>
 
+      {/* Search Bar with Label */}
+      <div className="max-w-md">
+        <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+          Cari Dokumen / Surat
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nomor surat atau judul..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+      </div>
+
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

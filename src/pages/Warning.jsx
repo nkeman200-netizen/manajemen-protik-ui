@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
@@ -12,6 +12,7 @@ import {
   Loader2,
   AlertCircle,
   AlertTriangle,
+  Search,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -26,17 +27,32 @@ function formatTanggal(dateStr) {
 export default function Warning() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
 
+  // Debounce search input (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const warningUrl = debouncedSearch
+    ? `/api/warnings?page=${page}&search=${encodeURIComponent(debouncedSearch)}`
+    : `/api/warnings?page=${page}`;
+
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/warnings?page=${page}`,
+    warningUrl,
     paginatedFetcher
   );
 
   // --- Loading ---
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -91,8 +107,25 @@ export default function Warning() {
         )}
       </div>
 
+      {/* Search Bar with Label */}
+      <div className="max-w-md">
+        <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+          Cari Surat Peringatan
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nama anggota atau alasan..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+      </div>
+
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
