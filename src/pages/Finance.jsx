@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import FinanceModal from '../components/FinanceModal';
@@ -26,6 +27,9 @@ import {
   ChevronRight as ChevronRightIcon,
   Search,
   Filter,
+  Download,
+  Upload,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 function formatRupiah(value) {
@@ -55,6 +59,8 @@ export default function Finance() {
   const [typeFilter, setTypeFilter] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showFilter, setShowFilter] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedFinance, setSelectedFinance] = useState(null);
@@ -117,6 +123,133 @@ export default function Finance() {
     (c) => c.user_id === user?.id && ['Ketua', 'Bendahara'].includes(c.position)
   );
   const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
+
+  // --- Download Template Multi-Sheet ---
+  const handleDownloadTemplate = () => {
+    const formSheetData = [
+      {
+        'Tanggal (YYYY-MM-DD)': '2026-08-25',
+        'Tipe (Pemasukan/Pengeluaran)': 'Pengeluaran',
+        'Rincian': 'Konsumsi Rapat Pleno',
+        'Volume': 25,
+        'Satuan': 'Kotak',
+        'Harga Satuan': 20000,
+        'Sumber Dana': 'KAS',
+        'Keterangan': 'Nasi kotak untuk panitia dan peserta',
+      },
+    ];
+
+    const guideSheetData = [
+      {
+        'No': 1,
+        'Petunjuk Pengisian': 'Tanggal wajib menggunakan format tahun-bulan-tanggal (contoh: 2026-08-25).',
+      },
+      {
+        'No': 2,
+        'Petunjuk Pengisian': "Tipe wajib diisi dengan teks persis: 'Pemasukan' atau 'Pengeluaran'.",
+      },
+      {
+        'No': 3,
+        'Petunjuk Pengisian': 'Harga Satuan hanya diisi angka tanpa titik/koma rupiah.',
+      },
+      {
+        'No': 4,
+        'Petunjuk Pengisian': 'Volume dan Harga Satuan akan otomatis dikalikan oleh sistem menjadi Total.',
+      },
+    ];
+
+    const ws1 = XLSX.utils.json_to_sheet(formSheetData);
+    const ws2 = XLSX.utils.json_to_sheet(guideSheetData);
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'Form_Buku_Kas');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Panduan_Sistem');
+    XLSX.writeFile(wb, 'Template_Buku_Kas.xlsx');
+  };
+
+  // --- Bulk Upload Excel ---
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const ws = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, { raw: false });
+
+        if (!rows || rows.length === 0) {
+          toast.error('File Excel kosong atau format tidak sesuai.');
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const row of rows) {
+          try {
+            const rawDate = row['Tanggal (YYYY-MM-DD)'] || row['Tanggal'] || row['date'];
+            const rawType = row['Tipe (Pemasukan/Pengeluaran)'] || row['Tipe'] || row['type'] || 'expense';
+            const type =
+              String(rawType).toLowerCase().includes('pemasukan') || String(rawType).toLowerCase() === 'income'
+                ? 'income'
+                : 'expense';
+            const title = row['Rincian'] || row['Deskripsi'] || row['title'] || row['description'] || 'Item Transaksi';
+            const qty = Number(row['Volume'] || row['Qty'] || row['qty']) || 1;
+            const unit = row['Satuan'] || row['Unit'] || row['unit'] || '';
+            const unitPrice = Number(row['Harga Satuan'] || row['Harga'] || row['unit_price'] || row['amount']) || 0;
+            const fundingSource = row['Sumber Dana'] || row['sumber_dana'] || row['funding_source'] || '';
+            const notes = row['Keterangan'] || row['Catatan'] || row['notes'] || '';
+
+            let dateStr = rawDate;
+            if (!dateStr) {
+              dateStr = new Date().toISOString().substring(0, 10);
+            }
+
+            const payload = {
+              user_id: user?.id,
+              type,
+              title,
+              qty,
+              unit: unit || null,
+              unit_price: unitPrice,
+              date: dateStr,
+              notes: notes || null,
+              funding_source: fundingSource || null,
+              event_id: activeWorkspace?.id ?? null,
+            };
+
+            await api.post('/api/finances', payload);
+            successCount++;
+          } catch {
+            failCount++;
+          }
+        }
+
+        if (successCount > 0) {
+          toast.success(`Berhasil mengimpor ${successCount} transaksi.`);
+          mutateFinances();
+        }
+        if (failCount > 0) {
+          toast.error(`${failCount} baris transaksi gagal diimpor.`);
+        }
+      } catch (err) {
+        toast.error('Gagal memproses file Excel.');
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  };
 
   // --- Delete Handler ---
   const handleDelete = async (id) => {
@@ -365,19 +498,57 @@ export default function Finance() {
           </div>
         </div>
 
-        {/* Action: Add Button (Only if authorized) */}
+        {/* Action Buttons Container */}
         {canEdit && (
-          <button
-            onClick={() => {
-              setSelectedFinance(null);
-              setIsReadOnlyModal(false);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Transaksi
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".xlsx, .xls"
+              className="hidden"
+            />
+
+            {/* Unduh Template */}
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+            >
+              <Download className="h-4 w-4" />
+              Unduh Template
+            </button>
+
+            {/* Impor Excel */}
+            <button
+              type="button"
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-2.5 text-xs font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              <span>{isUploading ? 'Mengimpor...' : 'Impor Excel'}</span>
+            </button>
+
+            {/* Tambah Transaksi */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFinance(null);
+                setIsReadOnlyModal(false);
+                setModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Transaksi
+            </button>
+          </div>
         )}
       </div>
 
