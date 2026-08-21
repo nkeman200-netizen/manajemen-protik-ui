@@ -49,3 +49,9 @@
 ### Added
 - Penutupan Fase 4: *Core Domain Integration*.
 - Menyusun Roadmap Fase 5: *Build, Gateway Prep, & VPS Provisioning* mencakup konfigurasi Nginx untuk SPA dan pembuatan skrip *monitoring* utilisasi server berbasis Bash.
+## [2026-08-21]
+### Added
+- Penutupan siklus pengembangan antarmuka (UI) v1.0.0.
+- Aplikasi dinyatakan *feature-complete* untuk ruang lingkup *local development*.
+### Changed
+- Membatalkan fase *Deployment & VPS Provisioning* sesuai dengan batasan lingkup proyek (*project scope*) yang ditetapkan.
