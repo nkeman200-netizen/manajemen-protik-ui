@@ -19,3 +19,18 @@
 - Mengimplementasikan `DashboardLayout` dengan fitur *Sidebar* dan *Role-based navigation UI*.
 - Menambahkan *library* `swr` untuk optimasi *caching* dan *data fetching* reaktif.
 - Mengimplementasikan antarmuka *Dashboard* (Grid Cards statistik keuangan dan daftar jadwal agenda terdekat).
+## [2026-08-21]
+### Added
+- Mendefinisikan Draf PRD Fase 4 (Core Domain Integration).
+- Merancang arsitektur Modul Keuangan mencakup *SWR Pagination*, *Role-Based Access Control* (RBAC) pada UI, dan *Error Handling* untuk limitasi anggaran.  
+## [2026-08-21]
+### Added
+- Mengimplementasikan `Finance.jsx` untuk antarmuka manajemen kas dengan *SWR Pagination* dan *Tailwind Table*.
+- Membuat komponen `FinanceModal.jsx` untuk penanganan formulir dan intersep limitasi anggaran (HTTP 422).
+- Menerapkan *Role-Based Access Control* (RBAC) pada UI; tombol Tambah Transaksi hanya terlihat oleh *role* `admin`.
+### Changed
+- Memperbarui `fetcher.js` dengan penambahan `paginatedFetcher` untuk mendukung struktur meta pada Laravel API Resources.
+## [2026-08-21]
+### Fixed
+- Memperbaiki visibilitas teks (kontras warna) pada elemen `<option>` di dalam formulir modal.
+- Menyelesaikan *error* validasi `user_id is required` dengan menyisipkan identitas sesi pengguna ke dalam *payload* POST API.

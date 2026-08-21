@@ -16,7 +16,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Rapat', href: '/rapat', icon: CalendarClock, restrictedForMember: true },
-  { name: 'Kas', href: '/kas', icon: Wallet, restrictedForMember: true },
+  { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
   { name: 'Dokumen', href: '/dokumen', icon: FileText },
   { name: 'Peringatan', href: '/peringatan', icon: AlertTriangle },
 ];
