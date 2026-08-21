@@ -6,6 +6,8 @@ import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Finance from './pages/Finance';
+import Meeting from './pages/Meeting';
+import Document from './pages/Document';
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/finance" element={<Finance />} />
+              <Route path="/dashboard/meetings" element={<Meeting />} />
+              <Route path="/dashboard/documents" element={<Document />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

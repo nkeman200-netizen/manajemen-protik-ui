@@ -15,10 +15,10 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Rapat', href: '/rapat', icon: CalendarClock, restrictedForMember: true },
+  { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
-  { name: 'Dokumen', href: '/dokumen', icon: FileText },
-  { name: 'Peringatan', href: '/peringatan', icon: AlertTriangle },
+  { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
+  { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
 ];
 
 export default function DashboardLayout() {
