@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import MeetingModal from '../components/MeetingModal';
+import AttendanceModal from '../components/AttendanceModal';
 import {
   Plus,
   ChevronLeft,
@@ -24,6 +25,7 @@ import {
   Layers,
   ChevronRight as ChevronRightIcon,
   Search,
+  UserCheck,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -50,6 +52,9 @@ export default function Meeting() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [selectedMeetingForAttendance, setSelectedMeetingForAttendance] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
@@ -420,6 +425,16 @@ export default function Meeting() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
+                              setSelectedMeetingForAttendance(item);
+                              setAttendanceModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                          >
+                            <UserCheck className="h-3.5 w-3.5" />
+                            Absensi
+                          </button>
+                          <button
+                            onClick={() => {
                               setSelectedMeeting(item);
                               setIsReadOnlyModal(false);
                               setModalOpen(true);
@@ -505,6 +520,17 @@ export default function Meeting() {
         onSuccess={() => mutateMeetings()}
         initialData={selectedMeeting}
         isReadOnly={isReadOnlyModal}
+        activeEventId={activeWorkspace?.id}
+      />
+
+      {/* Attendance Modal */}
+      <AttendanceModal
+        isOpen={attendanceModalOpen}
+        onClose={() => {
+          setAttendanceModalOpen(false);
+          setSelectedMeetingForAttendance(null);
+        }}
+        meeting={selectedMeetingForAttendance}
         activeEventId={activeWorkspace?.id}
       />
     </div>

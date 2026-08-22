@@ -98,3 +98,15 @@
 ### Added
 - Mengimplementasikan fitur *Export Laporan Pertanggungjawaban (LPJ)* pada modul Keuangan yang menghasilkan dokumen Excel hierarkis menggunakan *SheetJS Array-of-Arrays (AoA)*.
 - Mengimplementasikan *bypass parameter export* pada `FinanceController` untuk mengoptimalkan *Bulk Fetch Query* tanpa merusak batasan paginasi tampilan tabel.
+## [2026-08-22]
+### Added
+- Mengimplementasikan `Profile.jsx` sebagai portal *Self-Service* bagi pengguna untuk melengkapi atribut *Demografi* (NIM, Telepon, Prodi, Angkatan, Alamat).
+- Mengintegrasikan modul keamanan *Ganti Kata Sandi* secara mandiri (terisolasi tanpa harus menghubungi Admin).
+### Changed
+- Memperbarui komponen `DashboardLayout.jsx` dengan mengonversi *User Card Info* menjadi *Navigation Link* interaktif.
+## [2026-08-22]
+### Added
+- Mengimplementasikan `AttendanceModal.jsx` untuk antarmuka "Simpan Massal" (Bulk Upsert) absensi rapat, menggunakan *Local State Tracking* untuk meniadakan latensi beban jaringan.
+- Mengintegrasikan fitur *Auto-Fill* (Tombol "Hadirkan Semua") yang memutasikan keseluruhan *state* entitas partisipan dalam satu siklus render komponen.
+### Changed
+- Memperbarui `Meeting.jsx` untuk menampilkan tombol aksi operasional "Absensi" (berbasis otorisasi kontekstual *Role*) di dalam *Table Row*.

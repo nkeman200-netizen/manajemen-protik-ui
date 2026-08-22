@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Wallet,
   FileText,
+  User,
   AlertTriangle,
   LogOut,
   Menu,
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
+  { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
   { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
 ];
 
@@ -119,7 +121,10 @@ export default function DashboardLayout() {
         </nav>
 
         {/* User card */}
-        <div className="border-t border-slate-200 dark:border-white/10 px-4 py-4">
+        <Link
+          to="/dashboard/profile"
+          className="block border-t border-slate-200 px-4 py-4 transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+        >
           <div className="flex items-center gap-3 rounded-xl bg-slate-100 dark:bg-white/5 px-3 py-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white">
               {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
@@ -129,7 +134,7 @@ export default function DashboardLayout() {
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.roles?.[0]?.name ?? 'user'}</p>
             </div>
           </div>
-        </div>
+        </Link>
       </aside>
 
       {/* Main content */}

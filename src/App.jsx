@@ -12,6 +12,7 @@ import Finance from './pages/Finance';
 import Meeting from './pages/Meeting';
 import Document from './pages/Document';
 import Warning from './pages/Warning';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
                 <Route path="/dashboard/finance" element={<Finance />} />
                 <Route path="/dashboard/meetings" element={<Meeting />} />
                 <Route path="/dashboard/documents" element={<Document />} />
+                <Route path="/dashboard/profile" element={<Profile />} />
                 <Route path="/dashboard/warnings" element={<Warning />} />
               </Route>
             </Route>

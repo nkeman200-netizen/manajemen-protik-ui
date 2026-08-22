@@ -49,10 +49,12 @@ src/
     vite.svg
   components/
     CommitteeModal.jsx
+    DivisionModal.jsx
     DocumentModal.jsx
     EventModal.jsx
     FinanceModal.jsx
     MeetingModal.jsx
+    UserModal.jsx
     WarningModal.jsx
   contexts/
     AuthContext.jsx
@@ -65,7 +67,9 @@ src/
     EventManagement.jsx
     Finance.jsx
     Login.jsx
+    MasterData.jsx
     Meeting.jsx
+    Profile.jsx
     Warning.jsx
   routes/
     ProtectedRoute.jsx
@@ -82,6 +86,409 @@ vite.config.js
 ```
 
 # Files
+
+## File: src/pages/Profile.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import { User, Key, Save, Loader2, ShieldCheck, Mail, Phone, Hash, GraduationCap, Calendar, MapPin } from 'lucide-react';
+
+export default function Profile() {
+  const { user, checkAuth } = useAuth();
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+    nim: '',
+    phone: '',
+    prodi: '',
+    angkatan: '',
+    address: '',
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
+  });
+
+  const [profileErrors, setProfileErrors] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        email: user.email || '',
+        nim: user.nim || '',
+        phone: user.phone || '',
+        prodi: user.prodi || '',
+        angkatan: user.angkatan || '',
+        address: user.address || '',
+      });
+    }
+  }, [user]);
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+    setProfileErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    setPasswordErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    setProfileErrors({});
+
+    try {
+      await api.put('/api/user/profile', profileForm);
+      await checkAuth();
+      toast.success('Profil berhasil diperbarui.');
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.errors) {
+          setProfileErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError) toast.error(firstError);
+        } else if (data.message) {
+          toast.error(data.message);
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui profil.');
+      }
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingPassword(true);
+    setPasswordErrors({});
+
+    try {
+      await api.put('/api/user/password', passwordForm);
+      setPasswordForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+      });
+      toast.success('Kata sandi berhasil diperbarui.');
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.errors) {
+          setPasswordErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError) toast.error(firstError);
+        } else if (data.message) {
+          toast.error(data.message);
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui kata sandi.');
+      }
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  const inputClass = (hasError) =>
+    `w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 ${
+      hasError
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10 dark:focus:ring-primary-500/20'
+    }`;
+
+  return (
+    <div className="space-y-6 max-w-4xl animate-slide-up-fade">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+          <User className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Profil Saya</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Kelola informasi data diri dan pengaturan keamanan akun Anda.
+          </p>
+        </div>
+      </div>
+
+      {/* Card 1: Informasi Pribadi */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div className="flex items-center gap-2.5">
+            <User className="h-5 w-5 text-primary-500" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Informasi Pribadi</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Perbarui biodata dan kontak akun Anda.
+              </p>
+            </div>
+          </div>
+          <span className="rounded-md bg-primary-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+            {user?.roles?.[0]?.name || 'Member'}
+          </span>
+        </div>
+
+        <form onSubmit={handleProfileSubmit} className="space-y-5">
+          {/* Row 1: Nama & Email */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <User className="h-3.5 w-3.5" />
+                Nama Lengkap
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={profileForm.name}
+                onChange={handleProfileChange}
+                placeholder="Masukkan nama lengkap"
+                className={inputClass(!!profileErrors.name)}
+              />
+              {profileErrors.name && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.name[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Mail className="h-3.5 w-3.5" />
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={profileForm.email}
+                onChange={handleProfileChange}
+                placeholder="contoh@email.com"
+                className={inputClass(!!profileErrors.email)}
+              />
+              {profileErrors.email && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.email[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: NIM & No Telepon */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Hash className="h-3.5 w-3.5" />
+                NIM / Nomor Induk
+              </label>
+              <input
+                type="text"
+                name="nim"
+                value={profileForm.nim}
+                onChange={handleProfileChange}
+                placeholder="Masukkan NIM"
+                className={inputClass(!!profileErrors.nim)}
+              />
+              {profileErrors.nim && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.nim[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Phone className="h-3.5 w-3.5" />
+                No. Telepon / WhatsApp
+              </label>
+              <input
+                type="text"
+                name="phone"
+                value={profileForm.phone}
+                onChange={handleProfileChange}
+                placeholder="081234567890"
+                className={inputClass(!!profileErrors.phone)}
+              />
+              {profileErrors.phone && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.phone[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Program Studi & Angkatan */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <GraduationCap className="h-3.5 w-3.5" />
+                Program Studi
+              </label>
+              <input
+                type="text"
+                name="prodi"
+                value={profileForm.prodi}
+                onChange={handleProfileChange}
+                placeholder="Contoh: Teknik Informatika"
+                className={inputClass(!!profileErrors.prodi)}
+              />
+              {profileErrors.prodi && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.prodi[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Calendar className="h-3.5 w-3.5" />
+                Tahun Angkatan
+              </label>
+              <input
+                type="text"
+                name="angkatan"
+                value={profileForm.angkatan}
+                onChange={handleProfileChange}
+                placeholder="Contoh: 2024"
+                className={inputClass(!!profileErrors.angkatan)}
+              />
+              {profileErrors.angkatan && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.angkatan[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 4: Alamat */}
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <MapPin className="h-3.5 w-3.5" />
+              Alamat Domisili
+            </label>
+            <textarea
+              name="address"
+              rows={3}
+              value={profileForm.address}
+              onChange={handleProfileChange}
+              placeholder="Masukkan alamat lengkap domisili saat ini..."
+              className={inputClass(!!profileErrors.address)}
+            />
+            {profileErrors.address && (
+              <p className="mt-1 text-xs text-red-400">{profileErrors.address[0]}</p>
+            )}
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={isSavingProfile}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Card 2: Keamanan Akun */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div className="flex items-center gap-2.5">
+            <Key className="h-5 w-5 text-amber-500" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Keamanan Akun</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Ganti kata sandi secara berkala untuk menjaga keamanan akun Anda.
+              </p>
+            </div>
+          </div>
+          <ShieldCheck className="h-5 w-5 text-slate-400 dark:text-slate-500" />
+        </div>
+
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          {/* Current Password */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Kata Sandi Saat Ini
+            </label>
+            <input
+              type="password"
+              name="current_password"
+              value={passwordForm.current_password}
+              onChange={handlePasswordChange}
+              placeholder="Masukkan kata sandi lama Anda"
+              className={inputClass(!!passwordErrors.current_password)}
+            />
+            {passwordErrors.current_password && (
+              <p className="mt-1 text-xs text-red-400">{passwordErrors.current_password[0]}</p>
+            )}
+          </div>
+
+          {/* New Password & Confirmation */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Kata Sandi Baru
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={passwordForm.password}
+                onChange={handlePasswordChange}
+                placeholder="Minimal 8 karakter"
+                className={inputClass(!!passwordErrors.password)}
+              />
+              {passwordErrors.password && (
+                <p className="mt-1 text-xs text-red-400">{passwordErrors.password[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Konfirmasi Kata Sandi Baru
+              </label>
+              <input
+                type="password"
+                name="password_confirmation"
+                value={passwordForm.password_confirmation}
+                onChange={handlePasswordChange}
+                placeholder="Ulangi kata sandi baru"
+                className={inputClass(!!passwordErrors.password_confirmation)}
+              />
+              {passwordErrors.password_confirmation && (
+                <p className="mt-1 text-xs text-red-400">{passwordErrors.password_confirmation[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={isSavingPassword}
+              className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-400"
+            >
+              {isSavingPassword ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Key className="h-4 w-4" />
+              )}
+              <span>{isSavingPassword ? 'Memperbarui...' : 'Perbarui Password'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
 
 ## File: public/favicon.svg
 ```xml
@@ -152,6 +559,150 @@ export default axiosInstance;
 ## File: src/assets/vite.svg
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="77" height="47" fill="none" aria-labelledby="vite-logo-title" viewBox="0 0 77 47"><title id="vite-logo-title">Vite</title><style>.parenthesis{fill:#000}@media (prefers-color-scheme:dark){.parenthesis{fill:#fff}}</style><path fill="#9135ff" d="M40.151 45.71c-.663.844-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.493c-.92 0-1.457-1.04-.92-1.788l7.479-10.471c1.07-1.498 0-3.578-1.842-3.578H15.443c-.92 0-1.456-1.04-.92-1.788l9.696-13.576c.213-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.472c-1.07 1.497 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.087.89 1.83L40.153 45.712z"/><mask id="a" width="48" height="47" x="14" y="0" maskUnits="userSpaceOnUse" style="mask-type:alpha"><path fill="#000" d="M40.047 45.71c-.663.843-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.389c-.92 0-1.457-1.04-.92-1.788l7.479-10.472c1.07-1.497 0-3.578-1.842-3.578H15.34c-.92 0-1.456-1.04-.92-1.788l9.696-13.575c.213-.297.556-.474.92-.474H53.93c.92 0 1.456 1.04.92 1.788L47.37 13.03c-1.07 1.498 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.088.89 1.831L40.049 45.712z"/></mask><g mask="url(#a)"><g filter="url(#b)"><ellipse cx="5.508" cy="14.704" fill="#eee6ff" rx="5.508" ry="14.704" transform="rotate(269.814 20.96 11.29)scale(-1 1)"/></g><g filter="url(#c)"><ellipse cx="10.399" cy="29.851" fill="#eee6ff" rx="10.399" ry="29.851" transform="rotate(89.814 -16.902 -8.275)scale(1 -1)"/></g><g filter="url(#d)"><ellipse cx="5.508" cy="30.487" fill="#8900ff" rx="5.508" ry="30.487" transform="rotate(89.814 -19.197 -7.127)scale(1 -1)"/></g><g filter="url(#e)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.928 4.177)scale(1 -1)"/></g><g filter="url(#f)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.738 5.52)scale(1 -1)"/></g><g filter="url(#g)"><ellipse cx="14.072" cy="22.078" fill="#eee6ff" rx="14.072" ry="22.078" transform="rotate(93.35 31.245 55.578)scale(-1 1)"/></g><g filter="url(#h)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#i)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#j)"><ellipse cx="14.592" cy="9.743" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(39.51 14.592 9.743)"/></g><g filter="url(#k)"><ellipse cx="61.728" cy="-5.321" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 61.728 -5.32)"/></g><g filter="url(#l)"><ellipse cx="55.618" cy="7.104" fill="#00c2ff" rx="5.971" ry="9.665" transform="rotate(37.892 55.618 7.104)"/></g><g filter="url(#m)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#n)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#o)"><ellipse cx="49.857" cy="30.678" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 49.857 30.678)"/></g><g filter="url(#p)"><ellipse cx="52.623" cy="33.171" fill="#00c2ff" rx="5.971" ry="15.297" transform="rotate(37.892 52.623 33.17)"/></g></g><path d="M6.919 0c-9.198 13.166-9.252 33.575 0 46.789h6.215c-9.25-13.214-9.196-33.623 0-46.789zm62.424 0h-6.215c9.198 13.166 9.252 33.575 0 46.789h6.215c9.25-13.214 9.196-33.623 0-46.789" class="parenthesis"/><defs><filter id="b" width="60.045" height="41.654" x="-5.564" y="16.92" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="c" width="90.34" height="51.437" x="-40.407" y="-6.762" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="d" width="79.355" height="29.4" x="-35.435" y="2.801" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="e" width="79.579" height="29.4" x="-30.84" y="20.8" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="f" width="79.579" height="29.4" x="-29.307" y="21.949" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="g" width="74.749" height="58.852" x="29.961" y="-17.13" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="h" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="i" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="j" width="56.045" height="63.649" x="-13.43" y="-22.082" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="k" width="54.814" height="64.646" x="34.321" y="-37.644" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="l" width="33.541" height="35.313" x="38.847" y="-10.552" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="m" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="n" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="o" width="54.814" height="64.646" x="22.45" y="-1.645" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="p" width="39.409" height="43.623" x="32.919" y="11.36" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter></defs></svg>
+```
+
+## File: src/components/DivisionModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2, FolderTree } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+export default function DivisionModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData = null,
+}) {
+  const [name, setName] = useState('');
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+    } else {
+      setName('');
+    }
+    setErrors({});
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setErrors({ name: ['Nama divisi wajib diisi.'] });
+      return;
+    }
+
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const payload = { name: name.trim() };
+
+      if (initialData?.id) {
+        await api.put(`/api/divisions/${initialData.id}`, payload);
+        toast.success('Divisi berhasil diperbarui.');
+      } else {
+        await api.post('/api/divisions', payload);
+        toast.success('Divisi baru berhasil ditambahkan.');
+      }
+
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) toast.error(data.message);
+        if (data.errors) setErrors(data.errors);
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal menyimpan divisi.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const modalTitle = initialData?.id ? 'Edit Divisi' : 'Tambah Divisi';
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-md shadow-indigo-500/25">
+              <FolderTree className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              {modalTitle}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Nama Divisi <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setErrors({});
+              }}
+              placeholder="Contoh: Divisi Acara & Kreatif"
+              className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 dark:bg-white/5 dark:text-white dark:placeholder-slate-500 ${
+                errors.name
+                  ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+                  : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+              }`}
+            />
+            {errors.name && (
+              <p className="mt-1 text-xs text-red-400">{errors.name[0]}</p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 ```
 
 ## File: src/components/EventModal.jsx
@@ -404,6 +955,232 @@ export default function EventModal({
 }
 ```
 
+## File: src/components/UserModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2, UserCog } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+const ROLES = [
+  { value: 'admin', label: 'Admin (BPH Pusat)' },
+  { value: 'member', label: 'Member (Anggota Biasa)' },
+  { value: 'advisor', label: 'Advisor (Pembina / Demisioner)' },
+];
+
+const STATUSES = [
+  { value: 'active', label: 'Aktif (Active)' },
+  { value: 'suspended', label: 'Suspended (Nonaktif)' },
+];
+
+export default function UserModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData = null,
+  divisions = [],
+}) {
+  const [divisionId, setDivisionId] = useState('');
+  const [role, setRole] = useState('member');
+  const [status, setStatus] = useState('active');
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setDivisionId(initialData.division_id ?? '');
+      setRole(initialData.roles?.[0]?.name || 'member');
+      setStatus(initialData.status || 'active');
+    }
+    setErrors({});
+  }, [initialData, isOpen]);
+
+  if (!isOpen || !initialData) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const payload = {
+        division_id: divisionId ? Number(divisionId) : null,
+        role,
+        status,
+      };
+
+      await api.put(`/api/users/${initialData.id}`, payload);
+      toast.success(`Data pengguna ${initialData.name} berhasil diperbarui.`);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) toast.error(data.message);
+        if (data.errors) setErrors(data.errors);
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui pengguna.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 dark:bg-white/5 dark:text-white ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-500/25">
+              <UserCog className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                Edit Data Anggota
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Ubah divisi, hak akses (role), atau status akun anggota.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* User Info Preview */}
+        <div className="border-b border-slate-100 bg-slate-50/60 px-6 py-3 dark:border-white/5 dark:bg-white/[0.02]">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+            {initialData.name}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {initialData.email}
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Division */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Divisi Organisasi
+            </label>
+            <select
+              value={divisionId}
+              onChange={(e) => setDivisionId(e.target.value)}
+              className={inputClass('division_id')}
+            >
+              <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                -- Tanpa Divisi (BPH Inti / Umum) --
+              </option>
+              {divisions.map((div) => (
+                <option
+                  key={div.id}
+                  value={div.id}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {div.name}
+                </option>
+              ))}
+            </select>
+            {errors.division_id && (
+              <p className="mt-1 text-xs text-red-400">{errors.division_id[0]}</p>
+            )}
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Hak Akses (Role)
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className={inputClass('role')}
+            >
+              {ROLES.map((r) => (
+                <option
+                  key={r.value}
+                  value={r.value}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            {errors.role && (
+              <p className="mt-1 text-xs text-red-400">{errors.role[0]}</p>
+            )}
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Status Akun
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className={inputClass('status')}
+            >
+              {STATUSES.map((s) => (
+                <option
+                  key={s.value}
+                  value={s.value}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            {errors.status && (
+              <p className="mt-1 text-xs text-red-400">{errors.status[0]}</p>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
 ## File: src/contexts/AuthContext.jsx
 ```javascript
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -420,7 +1197,7 @@ export function AuthProvider({ children }) {
   const checkAuth = useCallback(async () => {
     try {
       const { data } = await api.get('/api/user');
-      setUser(data);
+      setUser(data?.data || data);
     } catch {
       setUser(null);
     } finally {
@@ -949,6 +1726,496 @@ export default function Login() {
           &copy; {new Date().getFullYear()} Manajemen Protik. All rights reserved.
         </p>
       </div>
+    </div>
+  );
+}
+```
+
+## File: src/pages/MasterData.jsx
+```javascript
+import { useState } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '../contexts/AuthContext';
+import { paginatedFetcher } from '../api/fetcher';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import UserModal from '../components/UserModal';
+import DivisionModal from '../components/DivisionModal';
+import {
+  Database,
+  Users,
+  FolderTree,
+  Plus,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  ShieldAlert,
+  Building2,
+} from 'lucide-react';
+
+export default function MasterData() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('users');
+  const [userPage, setUserPage] = useState(1);
+  const [divPage, setDivPage] = useState(1);
+
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [divisionModalOpen, setDivisionModalOpen] = useState(false);
+  const [selectedDivision, setSelectedDivision] = useState(null);
+
+  const isAdmin = user?.roles?.[0]?.name === 'admin';
+
+  // Fetch Users
+  const {
+    data: usersData,
+    error: usersError,
+    isLoading: usersLoading,
+    mutate: mutateUsers,
+  } = useSWR(isAdmin ? `/api/users?page=${userPage}` : null, paginatedFetcher);
+
+  // Fetch Divisions (paginated for Tab 2)
+  const {
+    data: divisionsData,
+    error: divisionsError,
+    isLoading: divisionsLoading,
+    mutate: mutateDivisions,
+  } = useSWR(
+    isAdmin ? `/api/divisions?page=${divPage}` : null,
+    paginatedFetcher
+  );
+
+  // Fetch all divisions for UserModal dropdown
+  const { data: allDivisionsData } = useSWR(
+    isAdmin ? '/api/divisions' : null,
+    paginatedFetcher
+  );
+
+  // RBAC Access Guard
+  if (!isAdmin) {
+    return (
+      <div className="flex h-full items-center justify-center py-16">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-8 text-center dark:bg-red-500/10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/20 text-red-500">
+            <ShieldAlert className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-red-700 dark:text-red-300">Akses Ditolak</h2>
+            <p className="mt-1 text-sm text-red-600/80 dark:text-red-400/80">
+              Halaman Master Data hanya dapat diakses oleh Administrator BPH Pusat.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const usersList =
+    usersData?.data?.data || (Array.isArray(usersData?.data) ? usersData.data : []) || [];
+  const userMeta =
+    usersData?.meta || (usersData?.data && !Array.isArray(usersData?.data) ? usersData.data : null);
+
+  const divisionsList =
+    divisionsData?.data?.data || (Array.isArray(divisionsData?.data) ? divisionsData.data : []) || [];
+  const divMeta =
+    divisionsData?.meta ||
+    (divisionsData?.data && !Array.isArray(divisionsData?.data) ? divisionsData.data : null);
+
+  const dropdownDivisions =
+    allDivisionsData?.data?.data ||
+    (Array.isArray(allDivisionsData?.data) ? allDivisionsData.data : []) ||
+    divisionsList;
+
+  // Delete Division Handler
+  const handleDeleteDivision = async (id) => {
+    if (window.confirm('Yakin ingin menghapus divisi ini?')) {
+      try {
+        await api.delete(`/api/divisions/${id}`);
+        toast.success('Divisi berhasil dihapus.');
+        mutateDivisions();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal menghapus divisi.');
+      }
+    }
+  };
+
+  const getRoleBadge = (roleName) => {
+    switch (roleName) {
+      case 'admin':
+        return 'bg-purple-500/15 text-purple-600 border-purple-500/20 dark:text-purple-400';
+      case 'advisor':
+        return 'bg-amber-500/15 text-amber-600 border-amber-500/20 dark:text-amber-400';
+      default:
+        return 'bg-primary-500/15 text-primary-600 border-primary-500/20 dark:text-primary-400';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-lg shadow-indigo-500/25">
+            <Database className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+              Master Data Organisasi
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Kelola data seluruh anggota, struktur divisi, dan hak akses sistem.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 dark:border-white/10">
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+            activeTab === 'users'
+              ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
+          }`}
+        >
+          <Users className="h-4 w-4" />
+          <span>Daftar Anggota</span>
+          <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
+            {userMeta?.total ?? usersList.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('divisions')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+            activeTab === 'divisions'
+              ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
+          }`}
+        >
+          <FolderTree className="h-4 w-4" />
+          <span>Struktur Divisi</span>
+          <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
+            {divMeta?.total ?? divisionsList.length}
+          </span>
+        </button>
+      </div>
+
+      {/* ========================================= */}
+      {/* TAB 1: DAFTAR ANGGOTA (USERS)             */}
+      {/* ========================================= */}
+      {activeTab === 'users' && (
+        <div className="space-y-4">
+          {usersLoading ? (
+            <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+            </div>
+          ) : usersError ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-2 rounded-2xl border border-red-500/20 bg-red-50 p-6 dark:bg-red-500/10">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                  Gagal memuat data anggota.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Nama Anggota
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Email
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Divisi
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Hak Akses (Role)
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Status
+                      </th>
+                      <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {usersList.length > 0 ? (
+                      usersList.map((item) => {
+                        const userRole = item.roles?.[0]?.name || 'member';
+                        const isSuspended = item.status === 'suspended';
+
+                        return (
+                          <tr
+                            key={item.id}
+                            className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
+                          >
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-xs font-bold text-white">
+                                  {item.name?.charAt(0)?.toUpperCase() ?? 'U'}
+                                </div>
+                                <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                  {item.name}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-xs text-slate-600 dark:text-slate-300">
+                              {item.email}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              {item.division?.name ? (
+                                <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  <Building2 className="h-3.5 w-3.5 text-slate-400" />
+                                  {item.division.name}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <span
+                                className={`rounded-md border px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${getRoleBadge(
+                                  userRole
+                                )}`}
+                              >
+                                {userRole}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              {isSuspended ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-red-500/20 bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-600 dark:text-red-400">
+                                  Suspended
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                  Active
+                                </span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right">
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(item);
+                                  setUserModalOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500"
+                        >
+                          Belum ada anggota terdaftar.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* User Pagination */}
+              {userMeta && userMeta.last_page > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Halaman {userMeta.current_page} dari {userMeta.last_page}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                      disabled={userPage === 1}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Prev
+                    </button>
+                    <button
+                      onClick={() => setUserPage((p) => p + 1)}
+                      disabled={userPage >= userMeta.last_page || !usersData?.links?.next}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================= */}
+      {/* TAB 2: STRUKTUR DIVISI                    */}
+      {/* ========================================= */}
+      {activeTab === 'divisions' && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                setSelectedDivision(null);
+                setDivisionModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary-500/25 transition hover:shadow-lg hover:shadow-primary-500/30"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Divisi
+            </button>
+          </div>
+
+          {divisionsLoading ? (
+            <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+            </div>
+          ) : divisionsError ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-2 rounded-2xl border border-red-500/20 bg-red-50 p-6 dark:bg-red-500/10">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                  Gagal memuat data divisi.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Nama Divisi
+                      </th>
+                      <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {divisionsList.length > 0 ? (
+                      divisionsList.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
+                        >
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                                <FolderTree className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {item.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedDivision(item);
+                                  setDivisionModalOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDivision(item.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Hapus
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={2}
+                          className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500"
+                        >
+                          Belum ada divisi terdaftar.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Division Pagination */}
+              {divMeta && divMeta.last_page > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Halaman {divMeta.current_page} dari {divMeta.last_page}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setDivPage((p) => Math.max(1, p - 1))}
+                      disabled={divPage === 1}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Prev
+                    </button>
+                    <button
+                      onClick={() => setDivPage((p) => p + 1)}
+                      disabled={divPage >= divMeta.last_page || !divisionsData?.links?.next}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* User Edit Modal */}
+      <UserModal
+        isOpen={userModalOpen}
+        onClose={() => {
+          setUserModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onSuccess={() => mutateUsers()}
+        initialData={selectedUser}
+        divisions={dropdownDivisions}
+      />
+
+      {/* Division CRUD Modal */}
+      <DivisionModal
+        isOpen={divisionModalOpen}
+        onClose={() => {
+          setDivisionModalOpen(false);
+          setSelectedDivision(null);
+        }}
+        onSuccess={() => mutateDivisions()}
+        initialData={selectedDivision}
+      />
     </div>
   );
 }
@@ -2042,195 +3309,6 @@ export default function Dashboard() {
 }
 ```
 
-## File: src/pages/Warning.jsx
-```javascript
-import { useState } from 'react';
-import useSWR from 'swr';
-import { useAuth } from '../contexts/AuthContext';
-import { paginatedFetcher } from '../api/fetcher';
-import { format } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
-import WarningModal from '../components/WarningModal';
-import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  AlertCircle,
-  AlertTriangle,
-} from 'lucide-react';
-
-function formatTanggal(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
-  } catch {
-    return dateStr;
-  }
-}
-
-export default function Warning() {
-  const { user } = useAuth();
-  const [page, setPage] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
-
-  const isAdmin = user?.roles?.[0]?.name === 'admin';
-
-  const { data, error, isLoading, mutate } = useSWR(
-    `/api/warnings?page=${page}`,
-    paginatedFetcher
-  );
-
-  // --- Loading ---
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data peringatan...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Error ---
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
-          <div className="text-center">
-            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
-            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data peringatan.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const warnings = data?.data?.data || (Array.isArray(data?.data) ? data.data : []) || [];
-  const meta = data?.meta || (data?.data && !Array.isArray(data?.data) ? data.data : null);
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg shadow-amber-500/25">
-            <AlertTriangle className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Surat Peringatan</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {meta?.total ?? warnings.length} peringatan terdaftar
-            </p>
-          </div>
-        </div>
-        {isAdmin && (
-          <button
-            onClick={() => setModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Peringatan
-          </button>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Tanggal
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Nama Anggota
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Alasan
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Dikeluarkan Oleh
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {warnings.length > 0 ? (
-                warnings.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-                  >
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {formatTanggal(item.date)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
-                      {item.user?.name ?? '-'}
-                    </td>
-                    <td className="max-w-xs truncate px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {item.reason}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                        {item.admin?.name ?? '-'}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-                    Belum ada data peringatan.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {meta && meta.last_page > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Halaman {meta.current_page} dari {meta.last_page}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Prev
-              </button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page >= meta.last_page || !data?.links?.next}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Modal */}
-      <WarningModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSuccess={() => mutate()}
-        currentUserId={user?.id}
-      />
-    </div>
-  );
-}
-```
-
 ## File: package.json
 ```json
 {
@@ -2457,297 +3535,6 @@ export default function DocumentModal({
               className={inputClass('drive_url')}
             />
             {errors.drive_url && <p className="mt-1 text-xs text-red-400">{errors.drive_url[0]}</p>}
-          </div>
-
-          {/* Event ID */}
-          {!activeEventId && (
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Event ID (Opsional)
-              </label>
-              <input
-                type="text"
-                name="event_id"
-                value={form.event_id}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="Masukkan ID event terkait"
-                className={inputClass('event_id')}
-              />
-              {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              {isReadOnly ? 'Tutup' : 'Batal'}
-            </button>
-            {!isReadOnly && (
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-```
-
-## File: src/components/FinanceModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-const FUNDING_SOURCES = [
-  { value: '', label: 'Pilih Sumber Dana (Opsional)' },
-  { value: 'IOM', label: 'IOM' },
-  { value: 'DIPA', label: 'DIPA' },
-  { value: 'KAS', label: 'KAS' },
-  { value: 'SPONSOR', label: 'SPONSOR' },
-];
-
-const initialForm = {
-  type: 'income',
-  amount: '',
-  description: '',
-  date: '',
-  funding_source: '',
-  event_id: '',
-};
-
-export default function FinanceModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  currentUserId,
-  initialData = null,
-  isReadOnly = false,
-  activeEventId = null,
-}) {
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        type: initialData.type || 'income',
-        amount: initialData.amount ?? '',
-        description: initialData.description || '',
-        date: initialData.date ? initialData.date.substring(0, 10) : '',
-        funding_source: initialData.funding_source || '',
-        event_id: initialData.event_id ?? (activeEventId ?? ''),
-      });
-    } else {
-      setForm({
-        ...initialForm,
-        event_id: activeEventId ?? '',
-      });
-    }
-    setErrors({});
-  }, [initialData, activeEventId, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleChange = (e) => {
-    if (isReadOnly) return;
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isReadOnly) return;
-
-    setSubmitting(true);
-    setErrors({});
-
-    try {
-      const targetEventId = initialData
-        ? (form.event_id ? Number(form.event_id) : null)
-        : (activeEventId ? Number(activeEventId) : (form.event_id ? Number(form.event_id) : null));
-
-      const payload = {
-        user_id: currentUserId,
-        type: form.type,
-        amount: Number(form.amount),
-        description: form.description,
-        date: form.date,
-        funding_source: form.funding_source || null,
-        event_id: targetEventId,
-      };
-
-      if (initialData?.id) {
-        await api.put(`/api/finances/${initialData.id}`, payload);
-        toast.success('Transaksi berhasil diperbarui.');
-      } else {
-        await api.post('/api/finances', payload);
-        toast.success('Transaksi berhasil ditambahkan.');
-      }
-
-      setForm(initialForm);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) {
-          toast.error(data.message);
-        }
-        if (data.errors) {
-          setErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError && !data.message) {
-            toast.error(firstError);
-          }
-        }
-      } else {
-        toast.error('Terjadi kesalahan. Silakan coba lagi.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const modalTitle = isReadOnly
-    ? 'Detail Transaksi'
-    : initialData?.id
-    ? 'Edit Transaksi'
-    : 'Tambah Transaksi';
-
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Type */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tipe Transaksi
-            </label>
-            <select
-              name="type"
-              value={form.type}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              className={inputClass('type')}
-            >
-              <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pemasukan</option>
-              <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pengeluaran</option>
-            </select>
-            {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Nominal (Rp)
-            </label>
-            <input
-              type="number"
-              name="amount"
-              value={form.amount}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="0"
-              min="0"
-              className={inputClass('amount')}
-            />
-            {errors.amount && <p className="mt-1 text-xs text-red-400">{errors.amount[0]}</p>}
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Deskripsi
-            </label>
-            <input
-              type="text"
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Keterangan transaksi"
-              className={inputClass('description')}
-            />
-            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tanggal
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              className={inputClass('date')}
-            />
-            {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
-          </div>
-
-          {/* Funding Source */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Sumber Dana
-            </label>
-            <select
-              name="funding_source"
-              value={form.funding_source}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              className={inputClass('funding_source')}
-            >
-              {FUNDING_SOURCES.map((src) => (
-                <option key={src.value} value={src.value} className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
-                  {src.label}
-                </option>
-              ))}
-            </select>
-            {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
           </div>
 
           {/* Event ID */}
@@ -3043,9 +3830,631 @@ export default function MeetingModal({
 }
 ```
 
+## File: src/pages/Warning.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '../contexts/AuthContext';
+import { paginatedFetcher } from '../api/fetcher';
+import { format } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import WarningModal from '../components/WarningModal';
+import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  AlertTriangle,
+  Search,
+} from 'lucide-react';
+
+function formatTanggal(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
+  } catch {
+    return dateStr;
+  }
+}
+
+export default function Warning() {
+  const { user } = useAuth();
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const isAdmin = user?.roles?.[0]?.name === 'admin';
+
+  // Debounce search input (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const warningUrl = debouncedSearch
+    ? `/api/warnings?page=${page}&search=${encodeURIComponent(debouncedSearch)}`
+    : `/api/warnings?page=${page}`;
+
+  const { data, error, isLoading, mutate } = useSWR(
+    warningUrl,
+    paginatedFetcher
+  );
+
+  // --- Loading ---
+  if (isLoading && !data) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data peringatan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Error ---
+  if (error) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
+          <div className="text-center">
+            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
+            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data peringatan.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const warnings = data?.data?.data || (Array.isArray(data?.data) ? data.data : []) || [];
+  const meta = data?.meta || (data?.data && !Array.isArray(data?.data) ? data.data : null);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg shadow-amber-500/25">
+            <AlertTriangle className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Surat Peringatan</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {meta?.total ?? warnings.length} peringatan terdaftar
+            </p>
+          </div>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
+          >
+            <Plus className="h-4 w-4" />
+            Tambah Peringatan
+          </button>
+        )}
+      </div>
+
+      {/* Search Bar with Label */}
+      <div className="max-w-md">
+        <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+          Cari Surat Peringatan
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nama anggota atau alasan..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Tanggal
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Nama Anggota
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Alasan
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Dikeluarkan Oleh
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {warnings.length > 0 ? (
+                warnings.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
+                  >
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                      {formatTanggal(item.date)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
+                      {item.user?.name ?? '-'}
+                    </td>
+                    <td className="max-w-xs truncate px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                      {item.reason}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                        {item.admin?.name ?? '-'}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                    Belum ada data peringatan.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {meta && meta.last_page > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Halaman {meta.current_page} dari {meta.last_page}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Prev
+              </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= meta.last_page || !data?.links?.next}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      <WarningModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={() => mutate()}
+        currentUserId={user?.id}
+      />
+    </div>
+  );
+}
+```
+
+## File: src/components/FinanceModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2 } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+function formatRupiah(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
+const initialForm = {
+  type: 'income',
+  title: '',
+  qty: 1,
+  unit: '',
+  unit_price: '',
+  date: '',
+  notes: '',
+  funding_source: '',
+  event_id: '',
+};
+
+export default function FinanceModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  currentUserId,
+  initialData = null,
+  isReadOnly = false,
+  activeEventId = null,
+}) {
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        type: initialData.type || 'income',
+        title: initialData.title || initialData.description || '',
+        qty: initialData.qty ?? 1,
+        unit: initialData.unit || '',
+        unit_price: initialData.unit_price ?? initialData.amount ?? '',
+        date: initialData.date ? initialData.date.substring(0, 10) : '',
+        notes: initialData.notes || '',
+        funding_source: initialData.funding_source || '',
+        event_id: initialData.event_id ?? (activeEventId ?? ''),
+      });
+    } else {
+      setForm({
+        ...initialForm,
+        event_id: activeEventId ?? '',
+      });
+    }
+    setErrors({});
+  }, [initialData, activeEventId, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    if (isReadOnly) return;
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const calculatedTotal = (Number(form.qty) || 0) * (Number(form.unit_price) || 0);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isReadOnly) return;
+
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const targetEventId = initialData
+        ? (form.event_id ? Number(form.event_id) : null)
+        : (activeEventId ? Number(activeEventId) : (form.event_id ? Number(form.event_id) : null));
+
+      const payload = {
+        user_id: currentUserId,
+        type: form.type,
+        title: form.title,
+        qty: Number(form.qty) || 1,
+        unit: form.unit || null,
+        unit_price: Number(form.unit_price) || 0,
+        date: form.date,
+        notes: form.notes || null,
+        funding_source: form.funding_source || null,
+        event_id: targetEventId,
+      };
+
+      if (initialData?.id) {
+        await api.put(`/api/finances/${initialData.id}`, payload);
+        toast.success('Transaksi berhasil diperbarui.');
+      } else {
+        await api.post('/api/finances', payload);
+        toast.success('Transaksi berhasil ditambahkan.');
+      }
+
+      setForm(initialForm);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) {
+          toast.error(data.message);
+        }
+        if (data.errors) {
+          setErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError && !data.message) {
+            toast.error(firstError);
+          }
+        }
+      } else {
+        toast.error('Terjadi kesalahan. Silakan coba lagi.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const modalTitle = isReadOnly
+    ? 'Detail Transaksi'
+    : initialData?.id
+    ? 'Edit Transaksi'
+    : 'Tambah Transaksi';
+
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white/80 px-6 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Datalist Options */}
+        <datalist id="funding-list">
+          <option value="Pribadi" />
+          <option value="IKM" />
+          <option value="KAS" />
+          <option value="SPONSOR" />
+          <option value="LAINNYA" />
+        </datalist>
+
+        <datalist id="unit-list">
+          <option value="Pcs" />
+          <option value="Pack" />
+          <option value="Box" />
+          <option value="Ls" />
+          <option value="Rim" />
+          <option value="Kg" />
+          <option value="Liter" />
+          <option value="Orang" />
+          <option value="Hari" />
+          <option value="Bulan" />
+          <option value="Kegiatan" />
+        </datalist>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Row 1: Tipe Transaksi & Sumber Dana */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tipe Transaksi
+              </label>
+              <select
+                name="type"
+                value={form.type}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                className={inputClass('type')}
+              >
+                <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pemasukan (Income)</option>
+                <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pengeluaran (Expense)</option>
+              </select>
+              {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Sumber Dana
+              </label>
+              <input
+                type="text"
+                name="funding_source"
+                list="funding-list"
+                value={form.funding_source}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="Pribadi / IKM / KAS..."
+                className={inputClass('funding_source')}
+              />
+              {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
+            </div>
+          </div>
+
+          {/* Row 2: Tanggal & Event ID */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tanggal Transaksi
+              </label>
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                className={inputClass('date')}
+              />
+              {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
+            </div>
+
+            {!activeEventId ? (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Event ID (Opsional)
+                </label>
+                <input
+                  type="text"
+                  name="event_id"
+                  value={form.event_id}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="ID Event (kosongkan jika Kas Umum)"
+                  className={inputClass('event_id')}
+                />
+                {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
+              </div>
+            ) : (
+              <div className="flex items-end">
+                <div className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-400">
+                  Ruang Kerja: <span className="font-semibold text-primary-600 dark:text-primary-400">Event ID #{activeEventId}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Row 3: Rincian (Title) */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Rincian Item / Pengeluaran
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="Contoh: Konsumsi Panitia, Pembelian Kertas..."
+              className={inputClass('title')}
+            />
+            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
+          </div>
+
+          {/* Row 4: Volume (Qty) & Satuan (Unit) */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Volume / Kuantitas (Qty)
+              </label>
+              <input
+                type="number"
+                name="qty"
+                value={form.qty}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="1"
+                min="0.01"
+                step="any"
+                className={inputClass('qty')}
+              />
+              {errors.qty && <p className="mt-1 text-xs text-red-400">{errors.qty[0]}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Satuan (Unit)
+              </label>
+              <input
+                type="text"
+                name="unit"
+                list="unit-list"
+                value={form.unit}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="Pcs / Pack / Box / Ls..."
+                className={inputClass('unit')}
+              />
+              {errors.unit && <p className="mt-1 text-xs text-red-400">{errors.unit[0]}</p>}
+            </div>
+          </div>
+
+          {/* Row 5: Harga Satuan */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Harga Satuan (Rp)
+            </label>
+            <input
+              type="number"
+              name="unit_price"
+              value={form.unit_price}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="0"
+              min="0"
+              className={inputClass('unit_price')}
+            />
+            {errors.unit_price && <p className="mt-1 text-xs text-red-400">{errors.unit_price[0]}</p>}
+          </div>
+
+          {/* Row 6: Keterangan (Notes) */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Keterangan Tambahan / Catatan
+            </label>
+            <textarea
+              name="notes"
+              rows={3}
+              value={form.notes}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="Catatan tambahan (opsional)..."
+              className={inputClass('notes')}
+            />
+            {errors.notes && <p className="mt-1 text-xs text-red-400">{errors.notes[0]}</p>}
+          </div>
+
+          {/* Kalkulasi Otomatis (Read-Only Total Box) */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Total Kalkulasi (Vol × Harga)
+              </span>
+              <span className={`text-base font-bold ${
+                form.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
+              }`}>
+                {formatRupiah(calculatedTotal)}
+              </span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              {isReadOnly ? 'Tutup' : 'Batal'}
+            </button>
+            {!isReadOnly && (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
 ## File: src/pages/Document.jsx
 ```javascript
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
@@ -3070,6 +4479,7 @@ import {
   Eye,
   Layers,
   ChevronRight as ChevronRightIcon,
+  Search,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -3085,9 +4495,21 @@ export default function Document() {
   const { user } = useAuth();
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+
+  // Debounce search input (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // --- Directory Mode: Fetch Events ---
   const {
@@ -3097,11 +4519,18 @@ export default function Document() {
   } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
 
   // --- Workspace Mode: Fetch Documents ---
-  const documentUrl = activeWorkspace
-    ? activeWorkspace.id
-      ? `/api/documents?event_id=${activeWorkspace.id}&page=${page}`
-      : `/api/documents?page=${page}`
-    : null;
+  let documentUrl = null;
+  if (activeWorkspace) {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    if (activeWorkspace.id) {
+      params.append('event_id', String(activeWorkspace.id));
+    }
+    if (debouncedSearch) {
+      params.append('search', debouncedSearch);
+    }
+    documentUrl = `/api/documents?${params.toString()}`;
+  }
 
   const {
     data: documentsData,
@@ -3179,12 +4608,14 @@ export default function Document() {
         </div>
 
         {/* Directory Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
           {/* Card: Dokumen Umum BPH Pusat */}
           <div
             onClick={() => {
               setActiveWorkspace({ id: null, name: 'Dokumen Umum BPH Pusat', type: 'global' });
               setPage(1);
+              setSearch('');
+              setDebouncedSearch('');
             }}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-xl hover:shadow-violet-500/10 dark:from-violet-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-violet-500/15"
           >
@@ -3227,6 +4658,8 @@ export default function Document() {
                 onClick={() => {
                   setActiveWorkspace(event);
                   setPage(1);
+                  setSearch('');
+                  setDebouncedSearch('');
                 }}
                 className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
               >
@@ -3274,7 +4707,7 @@ export default function Document() {
   // ==========================================
   // VIEW 2: WORKSPACE MODE (DOCUMENT TABLE)
   // ==========================================
-  if (documentsLoading) {
+  if (documentsLoading && !documentsData) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -3310,6 +4743,8 @@ export default function Document() {
           onClick={() => {
             setActiveWorkspace(null);
             setPage(1);
+            setSearch('');
+            setDebouncedSearch('');
           }}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
         >
@@ -3365,8 +4800,25 @@ export default function Document() {
         )}
       </div>
 
+      {/* Search Bar with Label */}
+      <div className="max-w-md">
+        <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+          Cari Dokumen / Surat
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nomor surat atau judul..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+      </div>
+
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -3516,505 +4968,9 @@ export default function Document() {
 }
 ```
 
-## File: src/pages/Finance.jsx
-```javascript
-import { useState } from 'react';
-import useSWR from 'swr';
-import { useAuth } from '../contexts/AuthContext';
-import { paginatedFetcher } from '../api/fetcher';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-import { format } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
-import FinanceModal from '../components/FinanceModal';
-import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  AlertCircle,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  Wallet,
-  ArrowLeft,
-  Calendar,
-  User,
-  Pencil,
-  Trash2,
-  Eye,
-  Layers,
-  ChevronRight as ChevronRightIcon,
-} from 'lucide-react';
-
-function formatRupiah(value) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-}
-
-function formatTanggal(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
-  } catch {
-    return dateStr;
-  }
-}
-
-export default function Finance() {
-  const { user } = useAuth();
-  const [activeWorkspace, setActiveWorkspace] = useState(null);
-  const [page, setPage] = useState(1);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedFinance, setSelectedFinance] = useState(null);
-  const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
-
-  // --- Directory Mode: Fetch Events ---
-  const {
-    data: eventsData,
-    error: eventsError,
-    isLoading: eventsLoading,
-  } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
-
-  // --- Workspace Mode: Fetch Finances ---
-  const financeUrl = activeWorkspace
-    ? activeWorkspace.id
-      ? `/api/finances?event_id=${activeWorkspace.id}&page=${page}`
-      : `/api/finances?page=${page}`
-    : null;
-
-  const {
-    data: financesData,
-    error: financesError,
-    isLoading: financesLoading,
-    mutate: mutateFinances,
-  } = useSWR(financeUrl, paginatedFetcher);
-
-  // --- RBAC: Row-Level Authorization ---
-  const isGlobalAdmin = user?.roles?.[0]?.name === 'admin';
-  const isCommittee = activeWorkspace?.committees?.some(
-    (c) => c.user_id === user?.id && ['Ketua', 'Bendahara'].includes(c.position)
-  );
-  const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
-
-  // --- Delete Handler ---
-  const handleDelete = async (id) => {
-    if (window.confirm('Yakin hapus transaksi ini?')) {
-      try {
-        await api.delete(`/api/finances/${id}`);
-        toast.success('Transaksi berhasil dihapus.');
-        mutateFinances();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus transaksi.');
-      }
-    }
-  };
-
-  // ==========================================
-  // VIEW 1: DIRECTORY MODE (CARD DIRECTORY)
-  // ==========================================
-  if (!activeWorkspace) {
-    if (eventsLoading) {
-      return (
-        <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">Memuat direktori keuangan...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (eventsError) {
-      return (
-        <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-            <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
-            <div className="text-center">
-              <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat direktori</p>
-              <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil daftar event.</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const eventList = eventsData?.data?.data || (Array.isArray(eventsData?.data) ? eventsData.data : []) || [];
-
-    return (
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/25">
-              <Layers className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">Direktori Kas & Keuangan</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Pilih ruang kerja kas umum atau kepanitiaan event untuk mengelola transaksi.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Directory Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Card: Kas Umum */}
-          <div
-            onClick={() => {
-              setActiveWorkspace({ id: null, name: 'Kas Umum', type: 'global' });
-              setPage(1);
-            }}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/60 hover:shadow-xl hover:shadow-emerald-500/10 dark:from-emerald-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-emerald-500/15"
-          >
-            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-emerald-500/30" />
-            <div className="relative flex flex-col justify-between h-full space-y-6">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                    <Wallet className="h-6 w-6" />
-                  </div>
-                  <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-600 border border-emerald-500/20 dark:text-emerald-400">
-                    Kas Utama
-                  </span>
-                </div>
-                <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors dark:text-white dark:group-hover:text-emerald-300">
-                  Kas Umum
-                </h3>
-                <p className="mt-1.5 text-xs text-slate-600 leading-relaxed dark:text-slate-400">
-                  Pencatatan pemasukan & pengeluaran operasional umum organisasi.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-emerald-600 dark:border-white/10 dark:text-emerald-400">
-                <span>Buka Ruang Kerja</span>
-                <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
-            </div>
-          </div>
-
-          {/* Cards: Event Workspaces */}
-          {eventList.map((event) => {
-            const ketua =
-              event.committees?.find((c) => c.position === 'Ketua')?.user?.name ||
-              'Belum Ditentukan';
-            const dateDisplay = event.start_date || event.date;
-
-            return (
-              <div
-                key={event.id}
-                onClick={() => {
-                  setActiveWorkspace(event);
-                  setPage(1);
-                }}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
-              >
-                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary-500/10 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/20" />
-                <div className="relative flex flex-col justify-between h-full space-y-6">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600/15 text-primary-600 dark:text-primary-400">
-                        <Calendar className="h-6 w-6" />
-                      </div>
-                      <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 border border-primary-500/20 dark:text-primary-400">
-                        Event
-                      </span>
-                    </div>
-
-                    <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors line-clamp-1 dark:text-white dark:group-hover:text-primary-300">
-                      {event.name}
-                    </h3>
-
-                    <div className="mt-3 space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-                        <span>{formatTanggal(dateDisplay)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-                        <span className="truncate">Ketua: {ketua}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-slate-500 group-hover:text-primary-600 transition-colors dark:border-white/10 dark:text-slate-400 dark:group-hover:text-primary-400">
-                    <span>Buka Ruang Kerja</span>
-                    <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // VIEW 2: WORKSPACE MODE (FINANCE TABLE)
-  // ==========================================
-  if (financesLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data transaksi {activeWorkspace.name}...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (financesError) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
-          <div className="text-center">
-            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data keuangan</p>
-            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data transaksi.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const finances = financesData?.data?.data || (Array.isArray(financesData?.data) ? financesData.data : []) || [];
-  const meta = financesData?.meta || (financesData?.data && !Array.isArray(financesData?.data) ? financesData.data : null);
-
-  return (
-    <div className="space-y-6">
-      {/* Back Button */}
-      <div>
-        <button
-          onClick={() => {
-            setActiveWorkspace(null);
-            setPage(1);
-          }}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Kembali ke Direktori
-        </button>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg ${
-              activeWorkspace.id === null
-                ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-emerald-500/25'
-                : 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-500/25'
-            }`}
-          >
-            <Wallet className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">{activeWorkspace.name}</h1>
-              <span
-                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                  activeWorkspace.id === null
-                    ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
-                    : 'bg-primary-500/15 text-primary-600 border border-primary-500/20 dark:text-primary-400'
-                }`}
-              >
-                {activeWorkspace.id === null ? 'Kas Umum' : 'Event'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {meta?.total ?? finances.length} transaksi terdaftar
-            </p>
-          </div>
-        </div>
-
-        {/* Action: Add Button (Only if authorized) */}
-        {canEdit && (
-          <button
-            onClick={() => {
-              setSelectedFinance(null);
-              setIsReadOnlyModal(false);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Transaksi
-          </button>
-        )}
-      </div>
-
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Tanggal
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Tipe
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Deskripsi
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Sumber Dana
-                </th>
-                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Nominal
-                </th>
-                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {finances.length > 0 ? (
-                finances.map((item) => (
-                  <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {formatTanggal(item.date)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {item.type === 'income' ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                          <ArrowUpCircle className="h-3.5 w-3.5" />
-                          Pemasukan
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400">
-                          <ArrowDownCircle className="h-3.5 w-3.5" />
-                          Pengeluaran
-                        </span>
-                      )}
-                    </td>
-                    <td className="max-w-xs truncate px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {item.description}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {item.funding_source ? (
-                        <span className="rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
-                          {item.funding_source}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
-                      )}
-                    </td>
-                    <td
-                      className={`whitespace-nowrap px-6 py-4 text-right text-sm font-semibold ${
-                        item.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                      }`}
-                    >
-                      {item.type === 'income' ? '+' : '-'}{' '}
-                      {formatRupiah(item.amount)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      {canEdit ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedFinance(item);
-                              setIsReadOnlyModal(false);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Hapus
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end">
-                          <button
-                            onClick={() => {
-                              setSelectedFinance(item);
-                              setIsReadOnlyModal(true);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Detail
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-                    Belum ada data transaksi untuk ruang kerja ini.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {meta && meta.last_page > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Halaman {meta.current_page} dari {meta.last_page}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Prev
-              </button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page >= meta.last_page || !financesData?.links?.next}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Modal */}
-      <FinanceModal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedFinance(null);
-          setIsReadOnlyModal(false);
-        }}
-        onSuccess={() => mutateFinances()}
-        currentUserId={user?.id}
-        initialData={selectedFinance}
-        isReadOnly={isReadOnlyModal}
-        activeEventId={activeWorkspace?.id}
-      />
-    </div>
-  );
-}
-```
-
 ## File: src/pages/Meeting.jsx
 ```javascript
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
@@ -4039,6 +4995,7 @@ import {
   Eye,
   Layers,
   ChevronRight as ChevronRightIcon,
+  Search,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -4063,9 +5020,21 @@ export default function Meeting() {
   const { user } = useAuth();
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+
+  // Debounce search input (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   // --- Directory Mode: Fetch Events ---
   const {
@@ -4075,11 +5044,18 @@ export default function Meeting() {
   } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
 
   // --- Workspace Mode: Fetch Meetings ---
-  const meetingUrl = activeWorkspace
-    ? activeWorkspace.id
-      ? `/api/meetings?event_id=${activeWorkspace.id}&page=${page}`
-      : `/api/meetings?page=${page}`
-    : null;
+  let meetingUrl = null;
+  if (activeWorkspace) {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    if (activeWorkspace.id) {
+      params.append('event_id', String(activeWorkspace.id));
+    }
+    if (debouncedSearch) {
+      params.append('search', debouncedSearch);
+    }
+    meetingUrl = `/api/meetings?${params.toString()}`;
+  }
 
   const {
     data: meetingsData,
@@ -4157,12 +5133,14 @@ export default function Meeting() {
         </div>
 
         {/* Directory Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
           {/* Card: Rapat Umum BPH Pusat */}
           <div
             onClick={() => {
               setActiveWorkspace({ id: null, name: 'Rapat Umum BPH Pusat', type: 'global' });
               setPage(1);
+              setSearch('');
+              setDebouncedSearch('');
             }}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-primary-500/30 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/60 hover:shadow-xl hover:shadow-primary-500/10 dark:from-primary-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-primary-500/15"
           >
@@ -4205,6 +5183,8 @@ export default function Meeting() {
                 onClick={() => {
                   setActiveWorkspace(event);
                   setPage(1);
+                  setSearch('');
+                  setDebouncedSearch('');
                 }}
                 className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
               >
@@ -4252,7 +5232,7 @@ export default function Meeting() {
   // ==========================================
   // VIEW 2: WORKSPACE MODE (MEETING TABLE)
   // ==========================================
-  if (meetingsLoading) {
+  if (meetingsLoading && !meetingsData) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -4288,6 +5268,8 @@ export default function Meeting() {
           onClick={() => {
             setActiveWorkspace(null);
             setPage(1);
+            setSearch('');
+            setDebouncedSearch('');
           }}
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
         >
@@ -4343,8 +5325,25 @@ export default function Meeting() {
         )}
       </div>
 
+      {/* Search Bar with Label */}
+      <div className="max-w-md">
+        <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+          Cari Agenda Rapat
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari judul agenda rapat..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+      </div>
+
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -4537,20 +5536,37 @@ export default function Meeting() {
     color-scheme: dark;
   }
 }
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-fade {
+  animation: slideUpFade 0.4s ease-out forwards;
+}
 ```
 
 ## File: src/layouts/DashboardLayout.jsx
 ```javascript
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   LayoutDashboard,
   CalendarRange,
+  Database,
   CalendarClock,
   Wallet,
   FileText,
+  User,
   AlertTriangle,
   LogOut,
   Menu,
@@ -4561,9 +5577,11 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
+  { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
   { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
+  { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
   { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
 ];
 
@@ -4624,6 +5642,7 @@ export default function DashboardLayout() {
               <NavLink
                 key={item.name}
                 to={item.href}
+                end={item.href === '/dashboard'}
                 onClick={() => setSidebarOpen(false)}
                 className={({ isActive }) =>
                   `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
@@ -4659,7 +5678,10 @@ export default function DashboardLayout() {
         </nav>
 
         {/* User card */}
-        <div className="border-t border-slate-200 dark:border-white/10 px-4 py-4">
+        <Link
+          to="/dashboard/profile"
+          className="block border-t border-slate-200 px-4 py-4 transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+        >
           <div className="flex items-center gap-3 rounded-xl bg-slate-100 dark:bg-white/5 px-3 py-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white">
               {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
@@ -4669,7 +5691,7 @@ export default function DashboardLayout() {
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.roles?.[0]?.name ?? 'user'}</p>
             </div>
           </div>
-        </div>
+        </Link>
       </aside>
 
       {/* Main content */}
@@ -4770,10 +5792,12 @@ import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import EventManagement from './pages/EventManagement';
+import MasterData from './pages/MasterData';
 import Finance from './pages/Finance';
 import Meeting from './pages/Meeting';
 import Document from './pages/Document';
 import Warning from './pages/Warning';
+import Profile from './pages/Profile';
 
 export default function App() {
   return (
@@ -4786,9 +5810,11 @@ export default function App() {
               <Route element={<DashboardLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/events" element={<EventManagement />} />
+                <Route path="/dashboard/master-data" element={<MasterData />} />
                 <Route path="/dashboard/finance" element={<Finance />} />
                 <Route path="/dashboard/meetings" element={<Meeting />} />
                 <Route path="/dashboard/documents" element={<Document />} />
+                <Route path="/dashboard/profile" element={<Profile />} />
                 <Route path="/dashboard/warnings" element={<Warning />} />
               </Route>
             </Route>
@@ -4811,6 +5837,928 @@ export default function App() {
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
+  );
+}
+```
+
+## File: src/pages/Finance.jsx
+```javascript
+import { useState, useEffect, useRef } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '../contexts/AuthContext';
+import { paginatedFetcher } from '../api/fetcher';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import FinanceModal from '../components/FinanceModal';
+import {
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Wallet,
+  ArrowLeft,
+  Calendar,
+  User,
+  Pencil,
+  Trash2,
+  Eye,
+  Layers,
+  ChevronRight as ChevronRightIcon,
+  Search,
+  Filter,
+  Download,
+  Upload,
+  FileSpreadsheet,
+} from 'lucide-react';
+
+function formatRupiah(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
+function formatTanggal(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
+  } catch {
+    return dateStr;
+  }
+}
+
+export default function Finance() {
+  const { user } = useAuth();
+  const [activeWorkspace, setActiveWorkspace] = useState(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [showFilter, setShowFilter] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedFinance, setSelectedFinance] = useState(null);
+  const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+
+  // Debounce search input (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset page when filter dropdowns or date range change
+  useEffect(() => {
+    setPage(1);
+  }, [typeFilter, dateRange.start, dateRange.end]);
+
+  // --- Directory Mode: Fetch Events ---
+  const {
+    data: eventsData,
+    error: eventsError,
+    isLoading: eventsLoading,
+  } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
+
+  // --- Workspace Mode: Fetch Finances ---
+  let financeUrl = null;
+  if (activeWorkspace) {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    if (activeWorkspace.id) {
+      params.append('event_id', String(activeWorkspace.id));
+    }
+    if (debouncedSearch) {
+      params.append('search', debouncedSearch);
+    }
+    if (typeFilter) {
+      params.append('type', typeFilter);
+    }
+    if (dateRange.start) {
+      params.append('start_date', dateRange.start);
+    }
+    if (dateRange.end) {
+      params.append('end_date', dateRange.end);
+    }
+    financeUrl = `/api/finances?${params.toString()}`;
+  }
+
+  const {
+    data: financesData,
+    error: financesError,
+    isLoading: financesLoading,
+    mutate: mutateFinances,
+  } = useSWR(financeUrl, paginatedFetcher);
+
+  // --- RBAC: Row-Level Authorization ---
+  const isGlobalAdmin = user?.roles?.[0]?.name === 'admin';
+  const isCommittee = activeWorkspace?.committees?.some(
+    (c) => c.user_id === user?.id && ['Ketua', 'Bendahara'].includes(c.position)
+  );
+  const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
+
+  // --- Download Template Multi-Sheet ---
+  const handleDownloadTemplate = () => {
+    const formSheetData = [
+      {
+        'Tanggal (YYYY-MM-DD)': '2026-08-25',
+        'Tipe (Pemasukan/Pengeluaran)': 'Pengeluaran',
+        'Rincian': 'Konsumsi Rapat Pleno',
+        'Volume': 25,
+        'Satuan': 'Kotak',
+        'Harga Satuan': 20000,
+        'Sumber Dana': 'KAS',
+        'Keterangan': 'Nasi kotak untuk panitia dan peserta',
+      },
+    ];
+
+    const guideSheetData = [
+      {
+        'No': 1,
+        'Petunjuk Pengisian': 'Tanggal wajib menggunakan format tahun-bulan-tanggal (contoh: 2026-08-25).',
+      },
+      {
+        'No': 2,
+        'Petunjuk Pengisian': "Tipe wajib diisi dengan teks persis: 'Pemasukan' atau 'Pengeluaran'.",
+      },
+      {
+        'No': 3,
+        'Petunjuk Pengisian': 'Harga Satuan hanya diisi angka tanpa titik/koma rupiah.',
+      },
+      {
+        'No': 4,
+        'Petunjuk Pengisian': 'Volume dan Harga Satuan akan otomatis dikalikan oleh sistem menjadi Total.',
+      },
+    ];
+
+    const ws1 = XLSX.utils.json_to_sheet(formSheetData);
+    const ws2 = XLSX.utils.json_to_sheet(guideSheetData);
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'Form_Buku_Kas');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Panduan_Sistem');
+    XLSX.writeFile(wb, 'Template_Buku_Kas.xlsx');
+  };
+
+  // --- Bulk Upload Excel ---
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const ws = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(ws, { raw: false });
+
+        if (!rows || rows.length === 0) {
+          toast.error('File Excel kosong atau format tidak sesuai.');
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const row of rows) {
+          try {
+            const rawDate = row['Tanggal (YYYY-MM-DD)'] || row['Tanggal'] || row['date'];
+            const rawType = row['Tipe (Pemasukan/Pengeluaran)'] || row['Tipe'] || row['type'] || 'expense';
+            const type =
+              String(rawType).toLowerCase().includes('pemasukan') || String(rawType).toLowerCase() === 'income'
+                ? 'income'
+                : 'expense';
+            const title = row['Rincian'] || row['Deskripsi'] || row['title'] || row['description'] || 'Item Transaksi';
+            const qty = Number(row['Volume'] || row['Qty'] || row['qty']) || 1;
+            const unit =
+              row['Satuan'] !== undefined && row['Satuan'] !== ''
+                ? String(row['Satuan'])
+                : 'Ls';
+            const unitPrice = Number(row['Harga Satuan'] || row['Harga'] || row['unit_price'] || row['amount']) || 0;
+            const fundingSource = row['Sumber Dana'] || row['sumber_dana'] || row['funding_source'] || '';
+            const notes = row['Keterangan'] || row['Catatan'] || row['notes'] || '';
+
+            let dateStr = rawDate;
+            if (!dateStr) {
+              dateStr = new Date().toISOString().substring(0, 10);
+            }
+
+            const payload = {
+              user_id: user?.id,
+              type,
+              title,
+              qty,
+              unit: unit || null,
+              unit_price: unitPrice,
+              date: dateStr,
+              notes: notes || null,
+              funding_source: fundingSource || null,
+              event_id: activeWorkspace?.id ?? null,
+            };
+
+            await api.post('/api/finances', payload);
+            successCount++;
+          } catch {
+            failCount++;
+          }
+        }
+
+        if (successCount > 0) {
+          toast.success(`Berhasil mengimpor ${successCount} transaksi.`);
+          mutateFinances();
+        }
+        if (failCount > 0) {
+          toast.error(`${failCount} baris transaksi gagal diimpor.`);
+        }
+      } catch (err) {
+        toast.error('Gagal memproses file Excel.');
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+
+    reader.readAsBinaryString(file);
+  };
+
+  // --- Export LPJ (Array-of-Arrays) ---
+  const handleExportLPJ = async () => {
+    setIsExporting(true);
+    try {
+      const response = await api.get('/api/finances', {
+        params: {
+          event_id: activeWorkspace?.id ?? undefined,
+          export: true,
+        },
+      });
+
+      const allData = response.data?.data || (Array.isArray(response.data) ? response.data : []);
+      const incomes = allData.filter((i) => i.type === 'income');
+      const expenses = allData.filter((i) => i.type === 'expense');
+
+      const totalIncome = incomes.reduce(
+        (sum, item) => sum + (Number(item.amount) || ((Number(item.qty) || 1) * (Number(item.unit_price) || 0))),
+        0
+      );
+      const totalExpense = expenses.reduce(
+        (sum, item) => sum + (Number(item.amount) || ((Number(item.qty) || 1) * (Number(item.unit_price) || 0))),
+        0
+      );
+
+      const wsData = [];
+      wsData.push(['REALISASI ANGGARAN', activeWorkspace?.name || 'KAS UMUM']);
+      wsData.push(['']);
+
+      // BAGIAN PEMASUKAN
+      wsData.push(['a) PEMASUKAN', '', '', '', '', '']);
+      incomes.forEach((inc, idx) => {
+        const amount = Number(inc.amount) || ((Number(inc.qty) || 1) * (Number(inc.unit_price) || 0));
+        wsData.push([
+          `${idx + 1})`,
+          `${inc.title || inc.description || ''} ${inc.funding_source ? `(${inc.funding_source})` : ''}`.trim(),
+          '',
+          '',
+          '',
+          amount,
+        ]);
+      });
+      wsData.push(['SUBTOTAL A', '', '', '', '', totalIncome]);
+      wsData.push(['']);
+
+      // BAGIAN PENGELUARAN
+      wsData.push(['b) PENGELUARAN', '', '', '', '', '']);
+      wsData.push(['No', 'Keterangan', 'Volume', 'Satuan', 'Harga', 'Jumlah']);
+      expenses.forEach((exp, idx) => {
+        const amount = Number(exp.amount) || ((Number(exp.qty) || 1) * (Number(exp.unit_price) || 0));
+        wsData.push([
+          idx + 1,
+          exp.title || exp.description || '',
+          exp.qty ?? 1,
+          exp.unit || '',
+          Number(exp.unit_price) || 0,
+          amount,
+        ]);
+      });
+      wsData.push(['SUBTOTAL B', '', '', '', '', totalExpense]);
+      wsData.push(['']);
+
+      // TOTAL
+      wsData.push(['SALDO AKHIR', '', '', '', '', totalIncome - totalExpense]);
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'LPJ_Keuangan');
+
+      const cleanName = (activeWorkspace?.name || 'Kas_Umum').replace(/[^a-zA-Z0-9_-]/g, '_');
+      XLSX.writeFile(wb, `LPJ_${cleanName}.xlsx`);
+      toast.success('LPJ berhasil diekspor!');
+    } catch (err) {
+      toast.error('Gagal mengekspor data LPJ.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // --- Delete Handler ---
+  const handleDelete = async (id) => {
+    if (window.confirm('Yakin hapus transaksi ini?')) {
+      try {
+        await api.delete(`/api/finances/${id}`);
+        toast.success('Transaksi berhasil dihapus.');
+        mutateFinances();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal menghapus transaksi.');
+      }
+    }
+  };
+
+  // ==========================================
+  // VIEW 1: DIRECTORY MODE (CARD DIRECTORY)
+  // ==========================================
+  if (!activeWorkspace) {
+    if (eventsLoading) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Memuat direktori keuangan...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (eventsError) {
+      return (
+        <div className="flex h-full items-center justify-center">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
+            <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
+            <div className="text-center">
+              <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat direktori</p>
+              <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil daftar event.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const eventList = eventsData?.data?.data || (Array.isArray(eventsData?.data) ? eventsData.data : []) || [];
+
+    return (
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg shadow-emerald-500/25">
+              <Layers className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">Direktori Kas & Keuangan</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Pilih ruang kerja kas umum atau kepanitiaan event untuk mengelola transaksi.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Directory Grid */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
+          {/* Card: Kas Umum */}
+          <div
+            onClick={() => {
+              setActiveWorkspace({ id: null, name: 'Kas Umum', type: 'global' });
+              setPage(1);
+              setSearch('');
+              setDebouncedSearch('');
+              setTypeFilter('');
+              setDateRange({ start: '', end: '' });
+              setShowFilter(false);
+            }}
+            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/60 hover:shadow-xl hover:shadow-emerald-500/10 dark:from-emerald-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-emerald-500/15"
+          >
+            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-emerald-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-emerald-500/30" />
+            <div className="relative flex flex-col justify-between h-full space-y-6">
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <Wallet className="h-6 w-6" />
+                  </div>
+                  <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-emerald-600 border border-emerald-500/20 dark:text-emerald-400">
+                    Kas Utama
+                  </span>
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors dark:text-white dark:group-hover:text-emerald-300">
+                  Kas Umum
+                </h3>
+                <p className="mt-1.5 text-xs text-slate-600 leading-relaxed dark:text-slate-400">
+                  Pencatatan pemasukan & pengeluaran operasional umum organisasi.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-emerald-600 dark:border-white/10 dark:text-emerald-400">
+                <span>Buka Ruang Kerja</span>
+                <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
+            </div>
+          </div>
+
+          {/* Cards: Event Workspaces */}
+          {eventList.map((event) => {
+            const ketua =
+              event.committees?.find((c) => c.position === 'Ketua')?.user?.name ||
+              'Belum Ditentukan';
+            const dateDisplay = event.start_date || event.date;
+
+            return (
+              <div
+                key={event.id}
+                onClick={() => {
+                  setActiveWorkspace(event);
+                  setPage(1);
+                  setSearch('');
+                  setDebouncedSearch('');
+                  setTypeFilter('');
+                  setDateRange({ start: '', end: '' });
+                  setShowFilter(false);
+                }}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
+              >
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary-500/10 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/20" />
+                <div className="relative flex flex-col justify-between h-full space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600/15 text-primary-600 dark:text-primary-400">
+                        <Calendar className="h-6 w-6" />
+                      </div>
+                      <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 border border-primary-500/20 dark:text-primary-400">
+                        Event
+                      </span>
+                    </div>
+
+                    <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors line-clamp-1 dark:text-white dark:group-hover:text-primary-300">
+                      {event.name}
+                    </h3>
+
+                    <div className="mt-3 space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+                        <span>{formatTanggal(dateDisplay)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+                        <span className="truncate">Ketua: {ketua}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-slate-500 group-hover:text-primary-600 transition-colors dark:border-white/10 dark:text-slate-400 dark:group-hover:text-primary-400">
+                    <span>Buka Ruang Kerja</span>
+                    <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // VIEW 2: WORKSPACE MODE (FINANCE TABLE)
+  // ==========================================
+  if (financesLoading && !financesData) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
+          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data transaksi {activeWorkspace.name}...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (financesError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
+          <div className="text-center">
+            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data keuangan</p>
+            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data transaksi.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const finances = financesData?.data?.data || (Array.isArray(financesData?.data) ? financesData.data : []) || [];
+  const meta = financesData?.meta || (financesData?.data && !Array.isArray(financesData?.data) ? financesData.data : null);
+
+  return (
+    <div className="space-y-6">
+      {/* Back Button */}
+      <div>
+        <button
+          onClick={() => {
+            setActiveWorkspace(null);
+            setPage(1);
+            setSearch('');
+            setDebouncedSearch('');
+            setTypeFilter('');
+            setDateRange({ start: '', end: '' });
+            setShowFilter(false);
+          }}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Kembali ke Direktori
+        </button>
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className={`flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg ${
+              activeWorkspace.id === null
+                ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-emerald-500/25'
+                : 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-500/25'
+            }`}
+          >
+            <Wallet className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">{activeWorkspace.name}</h1>
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  activeWorkspace.id === null
+                    ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
+                    : 'bg-primary-500/15 text-primary-600 border border-primary-500/20 dark:text-primary-400'
+                }`}
+              >
+                {activeWorkspace.id === null ? 'Kas Umum' : 'Event'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {meta?.total ?? finances.length} transaksi terdaftar
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons Container */}
+        {canEdit && (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".xlsx, .xls"
+              className="hidden"
+            />
+
+            {/* Ekspor LPJ */}
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={handleExportLPJ}
+              className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50/50 px-4 py-2.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              <span>{isExporting ? 'Mengekspor...' : 'Ekspor LPJ'}</span>
+            </button>
+
+            {/* Unduh Template */}
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+            >
+              <Download className="h-4 w-4" />
+              Unduh Template
+            </button>
+
+            {/* Impor Excel */}
+            <button
+              type="button"
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-2.5 text-xs font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+            >
+              {isUploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              <span>{isUploading ? 'Mengimpor...' : 'Impor Excel'}</span>
+            </button>
+
+            {/* Tambah Transaksi */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFinance(null);
+                setIsReadOnlyModal(false);
+                setModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Transaksi
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Advanced Collapsible Filter Panel */}
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        {/* Header Filter (Selalu tampil) */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-primary-500" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Pencarian & Filter
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowFilter(!showFilter)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white md:hidden"
+          >
+            <Filter className="h-3.5 w-3.5" />
+            <span>{showFilter ? 'Tutup Filter' : 'Buka Filter'}</span>
+          </button>
+        </div>
+
+        {/* Grid Input Filter */}
+        <div
+          className={`mt-4 grid grid-cols-1 gap-4 md:mt-3 md:grid-cols-4 ${
+            showFilter ? 'grid' : 'hidden md:grid'
+          }`}
+        >
+          {/* Search Deskripsi */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Cari Rincian / Deskripsi
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ketik rincian transaksi..."
+                className="w-full rounded-xl border border-slate-300 bg-slate-50 py-2 pl-9 pr-3 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
+              />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            </div>
+          </div>
+
+          {/* Tipe Transaksi */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Tipe Transaksi
+            </label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+            >
+              <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                Semua Tipe Transaksi
+              </option>
+              <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                Pemasukan (Income)
+              </option>
+              <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                Pengeluaran (Expense)
+              </option>
+            </select>
+          </div>
+
+          {/* Tanggal Mulai */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Tanggal Mulai
+            </label>
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value }))}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+            />
+          </div>
+
+          {/* Tanggal Selesai */}
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
+              Tanggal Selesai
+            </label>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value }))}
+              className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Tanggal
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Tipe
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Rincian
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Vol/Satuan
+                </th>
+                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Harga Satuan
+                </th>
+                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Total
+                </th>
+                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Aksi
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {finances.length > 0 ? (
+                finances.map((item) => (
+                  <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                      {formatTanggal(item.date)}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {item.type === 'income' ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                          <ArrowUpCircle className="h-3.5 w-3.5" />
+                          Pemasukan
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                          <ArrowDownCircle className="h-3.5 w-3.5" />
+                          Pengeluaran
+                        </span>
+                      )}
+                    </td>
+                    <td className="max-w-xs px-6 py-4">
+                      <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">
+                        {item.title || item.description || '-'}
+                      </div>
+                      {item.notes && (
+                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
+                          {item.notes}
+                        </div>
+                      )}
+                      {item.funding_source && (
+                        <span className="mt-1 inline-block rounded-md bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:text-primary-400">
+                          {item.funding_source}
+                        </span>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                      {item.qty ?? 1} {item.unit || ''}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-slate-600 dark:text-slate-300">
+                      {formatRupiah(item.unit_price ?? item.amount)}
+                    </td>
+                    <td
+                      className={`whitespace-nowrap px-6 py-4 text-right text-sm font-semibold ${
+                        item.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                      }`}
+                    >
+                      {item.type === 'income' ? '+' : '-'}{' '}
+                      {formatRupiah(item.amount ?? ((item.qty || 1) * (item.unit_price || 0)))}
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                      {canEdit ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedFinance(item);
+                              setIsReadOnlyModal(false);
+                              setModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Hapus
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end">
+                          <button
+                            onClick={() => {
+                              setSelectedFinance(item);
+                              setIsReadOnlyModal(true);
+                              setModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Detail
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                    Belum ada data transaksi untuk ruang kerja ini.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        {meta && meta.last_page > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Halaman {meta.current_page} dari {meta.last_page}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Prev
+              </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= meta.last_page || !financesData?.links?.next}
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      <FinanceModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedFinance(null);
+          setIsReadOnlyModal(false);
+        }}
+        onSuccess={() => mutateFinances()}
+        currentUserId={user?.id}
+        initialData={selectedFinance}
+        isReadOnly={isReadOnlyModal}
+        activeEventId={activeWorkspace?.id}
+      />
+    </div>
   );
 }
 ```
@@ -4898,4 +6846,29 @@ export default function App() {
 ### Added
 - Mengimplementasikan `CommitteeModal.jsx` dengan fitur *Custom Combobox Search* dan *Hybrid Datalist Input* untuk jabatan.
 - Menambahkan fitur *Multi-Sheet Excel Export* (Form, Referensi, Panduan) dan *Sequential Bulk Import* menggunakan pustaka `xlsx`.
+## [2026-08-22]
+### Added
+- Menyuntikkan animasi *Native CSS Keyframes* (`animate-slide-up-fade`) pada transisi render *Workspace* dan Direktori untuk meredam *bug* efek *hover* yang tumpang tindih.
+### Changed
+- Mengadopsi arsitektur antarmuka *Collapsible Panel* untuk fitur *Advanced Filtering* pada tata letak *Mobile* guna menjaga hierarki dan kebersihan UX.
+- Menambahkan *Label Semantic* pada *Input Date* untuk menghindari miskonsepsi format *placeholder* bawaan peramban.
+## [2026-08-22]
+### Changed
+- Mengintegrasikan antarmuka modul Keuangan (`Finance.jsx` & `FinanceModal.jsx`) dengan sistem Volume dan Kalkulasi Otomatis harga satuan.
+- Memperbarui filter Datalist sumber dana menjadi kolom string bebas untuk mengakomodasi diversifikasi *cashflow*.
+## [2026-08-22]
+### Added
+- Mengintegrasikan pustaka `xlsx` pada modul Keuangan (`Finance.jsx`) untuk fungsionalitas ekspor *Template Buku Kas Multi-Sheet*.
+- Mengimplementasikan parser asinkronus *Bulk Insert* untuk fitur Impor Excel massal dengan mapping kolom pintar (mendukung *legacy headers*).
+- Menambahkan validasi *client-side* untuk mengonversi matriks Tipe Transaksi bahasa Indonesia (Pemasukan/Pengeluaran) menjadi enumerasi *Backend* (`income/expense`).
+## [2026-08-22]
+### Added
+- Mengimplementasikan fitur *Export Laporan Pertanggungjawaban (LPJ)* pada modul Keuangan yang menghasilkan dokumen Excel hierarkis menggunakan *SheetJS Array-of-Arrays (AoA)*.
+- Mengimplementasikan *bypass parameter export* pada `FinanceController` untuk mengoptimalkan *Bulk Fetch Query* tanpa merusak batasan paginasi tampilan tabel.
+## [2026-08-22]
+### Added
+- Mengimplementasikan `Profile.jsx` sebagai portal *Self-Service* bagi pengguna untuk melengkapi atribut *Demografi* (NIM, Telepon, Prodi, Angkatan, Alamat).
+- Mengintegrasikan modul keamanan *Ganti Kata Sandi* secara mandiri (terisolasi tanpa harus menghubungi Admin).
+### Changed
+- Memperbarui komponen `DashboardLayout.jsx` dengan mengonversi *User Card Info* menjadi *Navigation Link* interaktif.
 ```

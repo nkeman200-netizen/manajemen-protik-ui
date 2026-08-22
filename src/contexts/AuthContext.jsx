@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const checkAuth = useCallback(async () => {
     try {
       const { data } = await api.get('/api/user');
-      setUser(data);
+      setUser(data?.data || data);
     } catch {
       setUser(null);
     } finally {
