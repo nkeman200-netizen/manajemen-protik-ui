@@ -60,6 +60,7 @@ export default function Finance() {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showFilter, setShowFilter] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef(null);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -203,7 +204,10 @@ export default function Finance() {
                 : 'expense';
             const title = row['Rincian'] || row['Deskripsi'] || row['title'] || row['description'] || 'Item Transaksi';
             const qty = Number(row['Volume'] || row['Qty'] || row['qty']) || 1;
-            const unit = row['Satuan'] || row['Unit'] || row['unit'] || '';
+            const unit =
+              row['Satuan'] !== undefined && row['Satuan'] !== ''
+                ? String(row['Satuan'])
+                : 'Ls';
             const unitPrice = Number(row['Harga Satuan'] || row['Harga'] || row['unit_price'] || row['amount']) || 0;
             const fundingSource = row['Sumber Dana'] || row['sumber_dana'] || row['funding_source'] || '';
             const notes = row['Keterangan'] || row['Catatan'] || row['notes'] || '';
@@ -249,6 +253,84 @@ export default function Finance() {
     };
 
     reader.readAsBinaryString(file);
+  };
+
+  // --- Export LPJ (Array-of-Arrays) ---
+  const handleExportLPJ = async () => {
+    setIsExporting(true);
+    try {
+      const response = await api.get('/api/finances', {
+        params: {
+          event_id: activeWorkspace?.id ?? undefined,
+          export: true,
+        },
+      });
+
+      const allData = response.data?.data || (Array.isArray(response.data) ? response.data : []);
+      const incomes = allData.filter((i) => i.type === 'income');
+      const expenses = allData.filter((i) => i.type === 'expense');
+
+      const totalIncome = incomes.reduce(
+        (sum, item) => sum + (Number(item.amount) || ((Number(item.qty) || 1) * (Number(item.unit_price) || 0))),
+        0
+      );
+      const totalExpense = expenses.reduce(
+        (sum, item) => sum + (Number(item.amount) || ((Number(item.qty) || 1) * (Number(item.unit_price) || 0))),
+        0
+      );
+
+      const wsData = [];
+      wsData.push(['REALISASI ANGGARAN', activeWorkspace?.name || 'KAS UMUM']);
+      wsData.push(['']);
+
+      // BAGIAN PEMASUKAN
+      wsData.push(['a) PEMASUKAN', '', '', '', '', '']);
+      incomes.forEach((inc, idx) => {
+        const amount = Number(inc.amount) || ((Number(inc.qty) || 1) * (Number(inc.unit_price) || 0));
+        wsData.push([
+          `${idx + 1})`,
+          `${inc.title || inc.description || ''} ${inc.funding_source ? `(${inc.funding_source})` : ''}`.trim(),
+          '',
+          '',
+          '',
+          amount,
+        ]);
+      });
+      wsData.push(['SUBTOTAL A', '', '', '', '', totalIncome]);
+      wsData.push(['']);
+
+      // BAGIAN PENGELUARAN
+      wsData.push(['b) PENGELUARAN', '', '', '', '', '']);
+      wsData.push(['No', 'Keterangan', 'Volume', 'Satuan', 'Harga', 'Jumlah']);
+      expenses.forEach((exp, idx) => {
+        const amount = Number(exp.amount) || ((Number(exp.qty) || 1) * (Number(exp.unit_price) || 0));
+        wsData.push([
+          idx + 1,
+          exp.title || exp.description || '',
+          exp.qty ?? 1,
+          exp.unit || '',
+          Number(exp.unit_price) || 0,
+          amount,
+        ]);
+      });
+      wsData.push(['SUBTOTAL B', '', '', '', '', totalExpense]);
+      wsData.push(['']);
+
+      // TOTAL
+      wsData.push(['SALDO AKHIR', '', '', '', '', totalIncome - totalExpense]);
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'LPJ_Keuangan');
+
+      const cleanName = (activeWorkspace?.name || 'Kas_Umum').replace(/[^a-zA-Z0-9_-]/g, '_');
+      XLSX.writeFile(wb, `LPJ_${cleanName}.xlsx`);
+      toast.success('LPJ berhasil diekspor!');
+    } catch (err) {
+      toast.error('Gagal mengekspor data LPJ.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // --- Delete Handler ---
@@ -509,6 +591,21 @@ export default function Finance() {
               accept=".xlsx, .xls"
               className="hidden"
             />
+
+            {/* Ekspor LPJ */}
+            <button
+              type="button"
+              disabled={isExporting}
+              onClick={handleExportLPJ}
+              className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50/50 px-4 py-2.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+            >
+              {isExporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="h-4 w-4" />
+              )}
+              <span>{isExporting ? 'Mengekspor...' : 'Ekspor LPJ'}</span>
+            </button>
 
             {/* Unduh Template */}
             <button
