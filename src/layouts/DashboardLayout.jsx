@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   CalendarRange,
   Database,
+  Activity,
   CalendarClock,
   Wallet,
   FileText,
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
   { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
+  { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
   { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
@@ -47,7 +49,7 @@ export default function DashboardLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}

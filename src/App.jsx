@@ -13,6 +13,7 @@ import Meeting from './pages/Meeting';
 import Document from './pages/Document';
 import Warning from './pages/Warning';
 import Profile from './pages/Profile';
+import AuditTrail from './pages/AuditTrail';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/events" element={<EventManagement />} />
                 <Route path="/dashboard/master-data" element={<MasterData />} />
+                <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
                 <Route path="/dashboard/finance" element={<Finance />} />
                 <Route path="/dashboard/meetings" element={<Meeting />} />
                 <Route path="/dashboard/documents" element={<Document />} />
