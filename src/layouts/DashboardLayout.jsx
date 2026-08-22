@@ -25,6 +25,7 @@ const navigation = [
   { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
   { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
+  { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
   { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
   { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },

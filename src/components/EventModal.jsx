@@ -10,6 +10,8 @@ const initialForm = {
   drive_folder_url: '',
   start_date: '',
   end_date: '',
+  document_sync_url: '',
+  finance_sync_url: '',
 };
 
 export default function EventModal({
@@ -31,6 +33,8 @@ export default function EventModal({
         drive_folder_url: initialData.drive_folder_url || '',
         start_date: initialData.start_date ? initialData.start_date.substring(0, 10) : '',
         end_date: initialData.end_date ? initialData.end_date.substring(0, 10) : '',
+        document_sync_url: initialData.document_sync_url || '',
+        finance_sync_url: initialData.finance_sync_url || '',
       });
     } else {
       setForm(initialForm);
@@ -59,6 +63,8 @@ export default function EventModal({
         drive_folder_url: form.drive_folder_url || null,
         start_date: form.start_date,
         end_date: form.end_date || null,
+        document_sync_url: form.document_sync_url || null,
+        finance_sync_url: form.finance_sync_url || null,
       };
 
       if (initialData?.id) {
@@ -219,6 +225,38 @@ export default function EventModal({
               className={inputClass('drive_folder_url')}
             />
             {errors.drive_folder_url && <p className="mt-1 text-xs text-red-400">{errors.drive_folder_url[0]}</p>}
+          </div>
+
+          {/* Sync URLs */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sinkronisasi Dokumen
+              </label>
+              <input
+                type="url"
+                name="document_sync_url"
+                value={form.document_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/spreadsheets/..."
+                className={inputClass('document_sync_url')}
+              />
+              {errors.document_sync_url && <p className="mt-1 text-xs text-red-400">{errors.document_sync_url[0]}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sinkronisasi Keuangan
+              </label>
+              <input
+                type="url"
+                name="finance_sync_url"
+                value={form.finance_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/spreadsheets/..."
+                className={inputClass('finance_sync_url')}
+              />
+              {errors.finance_sync_url && <p className="mt-1 text-xs text-red-400">{errors.finance_sync_url[0]}</p>}
+            </div>
           </div>
 
           {/* Actions */}

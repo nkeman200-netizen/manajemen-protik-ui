@@ -14,11 +14,15 @@ function formatRupiah(value) {
 
 const initialForm = {
   type: 'income',
-  title: '',
+  description: '',
   qty: 1,
   unit: '',
   unit_price: '',
   date: '',
+  category: '',
+  pic: '',
+  payment_method: '',
+  receipt_url: '',
   notes: '',
   funding_source: '',
   event_id: '',
@@ -33,25 +37,29 @@ export default function FinanceModal({
   isReadOnly = false,
   activeEventId = null,
 }) {
-  const [form, setForm] = useState(initialForm);
+  const [formData, setFormData] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (initialData) {
-      setForm({
+      setFormData({
         type: initialData.type || 'income',
-        title: initialData.title || initialData.description || '',
+        description: initialData.description || initialData.title || '',
         qty: initialData.qty ?? 1,
         unit: initialData.unit || '',
         unit_price: initialData.unit_price ?? initialData.amount ?? '',
-        date: initialData.date ? initialData.date.substring(0, 10) : '',
+        date: initialData.date ? String(initialData.date).substring(0, 10) : '',
+        category: initialData.category || '',
+        pic: initialData.pic || '',
+        payment_method: initialData.payment_method || '',
+        receipt_url: initialData.receipt_url || '',
         notes: initialData.notes || '',
         funding_source: initialData.funding_source || '',
         event_id: initialData.event_id ?? (activeEventId ?? ''),
       });
     } else {
-      setForm({
+      setFormData({
         ...initialForm,
         event_id: activeEventId ?? '',
       });
@@ -64,11 +72,9 @@ export default function FinanceModal({
   const handleChange = (e) => {
     if (isReadOnly) return;
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
-
-  const calculatedTotal = (Number(form.qty) || 0) * (Number(form.unit_price) || 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,19 +85,24 @@ export default function FinanceModal({
 
     try {
       const targetEventId = initialData
-        ? (form.event_id ? Number(form.event_id) : null)
-        : (activeEventId ? Number(activeEventId) : (form.event_id ? Number(form.event_id) : null));
+        ? (formData.event_id ? Number(formData.event_id) : null)
+        : (activeEventId ? Number(activeEventId) : (formData.event_id ? Number(formData.event_id) : null));
 
       const payload = {
         user_id: currentUserId,
-        type: form.type,
-        title: form.title,
-        qty: Number(form.qty) || 1,
-        unit: form.unit || null,
-        unit_price: Number(form.unit_price) || 0,
-        date: form.date,
-        notes: form.notes || null,
-        funding_source: form.funding_source || null,
+        type: formData.type,
+        title: formData.description,
+        description: formData.description,
+        qty: Number(formData.qty) || 1,
+        unit: formData.unit || null,
+        unit_price: Number(formData.unit_price) || 0,
+        date: formData.date,
+        category: formData.category || null,
+        pic: formData.pic || null,
+        payment_method: formData.payment_method || null,
+        receipt_url: formData.receipt_url || null,
+        notes: formData.notes || null,
+        funding_source: formData.funding_source || null,
         event_id: targetEventId,
       };
 
@@ -103,7 +114,7 @@ export default function FinanceModal({
         toast.success('Transaksi berhasil ditambahkan.');
       }
 
-      setForm(initialForm);
+      setFormData(initialForm);
       onSuccess();
       onClose();
     } catch (err) {
@@ -133,13 +144,6 @@ export default function FinanceModal({
     ? 'Edit Transaksi'
     : 'Tambah Transaksi';
 
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* Backdrop */}
@@ -149,7 +153,7 @@ export default function FinanceModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
         {/* Header */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white/80 px-6 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
@@ -161,216 +165,250 @@ export default function FinanceModal({
           </button>
         </div>
 
-        {/* Datalist Options */}
-        <datalist id="funding-list">
-          <option value="Pribadi" />
-          <option value="IKM" />
-          <option value="KAS" />
-          <option value="SPONSOR" />
-          <option value="LAINNYA" />
-        </datalist>
-
-        <datalist id="unit-list">
-          <option value="Pcs" />
-          <option value="Pack" />
-          <option value="Box" />
-          <option value="Ls" />
-          <option value="Rim" />
-          <option value="Kg" />
-          <option value="Liter" />
-          <option value="Orang" />
-          <option value="Hari" />
-          <option value="Bulan" />
-          <option value="Kegiatan" />
-        </datalist>
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Row 1: Tipe Transaksi & Sumber Dana */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tipe Transaksi
-              </label>
-              <select
-                name="type"
-                value={form.type}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                className={inputClass('type')}
-              >
-                <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pemasukan (Income)</option>
-                <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pengeluaran (Expense)</option>
-              </select>
-              {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Sumber Dana
-              </label>
-              <input
-                type="text"
-                name="funding_source"
-                list="funding-list"
-                value={form.funding_source}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="Pribadi / IKM / KAS..."
-                className={inputClass('funding_source')}
-              />
-              {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
-            </div>
-          </div>
-
-          {/* Row 2: Tanggal & Event ID */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tanggal Transaksi
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                className={inputClass('date')}
-              />
-              {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
-            </div>
-
-            {!activeEventId ? (
-              <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Event ID (Opsional)
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-5">
+            {/* Tipe & Sumber Dana */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Tipe Transaksi
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                >
+                  <option value="income">Pemasukan (Income)</option>
+                  <option value="expense">Pengeluaran (Expense)</option>
+                </select>
+                {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Sumber Dana
                 </label>
                 <input
                   type="text"
-                  name="event_id"
-                  value={form.event_id}
+                  name="funding_source"
+                  value={formData.funding_source}
                   onChange={handleChange}
                   disabled={isReadOnly}
+                  placeholder="Pribadi / IKM / KAS..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
+              </div>
+            </div>
+
+            {/* Tanggal & Event ID */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Tanggal Transaksi
+                </label>
+                <input
+                  type="date"
+                  name="date"
+                  required
+                  value={formData.date}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Event ID (Opsional)
+                </label>
+                <input
+                  type="number"
+                  name="event_id"
+                  value={formData.event_id}
+                  onChange={handleChange}
                   placeholder="ID Event (kosongkan jika Kas Umum)"
-                  className={inputClass('event_id')}
+                  disabled={isReadOnly || activeEventId !== null}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
               </div>
-            ) : (
-              <div className="flex items-end">
-                <div className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-400">
-                  Ruang Kerja: <span className="font-semibold text-primary-600 dark:text-primary-400">Event ID #{activeEventId}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Row 3: Rincian (Title) */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Rincian Item / Pengeluaran
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Contoh: Konsumsi Panitia, Pembelian Kertas..."
-              className={inputClass('title')}
-            />
-            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
-          </div>
-
-          {/* Row 4: Volume (Qty) & Satuan (Unit) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Volume / Kuantitas (Qty)
-              </label>
-              <input
-                type="number"
-                name="qty"
-                value={form.qty}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="1"
-                min="0.01"
-                step="any"
-                className={inputClass('qty')}
-              />
-              {errors.qty && <p className="mt-1 text-xs text-red-400">{errors.qty[0]}</p>}
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Satuan (Unit)
+            {/* Kategori & PIC */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Kategori
+                </label>
+                <input
+                  type="text"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Konsumsi / ATK / Cetak..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.category && <p className="mt-1 text-xs text-red-400">{errors.category[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  PIC / Penanggungjawab
+                </label>
+                <input
+                  type="text"
+                  name="pic"
+                  value={formData.pic}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Nama PIC..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.pic && <p className="mt-1 text-xs text-red-400">{errors.pic[0]}</p>}
+              </div>
+            </div>
+
+            {/* Rincian */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Rincian Item / Pengeluaran
               </label>
               <input
                 type="text"
-                name="unit"
-                list="unit-list"
-                value={form.unit}
+                name="description"
+                required
+                value={formData.description}
                 onChange={handleChange}
                 disabled={isReadOnly}
-                placeholder="Pcs / Pack / Box / Ls..."
-                className={inputClass('unit')}
+                placeholder="Contoh: Konsumsi Panitia..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
-              {errors.unit && <p className="mt-1 text-xs text-red-400">{errors.unit[0]}</p>}
+              {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
+              {errors.title && !errors.description && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
             </div>
-          </div>
 
-          {/* Row 5: Harga Satuan */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Harga Satuan (Rp)
-            </label>
-            <input
-              type="number"
-              name="unit_price"
-              value={form.unit_price}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="0"
-              min="0"
-              className={inputClass('unit_price')}
-            />
-            {errors.unit_price && <p className="mt-1 text-xs text-red-400">{errors.unit_price[0]}</p>}
-          </div>
+            {/* Volume & Satuan */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Volume (Qty)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="qty"
+                  required
+                  value={formData.qty}
+                  onChange={handleChange}
+                  min="0.01"
+                  disabled={isReadOnly}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.qty && <p className="mt-1 text-xs text-red-400">{errors.qty[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Satuan (Unit)
+                </label>
+                <input
+                  type="text"
+                  name="unit"
+                  required
+                  value={formData.unit}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Pcs / Box / Lbr..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.unit && <p className="mt-1 text-xs text-red-400">{errors.unit[0]}</p>}
+              </div>
+            </div>
 
-          {/* Row 6: Keterangan (Notes) */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Keterangan Tambahan / Catatan
-            </label>
-            <textarea
-              name="notes"
-              rows={3}
-              value={form.notes}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Catatan tambahan (opsional)..."
-              className={inputClass('notes')}
-            />
-            {errors.notes && <p className="mt-1 text-xs text-red-400">{errors.notes[0]}</p>}
-          </div>
+            {/* Harga Satuan */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Harga Satuan (Rp)
+              </label>
+              <input
+                type="number"
+                name="unit_price"
+                required
+                value={formData.unit_price}
+                onChange={handleChange}
+                min="0"
+                disabled={isReadOnly}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+              {errors.unit_price && <p className="mt-1 text-xs text-red-400">{errors.unit_price[0]}</p>}
+            </div>
 
-          {/* Kalkulasi Otomatis (Read-Only Total Box) */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {/* Metode & Nota */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Metode Bayar
+                </label>
+                <input
+                  type="text"
+                  name="payment_method"
+                  value={formData.payment_method}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Tunai / Transfer..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.payment_method && <p className="mt-1 text-xs text-red-400">{errors.payment_method[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Link Nota
+                </label>
+                <input
+                  type="url"
+                  name="receipt_url"
+                  value={formData.receipt_url}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="https://..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.receipt_url && <p className="mt-1 text-xs text-red-400">{errors.receipt_url[0]}</p>}
+              </div>
+            </div>
+
+            {/* Keterangan */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Keterangan / Catatan
+              </label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={2}
+                disabled={isReadOnly}
+                placeholder="Catatan tambahan..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+              {errors.notes && <p className="mt-1 text-xs text-red-400">{errors.notes[0]}</p>}
+            </div>
+
+            {/* Kalkulasi Total (Otomatis) */}
+            <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Total Kalkulasi (Vol × Harga)
               </span>
-              <span className={`text-base font-bold ${
-                form.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-              }`}>
-                {formatRupiah(calculatedTotal)}
+              <span className={`text-lg font-black ${formData.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                {formatRupiah((parseFloat(formData.qty) || 0) * (parseFloat(formData.unit_price) || 0))}
               </span>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}

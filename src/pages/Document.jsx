@@ -14,7 +14,7 @@ import {
   Loader2,
   AlertCircle,
   FileText,
-  ExternalLink,
+  FileBadge,
   ArrowLeft,
   Calendar,
   User,
@@ -24,6 +24,8 @@ import {
   Layers,
   ChevronRight as ChevronRightIcon,
   Search,
+  RefreshCw,
+  MoreVertical,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -41,10 +43,19 @@ export default function Document() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenDropdownId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   // Debounce search input (500ms)
   useEffect(() => {
@@ -89,6 +100,21 @@ export default function Document() {
     (c) => c.user_id === user?.id && ['Ketua', 'Sekretaris'].includes(c.position)
   );
   const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
+
+  // --- Sync Handler ---
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const payload = activeWorkspace?.id ? { event_id: activeWorkspace.id } : {};
+      const res = await api.post('/api/documents/sync', payload);
+      toast.success(res.data.message || 'Sinkronisasi berhasil.');
+      mutateDocuments();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal melakukan sinkronisasi.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // --- Delete Handler ---
   const handleDelete = async (id) => {
@@ -163,7 +189,7 @@ export default function Document() {
             }}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-xl hover:shadow-violet-500/10 dark:from-violet-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-violet-500/15"
           >
-            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-violet-500/30" />
+            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/30" />
             <div className="relative flex flex-col justify-between h-full space-y-6">
               <div>
                 <div className="flex items-center justify-between">
@@ -328,19 +354,29 @@ export default function Document() {
           </div>
         </div>
 
-        {/* Action: Add Button (Only if authorized) */}
+        {/* Action: Sync & Add Buttons (Only if authorized) */}
         {canEdit && (
-          <button
-            onClick={() => {
-              setSelectedDocument(null);
-              setIsReadOnlyModal(false);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Surat
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-2.5 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-400 dark:hover:bg-violet-500/20"
+            >
+              <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
+            </button>
+            <button
+              onClick={() => {
+                setSelectedDocument(null);
+                setIsReadOnlyModal(false);
+                setModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Surat
+            </button>
+          </div>
         )}
       </div>
 
@@ -368,16 +404,13 @@ export default function Document() {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Nomor Surat
+                  Nomor & Tanggal
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Judul
+                  Judul & Kegiatan
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Pembuat
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Link Drive
                 </th>
                 <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Aksi
@@ -388,67 +421,118 @@ export default function Document() {
               {documents.length > 0 ? (
                 documents.map((item) => (
                   <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+                    {/* Kolom 1: Nomor & Tanggal Buat */}
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 dark:bg-slate-700/50 dark:text-slate-200">
-                        {item.letter_number}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-mono font-bold text-slate-700 w-max dark:bg-slate-800 dark:text-slate-300">
+                          {item.letter_number}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Dibuat: {formatTanggal(item.created_at)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="max-w-xs truncate px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
-                      {item.title}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {item.creator?.name ?? '-'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {item.drive_url ? (
-                        <a
-                          href={item.drive_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400 transition hover:bg-primary-500/25"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Buka
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+
+                    {/* Kolom 2: Judul & Tanggal Kegiatan */}
+                    <td className="max-w-[200px] px-6 py-4">
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                        {item.title}
+                      </p>
+                      {item.activity_date && (
+                        <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-primary-600 dark:text-primary-400">
+                          <Calendar className="h-3 w-3" />
+                          Kegiatan: {formatTanggal(item.activity_date)}
+                        </div>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      {canEdit ? (
-                        <div className="flex items-center justify-end gap-2">
+
+                    {/* Kolom 3: Pembuat */}
+                    <td className="whitespace-nowrap px-6 py-4 text-xs font-medium text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 text-slate-400" />
+                        {item.creator?.name ?? 'Sistem'}
+                      </div>
+                    </td>
+
+                    {/* Kolom 4: Kebab Menu Aksi */}
+                    <td className="relative whitespace-nowrap px-6 py-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDropdownId(openDropdownId === item.id ? null : item.id);
+                        }}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+
+                      {openDropdownId === item.id && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-10 top-4 z-50 mt-2 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none dark:border-white/10 dark:bg-slate-800"
+                        >
+                          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            Tautan Dokumen
+                          </div>
+
+                          {item.letter_link && (
+                            <a
+                              href={item.letter_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
+                            >
+                              <FileText className="h-4 w-4 text-blue-500" /> Draft Surat (Word)
+                            </a>
+                          )}
+
+                          {item.scan_link && (
+                            <a
+                              href={item.scan_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
+                            >
+                              <FileBadge className="h-4 w-4 text-red-500" /> Scan Valid (PDF)
+                            </a>
+                          )}
+
+                          <div className="my-1 h-px bg-slate-100 dark:bg-white/10"></div>
+                          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            Aksi Data
+                          </div>
+
                           <button
                             onClick={() => {
+                              setOpenDropdownId(null);
                               setSelectedDocument(item);
-                              setIsReadOnlyModal(false);
+                              setIsReadOnlyModal(!canEdit);
                               setModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
+                            {canEdit ? (
+                              <>
+                                <Pencil className="h-4 w-4 text-amber-500" /> Edit Metadata
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-4 w-4 text-indigo-500" /> Detail Surat
+                              </>
+                            )}
                           </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Hapus
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end">
-                          <button
-                            onClick={() => {
-                              setSelectedDocument(item);
-                              setIsReadOnlyModal(true);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Detail
-                          </button>
+
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                setOpenDropdownId(null);
+                                handleDelete(item.id);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" /> Hapus Surat
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -456,7 +540,7 @@ export default function Document() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                     Belum ada data dokumen untuk ruang kerja ini.
                   </td>
                 </tr>

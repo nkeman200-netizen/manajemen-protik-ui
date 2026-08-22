@@ -6,7 +6,9 @@ import toast from 'react-hot-toast';
 const initialForm = {
   letter_number: '',
   title: '',
-  drive_url: '',
+  letter_link: '',
+  scan_link: '',
+  activity_date: '',
   event_id: '',
 };
 
@@ -28,7 +30,9 @@ export default function DocumentModal({
       setForm({
         letter_number: initialData.letter_number || '',
         title: initialData.title || '',
-        drive_url: initialData.drive_url || '',
+        letter_link: initialData.letter_link || '',
+        scan_link: initialData.scan_link || '',
+        activity_date: initialData.activity_date ? String(initialData.activity_date).substring(0, 10) : '',
         event_id: initialData.event_id ?? (activeEventId ?? ''),
       });
     } else {
@@ -65,7 +69,9 @@ export default function DocumentModal({
         created_by: currentUserId,
         letter_number: form.letter_number,
         title: form.title,
-        drive_url: form.drive_url,
+        letter_link: form.letter_link || null,
+        scan_link: form.scan_link || null,
+        activity_date: form.activity_date || null,
         event_id: targetEventId,
       };
 
@@ -171,21 +177,54 @@ export default function DocumentModal({
             {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
           </div>
 
-          {/* Drive URL */}
+          {/* Activity Date */}
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tautan Dokumen
+              Tanggal Kegiatan (Opsional)
+            </label>
+            <input
+              type="date"
+              name="activity_date"
+              value={form.activity_date}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              className={inputClass('activity_date')}
+            />
+            {errors.activity_date && <p className="mt-1 text-xs text-red-400">{errors.activity_date[0]}</p>}
+          </div>
+
+          {/* Letter Link (Draft Word) */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Link Draft Surat - Word (Opsional)
             </label>
             <input
               type="url"
-              name="drive_url"
-              value={form.drive_url}
+              name="letter_link"
+              value={form.letter_link}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="https://docs.google.com/..."
+              className={inputClass('letter_link')}
+            />
+            {errors.letter_link && <p className="mt-1 text-xs text-red-400">{errors.letter_link[0]}</p>}
+          </div>
+
+          {/* Scan Link (Valid PDF) */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Link Scan Valid - PDF (Opsional)
+            </label>
+            <input
+              type="url"
+              name="scan_link"
+              value={form.scan_link}
               onChange={handleChange}
               disabled={isReadOnly}
               placeholder="https://drive.google.com/..."
-              className={inputClass('drive_url')}
+              className={inputClass('scan_link')}
             />
-            {errors.drive_url && <p className="mt-1 text-xs text-red-400">{errors.drive_url[0]}</p>}
+            {errors.scan_link && <p className="mt-1 text-xs text-red-400">{errors.scan_link[0]}</p>}
           </div>
 
           {/* Event ID */}

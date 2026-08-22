@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
@@ -27,9 +27,8 @@ import {
   ChevronRight as ChevronRightIcon,
   Search,
   Filter,
-  Download,
-  Upload,
   FileSpreadsheet,
+  RefreshCw,
 } from 'lucide-react';
 
 function formatRupiah(value) {
@@ -59,9 +58,8 @@ export default function Finance() {
   const [typeFilter, setTypeFilter] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showFilter, setShowFilter] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const fileInputRef = useRef(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedFinance, setSelectedFinance] = useState(null);
@@ -125,134 +123,19 @@ export default function Finance() {
   );
   const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
 
-  // --- Download Template Multi-Sheet ---
-  const handleDownloadTemplate = () => {
-    const formSheetData = [
-      {
-        'Tanggal (YYYY-MM-DD)': '2026-08-25',
-        'Tipe (Pemasukan/Pengeluaran)': 'Pengeluaran',
-        'Rincian': 'Konsumsi Rapat Pleno',
-        'Volume': 25,
-        'Satuan': 'Kotak',
-        'Harga Satuan': 20000,
-        'Sumber Dana': 'KAS',
-        'Keterangan': 'Nasi kotak untuk panitia dan peserta',
-      },
-    ];
-
-    const guideSheetData = [
-      {
-        'No': 1,
-        'Petunjuk Pengisian': 'Tanggal wajib menggunakan format tahun-bulan-tanggal (contoh: 2026-08-25).',
-      },
-      {
-        'No': 2,
-        'Petunjuk Pengisian': "Tipe wajib diisi dengan teks persis: 'Pemasukan' atau 'Pengeluaran'.",
-      },
-      {
-        'No': 3,
-        'Petunjuk Pengisian': 'Harga Satuan hanya diisi angka tanpa titik/koma rupiah.',
-      },
-      {
-        'No': 4,
-        'Petunjuk Pengisian': 'Volume dan Harga Satuan akan otomatis dikalikan oleh sistem menjadi Total.',
-      },
-    ];
-
-    const ws1 = XLSX.utils.json_to_sheet(formSheetData);
-    const ws2 = XLSX.utils.json_to_sheet(guideSheetData);
-    const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(wb, ws1, 'Form_Buku_Kas');
-    XLSX.utils.book_append_sheet(wb, ws2, 'Panduan_Sistem');
-    XLSX.writeFile(wb, 'Template_Buku_Kas.xlsx');
-  };
-
-  // --- Bulk Upload Excel ---
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    const reader = new FileReader();
-
-    reader.onload = async (evt) => {
-      try {
-        const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const ws = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(ws, { raw: false });
-
-        if (!rows || rows.length === 0) {
-          toast.error('File Excel kosong atau format tidak sesuai.');
-          setIsUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-
-        let successCount = 0;
-        let failCount = 0;
-
-        for (const row of rows) {
-          try {
-            const rawDate = row['Tanggal (YYYY-MM-DD)'] || row['Tanggal'] || row['date'];
-            const rawType = row['Tipe (Pemasukan/Pengeluaran)'] || row['Tipe'] || row['type'] || 'expense';
-            const type =
-              String(rawType).toLowerCase().includes('pemasukan') || String(rawType).toLowerCase() === 'income'
-                ? 'income'
-                : 'expense';
-            const title = row['Rincian'] || row['Deskripsi'] || row['title'] || row['description'] || 'Item Transaksi';
-            const qty = Number(row['Volume'] || row['Qty'] || row['qty']) || 1;
-            const unit =
-              row['Satuan'] !== undefined && row['Satuan'] !== ''
-                ? String(row['Satuan'])
-                : 'Ls';
-            const unitPrice = Number(row['Harga Satuan'] || row['Harga'] || row['unit_price'] || row['amount']) || 0;
-            const fundingSource = row['Sumber Dana'] || row['sumber_dana'] || row['funding_source'] || '';
-            const notes = row['Keterangan'] || row['Catatan'] || row['notes'] || '';
-
-            let dateStr = rawDate;
-            if (!dateStr) {
-              dateStr = new Date().toISOString().substring(0, 10);
-            }
-
-            const payload = {
-              user_id: user?.id,
-              type,
-              title,
-              qty,
-              unit: unit || null,
-              unit_price: unitPrice,
-              date: dateStr,
-              notes: notes || null,
-              funding_source: fundingSource || null,
-              event_id: activeWorkspace?.id ?? null,
-            };
-
-            await api.post('/api/finances', payload);
-            successCount++;
-          } catch {
-            failCount++;
-          }
-        }
-
-        if (successCount > 0) {
-          toast.success(`Berhasil mengimpor ${successCount} transaksi.`);
-          mutateFinances();
-        }
-        if (failCount > 0) {
-          toast.error(`${failCount} baris transaksi gagal diimpor.`);
-        }
-      } catch (err) {
-        toast.error('Gagal memproses file Excel.');
-      } finally {
-        setIsUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    };
-
-    reader.readAsBinaryString(file);
+  // --- Cloud Sync Handler ---
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const payload = activeWorkspace?.id ? { event_id: activeWorkspace.id } : {};
+      const res = await api.post('/api/finances/sync', payload);
+      toast.success(res.data.message || 'Sinkronisasi berhasil.');
+      mutateFinances();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal melakukan sinkronisasi.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // --- Export LPJ (Array-of-Arrays) ---
@@ -583,14 +466,17 @@ export default function Finance() {
         {/* Action Buttons Container */}
         {canEdit && (
           <div className="flex flex-wrap items-center gap-3">
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".xlsx, .xls"
-              className="hidden"
-            />
+            {/* Sinkronisasi Cloud */}
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-2.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+            >
+              <Loader2 className={`h-4 w-4 ${isSyncing ? 'animate-spin' : 'hidden'}`} />
+              {!isSyncing && <RefreshCw className="h-4 w-4" />}
+              <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
+            </button>
 
             {/* Ekspor LPJ */}
             <button
@@ -605,31 +491,6 @@ export default function Finance() {
                 <FileSpreadsheet className="h-4 w-4" />
               )}
               <span>{isExporting ? 'Mengekspor...' : 'Ekspor LPJ'}</span>
-            </button>
-
-            {/* Unduh Template */}
-            <button
-              type="button"
-              onClick={handleDownloadTemplate}
-              className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
-            >
-              <Download className="h-4 w-4" />
-              Unduh Template
-            </button>
-
-            {/* Impor Excel */}
-            <button
-              type="button"
-              disabled={isUploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-2.5 text-xs font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
-            >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              <span>{isUploading ? 'Mengimpor...' : 'Impor Excel'}</span>
             </button>
 
             {/* Tambah Transaksi */}
@@ -795,16 +656,23 @@ export default function Finance() {
                       <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">
                         {item.title || item.description || '-'}
                       </div>
-                      {item.notes && (
-                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
-                          {item.notes}
-                        </div>
-                      )}
-                      {item.funding_source && (
-                        <span className="mt-1 inline-block rounded-md bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:text-primary-400">
-                          {item.funding_source}
-                        </span>
-                      )}
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {item.category && (
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {item.category}
+                          </span>
+                        )}
+                        {item.pic && (
+                          <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                            PIC: {item.pic}
+                          </span>
+                        )}
+                        {item.funding_source && (
+                          <span className="rounded-md bg-primary-50 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-500/10 dark:text-primary-400">
+                            Dana: {item.funding_source}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
                       {item.qty ?? 1} {item.unit || ''}

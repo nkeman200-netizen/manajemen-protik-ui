@@ -115,4 +115,10 @@
 - Membuat antarmuka `AuditTrail.jsx` eksklusif untuk Admin BPH Pusat guna memantau riwayat mutasi *database*.
 - Mengimplementasikan *JSON Viewer Modal* untuk membedah perbedaan komparatif antara data lama dan data baru secara visual.
 ### Changed
-- Memperbarui `DashboardLayout.jsx` dengan menambahkan modul *Log Aktivitas* pada navigasi *sidebar*.
+- Memperbarui `DashboardLayout.jsx` dengan menambahkan modul *Log Aktivitas* pada navigasi *sidebar*.   
+## [2026-08-23]
+### Added
+- Mengimplementasikan input formulir `document_sync_url` dan `finance_sync_url` pada `EventModal.jsx` untuk mengakomodasi penautan *spreadsheet* terdistribusi bagi kepanitiaan.
+### Changed
+- Merefaktor *Engine* Sinkronisasi `FinanceController` dan `DocumentController` menjadi arsitektur *Context-Aware*. *Endpoint* kini memproses injeksi parameter `event_id` untuk melakukan *routing data* (Wipe & Reload / UpdateOrCreate) secara terisolasi berdasarkan tautan URL milik ruang kerja masing-masing kepanitiaan.
+- Membuka blokir render tombol "Sinkronisasi Cloud" di UI Dokumen dan Keuangan agar fitur *SSOT* dapat dieksekusi secara universal lintas ruang kerja.
