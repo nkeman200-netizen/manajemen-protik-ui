@@ -23,7 +23,7 @@ const navigation = [
   { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
   { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
   { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
-  { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
+  { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
   { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },

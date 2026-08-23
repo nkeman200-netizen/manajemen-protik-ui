@@ -122,3 +122,11 @@
 ### Changed
 - Merefaktor *Engine* Sinkronisasi `FinanceController` dan `DocumentController` menjadi arsitektur *Context-Aware*. *Endpoint* kini memproses injeksi parameter `event_id` untuk melakukan *routing data* (Wipe & Reload / UpdateOrCreate) secara terisolasi berdasarkan tautan URL milik ruang kerja masing-masing kepanitiaan.
 - Membuka blokir render tombol "Sinkronisasi Cloud" di UI Dokumen dan Keuangan agar fitur *SSOT* dapat dieksekusi secara universal lintas ruang kerja.
+## [2026-08-23]
+### Added
+- Mengimplementasikan `Agenda.jsx` untuk menggantikan modul Rapat lama, memperkenalkan antarmuka visualisasi *Timeline/Kanban List* yang reaktif dengan *Badge Status* kontekstual (Selesai/Proses/Tunda/Kendala).
+### Changed
+- Mengintegrasikan tombol *Cloud Sync* pada antarmuka Agenda sebagai gerbang utama mutasi data, meniadakan ketergantungan pada formulir input konvensional.
+- Merevisi struktur *Routing* (`App.jsx`), navigasi *Sidebar* (`DashboardLayout.jsx`), dan *Payload API* (`AttendanceModal.jsx`) untuk mengakomodasi transisi terminologi dan URL *endpoint* dari `meetings` menjadi `agendas`.
+### Removed
+- Membuang komponen *Legacy* `Meeting.jsx` dan `MeetingModal.jsx` secara permanen.

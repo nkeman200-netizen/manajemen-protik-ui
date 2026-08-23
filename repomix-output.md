@@ -48,6 +48,7 @@ src/
     react.svg
     vite.svg
   components/
+    AttendanceModal.jsx
     CommitteeModal.jsx
     DivisionModal.jsx
     DocumentModal.jsx
@@ -62,6 +63,7 @@ src/
   layouts/
     DashboardLayout.jsx
   pages/
+    AuditTrail.jsx
     Dashboard.jsx
     Document.jsx
     EventManagement.jsx
@@ -69,6 +71,7 @@ src/
     Login.jsx
     MasterData.jsx
     Meeting.jsx
+    MonthlyDue.jsx
     Profile.jsx
     Warning.jsx
   routes/
@@ -86,409 +89,6 @@ vite.config.js
 ```
 
 # Files
-
-## File: src/pages/Profile.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-import { User, Key, Save, Loader2, ShieldCheck, Mail, Phone, Hash, GraduationCap, Calendar, MapPin } from 'lucide-react';
-
-export default function Profile() {
-  const { user, checkAuth } = useAuth();
-
-  const [profileForm, setProfileForm] = useState({
-    name: '',
-    email: '',
-    nim: '',
-    phone: '',
-    prodi: '',
-    angkatan: '',
-    address: '',
-  });
-
-  const [passwordForm, setPasswordForm] = useState({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
-  });
-
-  const [profileErrors, setProfileErrors] = useState({});
-  const [passwordErrors, setPasswordErrors] = useState({});
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setProfileForm({
-        name: user.name || '',
-        email: user.email || '',
-        nim: user.nim || '',
-        phone: user.phone || '',
-        prodi: user.prodi || '',
-        angkatan: user.angkatan || '',
-        address: user.address || '',
-      });
-    }
-  }, [user]);
-
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileForm((prev) => ({ ...prev, [name]: value }));
-    setProfileErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordForm((prev) => ({ ...prev, [name]: value }));
-    setPasswordErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    setProfileErrors({});
-
-    try {
-      await api.put('/api/user/profile', profileForm);
-      await checkAuth();
-      toast.success('Profil berhasil diperbarui.');
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.errors) {
-          setProfileErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError) toast.error(firstError);
-        } else if (data.message) {
-          toast.error(data.message);
-        }
-      } else {
-        toast.error(err.response?.data?.message || 'Gagal memperbarui profil.');
-      }
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setIsSavingPassword(true);
-    setPasswordErrors({});
-
-    try {
-      await api.put('/api/user/password', passwordForm);
-      setPasswordForm({
-        current_password: '',
-        password: '',
-        password_confirmation: '',
-      });
-      toast.success('Kata sandi berhasil diperbarui.');
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.errors) {
-          setPasswordErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError) toast.error(firstError);
-        } else if (data.message) {
-          toast.error(data.message);
-        }
-      } else {
-        toast.error(err.response?.data?.message || 'Gagal memperbarui kata sandi.');
-      }
-    } finally {
-      setIsSavingPassword(false);
-    }
-  };
-
-  const inputClass = (hasError) =>
-    `w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 ${
-      hasError
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10 dark:focus:ring-primary-500/20'
-    }`;
-
-  return (
-    <div className="space-y-6 max-w-4xl animate-slide-up-fade">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-          <User className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Profil Saya</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Kelola informasi data diri dan pengaturan keamanan akun Anda.
-          </p>
-        </div>
-      </div>
-
-      {/* Card 1: Informasi Pribadi */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
-          <div className="flex items-center gap-2.5">
-            <User className="h-5 w-5 text-primary-500" />
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Informasi Pribadi</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Perbarui biodata dan kontak akun Anda.
-              </p>
-            </div>
-          </div>
-          <span className="rounded-md bg-primary-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-            {user?.roles?.[0]?.name || 'Member'}
-          </span>
-        </div>
-
-        <form onSubmit={handleProfileSubmit} className="space-y-5">
-          {/* Row 1: Nama & Email */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <User className="h-3.5 w-3.5" />
-                Nama Lengkap
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={profileForm.name}
-                onChange={handleProfileChange}
-                placeholder="Masukkan nama lengkap"
-                className={inputClass(!!profileErrors.name)}
-              />
-              {profileErrors.name && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.name[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Mail className="h-3.5 w-3.5" />
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={profileForm.email}
-                onChange={handleProfileChange}
-                placeholder="contoh@email.com"
-                className={inputClass(!!profileErrors.email)}
-              />
-              {profileErrors.email && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.email[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 2: NIM & No Telepon */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Hash className="h-3.5 w-3.5" />
-                NIM / Nomor Induk
-              </label>
-              <input
-                type="text"
-                name="nim"
-                value={profileForm.nim}
-                onChange={handleProfileChange}
-                placeholder="Masukkan NIM"
-                className={inputClass(!!profileErrors.nim)}
-              />
-              {profileErrors.nim && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.nim[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Phone className="h-3.5 w-3.5" />
-                No. Telepon / WhatsApp
-              </label>
-              <input
-                type="text"
-                name="phone"
-                value={profileForm.phone}
-                onChange={handleProfileChange}
-                placeholder="081234567890"
-                className={inputClass(!!profileErrors.phone)}
-              />
-              {profileErrors.phone && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.phone[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 3: Program Studi & Angkatan */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <GraduationCap className="h-3.5 w-3.5" />
-                Program Studi
-              </label>
-              <input
-                type="text"
-                name="prodi"
-                value={profileForm.prodi}
-                onChange={handleProfileChange}
-                placeholder="Contoh: Teknik Informatika"
-                className={inputClass(!!profileErrors.prodi)}
-              />
-              {profileErrors.prodi && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.prodi[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Calendar className="h-3.5 w-3.5" />
-                Tahun Angkatan
-              </label>
-              <input
-                type="text"
-                name="angkatan"
-                value={profileForm.angkatan}
-                onChange={handleProfileChange}
-                placeholder="Contoh: 2024"
-                className={inputClass(!!profileErrors.angkatan)}
-              />
-              {profileErrors.angkatan && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.angkatan[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 4: Alamat */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              <MapPin className="h-3.5 w-3.5" />
-              Alamat Domisili
-            </label>
-            <textarea
-              name="address"
-              rows={3}
-              value={profileForm.address}
-              onChange={handleProfileChange}
-              placeholder="Masukkan alamat lengkap domisili saat ini..."
-              className={inputClass(!!profileErrors.address)}
-            />
-            {profileErrors.address && (
-              <p className="mt-1 text-xs text-red-400">{profileErrors.address[0]}</p>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={isSavingProfile}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSavingProfile ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Card 2: Keamanan Akun */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
-          <div className="flex items-center gap-2.5">
-            <Key className="h-5 w-5 text-amber-500" />
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Keamanan Akun</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Ganti kata sandi secara berkala untuk menjaga keamanan akun Anda.
-              </p>
-            </div>
-          </div>
-          <ShieldCheck className="h-5 w-5 text-slate-400 dark:text-slate-500" />
-        </div>
-
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          {/* Current Password */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Kata Sandi Saat Ini
-            </label>
-            <input
-              type="password"
-              name="current_password"
-              value={passwordForm.current_password}
-              onChange={handlePasswordChange}
-              placeholder="Masukkan kata sandi lama Anda"
-              className={inputClass(!!passwordErrors.current_password)}
-            />
-            {passwordErrors.current_password && (
-              <p className="mt-1 text-xs text-red-400">{passwordErrors.current_password[0]}</p>
-            )}
-          </div>
-
-          {/* New Password & Confirmation */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Kata Sandi Baru
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={passwordForm.password}
-                onChange={handlePasswordChange}
-                placeholder="Minimal 8 karakter"
-                className={inputClass(!!passwordErrors.password)}
-              />
-              {passwordErrors.password && (
-                <p className="mt-1 text-xs text-red-400">{passwordErrors.password[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Konfirmasi Kata Sandi Baru
-              </label>
-              <input
-                type="password"
-                name="password_confirmation"
-                value={passwordForm.password_confirmation}
-                onChange={handlePasswordChange}
-                placeholder="Ulangi kata sandi baru"
-                className={inputClass(!!passwordErrors.password_confirmation)}
-              />
-              {passwordErrors.password_confirmation && (
-                <p className="mt-1 text-xs text-red-400">{passwordErrors.password_confirmation[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={isSavingPassword}
-              className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-400"
-            >
-              {isSavingPassword ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Key className="h-4 w-4" />
-              )}
-              <span>{isSavingPassword ? 'Memperbarui...' : 'Perbarui Password'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-```
 
 ## File: public/favicon.svg
 ```xml
@@ -559,6 +159,186 @@ export default axiosInstance;
 ## File: src/assets/vite.svg
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="77" height="47" fill="none" aria-labelledby="vite-logo-title" viewBox="0 0 77 47"><title id="vite-logo-title">Vite</title><style>.parenthesis{fill:#000}@media (prefers-color-scheme:dark){.parenthesis{fill:#fff}}</style><path fill="#9135ff" d="M40.151 45.71c-.663.844-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.493c-.92 0-1.457-1.04-.92-1.788l7.479-10.471c1.07-1.498 0-3.578-1.842-3.578H15.443c-.92 0-1.456-1.04-.92-1.788l9.696-13.576c.213-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.472c-1.07 1.497 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.087.89 1.83L40.153 45.712z"/><mask id="a" width="48" height="47" x="14" y="0" maskUnits="userSpaceOnUse" style="mask-type:alpha"><path fill="#000" d="M40.047 45.71c-.663.843-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.389c-.92 0-1.457-1.04-.92-1.788l7.479-10.472c1.07-1.497 0-3.578-1.842-3.578H15.34c-.92 0-1.456-1.04-.92-1.788l9.696-13.575c.213-.297.556-.474.92-.474H53.93c.92 0 1.456 1.04.92 1.788L47.37 13.03c-1.07 1.498 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.088.89 1.831L40.049 45.712z"/></mask><g mask="url(#a)"><g filter="url(#b)"><ellipse cx="5.508" cy="14.704" fill="#eee6ff" rx="5.508" ry="14.704" transform="rotate(269.814 20.96 11.29)scale(-1 1)"/></g><g filter="url(#c)"><ellipse cx="10.399" cy="29.851" fill="#eee6ff" rx="10.399" ry="29.851" transform="rotate(89.814 -16.902 -8.275)scale(1 -1)"/></g><g filter="url(#d)"><ellipse cx="5.508" cy="30.487" fill="#8900ff" rx="5.508" ry="30.487" transform="rotate(89.814 -19.197 -7.127)scale(1 -1)"/></g><g filter="url(#e)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.928 4.177)scale(1 -1)"/></g><g filter="url(#f)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.738 5.52)scale(1 -1)"/></g><g filter="url(#g)"><ellipse cx="14.072" cy="22.078" fill="#eee6ff" rx="14.072" ry="22.078" transform="rotate(93.35 31.245 55.578)scale(-1 1)"/></g><g filter="url(#h)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#i)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#j)"><ellipse cx="14.592" cy="9.743" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(39.51 14.592 9.743)"/></g><g filter="url(#k)"><ellipse cx="61.728" cy="-5.321" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 61.728 -5.32)"/></g><g filter="url(#l)"><ellipse cx="55.618" cy="7.104" fill="#00c2ff" rx="5.971" ry="9.665" transform="rotate(37.892 55.618 7.104)"/></g><g filter="url(#m)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#n)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#o)"><ellipse cx="49.857" cy="30.678" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 49.857 30.678)"/></g><g filter="url(#p)"><ellipse cx="52.623" cy="33.171" fill="#00c2ff" rx="5.971" ry="15.297" transform="rotate(37.892 52.623 33.17)"/></g></g><path d="M6.919 0c-9.198 13.166-9.252 33.575 0 46.789h6.215c-9.25-13.214-9.196-33.623 0-46.789zm62.424 0h-6.215c9.198 13.166 9.252 33.575 0 46.789h6.215c9.25-13.214 9.196-33.623 0-46.789" class="parenthesis"/><defs><filter id="b" width="60.045" height="41.654" x="-5.564" y="16.92" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="c" width="90.34" height="51.437" x="-40.407" y="-6.762" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="d" width="79.355" height="29.4" x="-35.435" y="2.801" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="e" width="79.579" height="29.4" x="-30.84" y="20.8" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="f" width="79.579" height="29.4" x="-29.307" y="21.949" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="g" width="74.749" height="58.852" x="29.961" y="-17.13" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="h" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="i" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="j" width="56.045" height="63.649" x="-13.43" y="-22.082" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="k" width="54.814" height="64.646" x="34.321" y="-37.644" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="l" width="33.541" height="35.313" x="38.847" y="-10.552" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="m" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="n" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="o" width="54.814" height="64.646" x="22.45" y="-1.645" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="p" width="39.409" height="43.623" x="32.919" y="11.36" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter></defs></svg>
+```
+
+## File: src/components/AttendanceModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { X, Loader2, UserCheck, Save, CheckCircle2 } from 'lucide-react';
+import api from '../api/axios';
+import { fetcher } from '../api/fetcher';
+import toast from 'react-hot-toast';
+
+export default function AttendanceModal({ isOpen, onClose, meeting, activeEventId }) {
+  const [localData, setLocalData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch Partisipan
+  const participantUrl = isOpen
+    ? (activeEventId ? `/api/event-committees?event_id=${activeEventId}` : `/api/users?page=1`)
+    : null;
+  const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
+
+  // Fetch Absensi Existing
+  const attendanceUrl = isOpen && meeting ? `/api/meeting-attendances?meeting_id=${meeting.id}` : null;
+  const { data: attendanceData, isLoading: attendanceLoading, mutate } = useSWR(attendanceUrl, fetcher);
+
+  const participants = activeEventId 
+    ? (participantData || []) 
+    : (participantData?.data || participantData || []);
+    
+  const existingAttendances = attendanceData || [];
+
+  // Sinkronisasi State Lokal
+  useEffect(() => {
+    if (isOpen && participants.length > 0) {
+      const initialState = {};
+      participants.forEach((p) => {
+        const user = activeEventId ? p.user : p;
+        if (!user) return;
+        const existing = existingAttendances.find(a => a.user_id === user.id);
+        initialState[user.id] = {
+          status: existing?.status || 'absent',
+          proof_url: existing?.proof_url || '',
+        };
+      });
+      setLocalData(initialState);
+    }
+  }, [isOpen, participantData, attendanceData, activeEventId]);
+
+  if (!isOpen || !meeting) return null;
+
+  const handleChange = (userId, field, value) => {
+    setLocalData(prev => ({
+      ...prev,
+      [userId]: { ...prev[userId], [field]: value }
+    }));
+  };
+
+  const handleMarkAllPresent = () => {
+    const newState = { ...localData };
+    Object.keys(newState).forEach(key => {
+      newState[key].status = 'present';
+    });
+    setLocalData(newState);
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const payload = Object.entries(localData).map(([userId, data]) => ({
+        user_id: Number(userId),
+        status: data.status,
+        proof_url: data.proof_url || null
+      }));
+
+      await api.post('/api/meeting-attendances/bulk', {
+        meeting_id: meeting.id,
+        attendances: payload
+      });
+
+      toast.success('Seluruh absensi berhasil disimpan.');
+      mutate();
+      onClose();
+    } catch (err) {
+      toast.error('Gagal menyimpan absensi massal.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md shadow-emerald-500/25">
+              <UserCheck className="h-5 w-5 text-white"/>
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Absensi Rapat</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{meeting.title}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10">
+            <X className="h-5 w-5"/>
+          </button>
+        </div>
+
+        {/* Content (Scrollable) */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="mb-4 flex justify-end">
+             <button onClick={handleMarkAllPresent} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">
+                <CheckCircle2 className="h-4 w-4"/> Hadirkan Semua
+             </button>
+          </div>
+
+          {(participantLoading || attendanceLoading) ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-emerald-500"/></div>
+          ) : participants.length === 0 ? (
+            <div className="text-center text-sm text-slate-500">Belum ada anggota terdaftar.</div>
+          ) : (
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
+                <tr>
+                  <th className="pb-3 pr-4">Nama Anggota</th>
+                  <th className="pb-3 px-4">Status</th>
+                  <th className="pb-3 pl-4">URL Bukti (Opsional)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                {participants.map(p => {
+                  const user = activeEventId ? p.user : p;
+                  if (!user) return null;
+                  const rowData = localData[user.id] || { status: 'absent', proof_url: '' };
+                  
+                  return (
+                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                      <td className="py-3 pr-4 font-medium text-slate-900 dark:text-white">{user.name}</td>
+                      <td className="py-3 px-4">
+                        <select 
+                          value={rowData.status}
+                          onChange={(e) => handleChange(user.id, 'status', e.target.value)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${rowData.status === 'present' ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' : rowData.status === 'absent' ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10' : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'}`}
+                        >
+                          <option value="present">Hadir</option>
+                          <option value="permit">Izin</option>
+                          <option value="sick">Sakit</option>
+                          <option value="absent">Alpha</option>
+                        </select>
+                      </td>
+                      <td className="py-3 pl-4">
+                        <input 
+                          type="url" 
+                          placeholder="https://..." 
+                          value={rowData.proof_url}
+                          onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
+           <button onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">Batal</button>
+           <button onClick={handleSubmit} disabled={submitting || participantLoading} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50">
+             {submitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>} Simpan Semua Absensi
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 ```
 
 ## File: src/components/DivisionModal.jsx
@@ -678,256 +458,6 @@ export default function DivisionModal({
             {errors.name && (
               <p className="mt-1 text-xs text-red-400">{errors.name[0]}</p>
             )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-```
-
-## File: src/components/EventModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-const initialForm = {
-  name: '',
-  description: '',
-  budget_approved: '',
-  drive_folder_url: '',
-  start_date: '',
-  end_date: '',
-};
-
-export default function EventModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialData = null,
-}) {
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        name: initialData.name || '',
-        description: initialData.description || '',
-        budget_approved: initialData.budget_approved ?? '',
-        drive_folder_url: initialData.drive_folder_url || '',
-        start_date: initialData.start_date ? initialData.start_date.substring(0, 10) : '',
-        end_date: initialData.end_date ? initialData.end_date.substring(0, 10) : '',
-      });
-    } else {
-      setForm(initialForm);
-    }
-    setErrors({});
-  }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrors({});
-
-    try {
-      const payload = {
-        name: form.name,
-        description: form.description || null,
-        budget_approved: form.budget_approved !== '' ? Number(form.budget_approved) : 0,
-        drive_folder_url: form.drive_folder_url || null,
-        start_date: form.start_date,
-        end_date: form.end_date || null,
-      };
-
-      if (initialData?.id) {
-        await api.put(`/api/events/${initialData.id}`, payload);
-        toast.success('Event berhasil diperbarui.');
-      } else {
-        await api.post('/api/events', payload);
-        toast.success('Event berhasil ditambahkan.');
-      }
-
-      setForm(initialForm);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) {
-          toast.error(data.message);
-        }
-        if (data.errors) {
-          setErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError && !data.message) {
-            toast.error(firstError);
-          }
-        }
-      } else {
-        toast.error(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const modalTitle = initialData?.id ? 'Edit Event' : 'Tambah Event';
-
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Name */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Nama Event <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Contoh: Workshop Web Development 2026"
-              className={inputClass('name')}
-            />
-            {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name[0]}</p>}
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Deskripsi Event
-            </label>
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              placeholder="Jelaskan gambaran umum atau tujuan event..."
-              rows={3}
-              className={inputClass('description') + ' resize-none'}
-            />
-            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
-          </div>
-
-          {/* Budget Approved */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Anggaran Disetujui (Rp)
-            </label>
-            <input
-              type="number"
-              name="budget_approved"
-              value={form.budget_approved}
-              onChange={handleChange}
-              placeholder="0"
-              min="0"
-              className={inputClass('budget_approved')}
-            />
-            {errors.budget_approved && <p className="mt-1 text-xs text-red-400">{errors.budget_approved[0]}</p>}
-          </div>
-
-          {/* Dates (Start & End) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tanggal Mulai <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="start_date"
-                value={form.start_date}
-                onChange={handleChange}
-                className={inputClass('start_date')}
-              />
-              {errors.start_date && <p className="mt-1 text-xs text-red-400">{errors.start_date[0]}</p>}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tanggal Selesai
-              </label>
-              <input
-                type="date"
-                name="end_date"
-                value={form.end_date}
-                onChange={handleChange}
-                className={inputClass('end_date')}
-              />
-              {errors.end_date && <p className="mt-1 text-xs text-red-400">{errors.end_date[0]}</p>}
-            </div>
-          </div>
-
-          {/* Drive Folder URL */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tautan Folder Drive (Opsional)
-            </label>
-            <input
-              type="url"
-              name="drive_folder_url"
-              value={form.drive_folder_url}
-              onChange={handleChange}
-              placeholder="https://drive.google.com/drive/folders/..."
-              className={inputClass('drive_folder_url')}
-            />
-            {errors.drive_folder_url && <p className="mt-1 text-xs text-red-400">{errors.drive_folder_url[0]}</p>}
           </div>
 
           {/* Actions */}
@@ -1181,61 +711,6 @@ export default function UserModal({
 }
 ```
 
-## File: src/contexts/AuthContext.jsx
-```javascript
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from '../api/axios';
-
-const AuthContext = createContext(null);
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const isAuthenticated = !!user;
-
-  const checkAuth = useCallback(async () => {
-    try {
-      const { data } = await api.get('/api/user');
-      setUser(data?.data || data);
-    } catch {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const login = useCallback(async (email, password) => {
-    await api.get('/sanctum/csrf-cookie');
-    await api.post('/login', { email, password });
-    await checkAuth();
-  }, [checkAuth]);
-
-  const logout = useCallback(async () => {
-    await api.post('/logout');
-    setUser(null);
-  }, []);
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, checkAuth }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-```
-
 ## File: src/contexts/ThemeContext.jsx
 ```javascript
 import { createContext, useContext, useState, useEffect } from 'react';
@@ -1272,6 +747,142 @@ export function useTheme() {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
+}
+```
+
+## File: src/pages/AuditTrail.jsx
+```javascript
+import { useState } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '../contexts/AuthContext';
+import { paginatedFetcher } from '../api/fetcher';
+import { format } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import { Activity, ShieldAlert, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react';
+
+function formatTanggalWaktu(dateStr) {
+  if (!dateStr) return '-';
+  return format(new Date(dateStr), 'dd MMM yyyy HH:mm:ss', { locale: localeID });
+}
+
+export default function AuditTrail() {
+  const { user } = useAuth();
+  const [page, setPage] = useState(1);
+  const [selectedAudit, setSelectedAudit] = useState(null);
+
+  const isAdmin = user?.roles?.[0]?.name === 'admin';
+  const { data, error, isLoading } = useSWR(isAdmin ? `/api/audit-trails?page=${page}` : null, paginatedFetcher);
+
+  if (!isAdmin) {
+    return (
+      <div className="flex h-full items-center justify-center py-16">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-8 text-center dark:bg-red-500/10">
+          <ShieldAlert className="h-10 w-10 text-red-500"/>
+          <h2 className="text-lg font-bold text-red-700 dark:text-red-300">Akses Ditolak</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-10 w-10 animate-spin text-primary-500"/></div>;
+  if (error) return <div className="flex justify-center py-16"><AlertCircle className="h-10 w-10 text-red-500"/></div>;
+
+  const audits = data?.data?.data || (Array.isArray(data?.data) ? data.data : []) || [];
+  const meta = data?.meta || (data?.data && !Array.isArray(data?.data) ? data.data : null);
+
+  const getActionBadge = (action) => {
+    switch (action) {
+      case 'created': return <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">Created</span>;
+      case 'updated': return <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400">Updated</span>;
+      case 'deleted': return <span className="rounded-md bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-600 dark:text-red-400">Deleted</span>;
+      default: return action;
+    }
+  };
+
+  const formatModelName = (modelPath) => {
+    if (!modelPath) return '-';
+    const parts = modelPath.split('\\');
+    return parts[parts.length - 1];
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 shadow-lg">
+          <Activity className="h-5 w-5 text-white"/>
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Log Aktivitas Sistem</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Jejak audit seluruh perubahan data (Audit Trail).</p>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-600 dark:border-white/10 dark:bg-transparent dark:text-slate-400">
+              <tr>
+                <th className="px-6 py-3.5">Waktu</th>
+                <th className="px-6 py-3.5">Aktor</th>
+                <th className="px-6 py-3.5">Aksi</th>
+                <th className="px-6 py-3.5">Modul (ID)</th>
+                <th className="px-6 py-3.5 text-right">Detail</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {audits.map((item) => (
+                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="whitespace-nowrap px-6 py-4 text-xs text-slate-600 dark:text-slate-300">{formatTanggalWaktu(item.created_at)}</td>
+                  <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900 dark:text-white">{item.user?.name || 'System'}</td>
+                  <td className="whitespace-nowrap px-6 py-4">{getActionBadge(item.action)}</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400">{formatModelName(item.auditable_type)} #{item.auditable_id}</td>
+                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                    <button onClick={() => setSelectedAudit(item)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                      <Eye className="h-3.5 w-3.5"/> Detail
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Pagination Controls */}
+        {meta && meta.last_page > 1 && (
+          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
+            <p className="text-xs text-slate-500 dark:text-slate-400">Halaman {meta.current_page} dari {meta.last_page}</p>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-white"><ChevronLeft className="h-4 w-4"/></button>
+              <button onClick={() => setPage(p => p + 1)} disabled={page >= meta.last_page} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-white"><ChevronRight className="h-4 w-4"/></button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* JSON Viewer Modal */}
+      {selectedAudit && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedAudit(null)} />
+          <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold dark:text-white">Detail Perubahan JSON</h3>
+              <button onClick={() => setSelectedAudit(null)}><X className="h-5 w-5 text-slate-500"/></button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="mb-2 text-xs font-bold text-slate-500">Nilai Lama (Old)</p>
+                <pre className="max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-[10px] text-emerald-400">{JSON.stringify(selectedAudit.old_values, null, 2) || 'null'}</pre>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-bold text-slate-500">Nilai Baru (New)</p>
+                <pre className="max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-[10px] text-emerald-400">{JSON.stringify(selectedAudit.new_values, null, 2) || 'null'}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 ```
 
@@ -2221,6 +1832,549 @@ export default function MasterData() {
 }
 ```
 
+## File: src/pages/MonthlyDue.jsx
+```javascript
+import { useState } from 'react';
+import useSWR from 'swr';
+import api from '../api/axios';
+import { toast } from 'react-hot-toast';
+import { Loader2, RefreshCw, CheckCircle2, XCircle, Wallet } from 'lucide-react';
+
+export default function MonthlyDue() {
+  // Menggunakan inline fetcher murni untuk menghindari pemotongan data (res.data.data) oleh fetcher global
+  const { data, error, isLoading, mutate } = useSWR(
+    '/api/monthly-dues',
+    async (url) => {
+      const res = await api.get(url);
+      return res.data; // Mengambil langsung object {users: [], dues: []}
+    }
+  );
+
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await api.post('/api/monthly-dues/sync');
+      toast.success(res.data.message);
+      mutate();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal sinkronisasi');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center text-red-500">
+        Gagal memuat data kas.
+      </div>
+    );
+  }
+
+  // Fallback standar (Kembalikan kode ini ke bentuk semula)
+  const users = data?.users || [];
+  const dues = data?.dues || [];
+
+  // Definisi Bulan sesuai urutan kepengurusan Protik (Okt -> Sep)
+  const monthList = [
+    { num: 10, name: 'Okt' },
+    { num: 11, name: 'Nov' },
+    { num: 12, name: 'Des' },
+    { num: 1, name: 'Jan' },
+    { num: 2, name: 'Feb' },
+    { num: 3, name: 'Mar' },
+    { num: 4, name: 'Apr' },
+    { num: 5, name: 'Mei' },
+    { num: 6, name: 'Jun' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg">
+            <Wallet className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Kas Pengurus</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Pemantauan kepatuhan iuran (Single Source of Truth dari Spreadsheet).
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSync}
+          disabled={isSyncing}
+          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+        >
+          <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-600 dark:border-white/10 dark:bg-transparent dark:text-slate-400">
+              <tr>
+                <th className="px-6 py-3.5">Nama Pengurus</th>
+                {monthList.map((m) => (
+                  <th key={m.num} className="px-3 py-3.5 text-center">
+                    {m.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {users.map((user) => (
+                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900 dark:text-white">
+                    {user.name}
+                  </td>
+                  {monthList.map((m) => {
+                    const isPaid = dues.find((d) => d.user_id === user.id && d.month === m.num);
+                    return (
+                      <td key={m.num} className="px-3 py-4 text-center">
+                        <div className="flex justify-center">
+                          {isPaid ? (
+                            <div className="group relative">
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                              <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
+                                Rp {Number(isPaid.amount).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          ) : (
+                            <XCircle className="h-5 w-5 text-rose-200 dark:text-rose-500/30" />
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## File: src/pages/Profile.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import { User, Key, Save, Loader2, ShieldCheck, Mail, Phone, Hash, GraduationCap, Calendar, MapPin } from 'lucide-react';
+
+export default function Profile() {
+  const { user, checkAuth } = useAuth();
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+    nim: '',
+    phone: '',
+    prodi: '',
+    angkatan: '',
+    address: '',
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
+  });
+
+  const [profileErrors, setProfileErrors] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        email: user.email || '',
+        nim: user.nim || '',
+        phone: user.phone || '',
+        prodi: user.prodi || '',
+        angkatan: user.angkatan || '',
+        address: user.address || '',
+      });
+    }
+  }, [user]);
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+    setProfileErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    setPasswordErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    setProfileErrors({});
+
+    try {
+      await api.put('/api/user/profile', profileForm);
+      await checkAuth();
+      toast.success('Profil berhasil diperbarui.');
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.errors) {
+          setProfileErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError) toast.error(firstError);
+        } else if (data.message) {
+          toast.error(data.message);
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui profil.');
+      }
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingPassword(true);
+    setPasswordErrors({});
+
+    try {
+      await api.put('/api/user/password', passwordForm);
+      setPasswordForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+      });
+      toast.success('Kata sandi berhasil diperbarui.');
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.errors) {
+          setPasswordErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError) toast.error(firstError);
+        } else if (data.message) {
+          toast.error(data.message);
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui kata sandi.');
+      }
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  const inputClass = (hasError) =>
+    `w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 ${
+      hasError
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10 dark:focus:ring-primary-500/20'
+    }`;
+
+  return (
+    <div className="space-y-6 max-w-4xl animate-slide-up-fade">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+          <User className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Profil Saya</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Kelola informasi data diri dan pengaturan keamanan akun Anda.
+          </p>
+        </div>
+      </div>
+
+      {/* Card 1: Informasi Pribadi */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div className="flex items-center gap-2.5">
+            <User className="h-5 w-5 text-primary-500" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Informasi Pribadi</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Perbarui biodata dan kontak akun Anda.
+              </p>
+            </div>
+          </div>
+          <span className="rounded-md bg-primary-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+            {user?.roles?.[0]?.name || 'Member'}
+          </span>
+        </div>
+
+        <form onSubmit={handleProfileSubmit} className="space-y-5">
+          {/* Row 1: Nama & Email */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <User className="h-3.5 w-3.5" />
+                Nama Lengkap
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={profileForm.name}
+                onChange={handleProfileChange}
+                placeholder="Masukkan nama lengkap"
+                className={inputClass(!!profileErrors.name)}
+              />
+              {profileErrors.name && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.name[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Mail className="h-3.5 w-3.5" />
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={profileForm.email}
+                onChange={handleProfileChange}
+                placeholder="contoh@email.com"
+                className={inputClass(!!profileErrors.email)}
+              />
+              {profileErrors.email && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.email[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: NIM & No Telepon */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Hash className="h-3.5 w-3.5" />
+                NIM / Nomor Induk
+              </label>
+              <input
+                type="text"
+                name="nim"
+                value={profileForm.nim}
+                onChange={handleProfileChange}
+                placeholder="Masukkan NIM"
+                className={inputClass(!!profileErrors.nim)}
+              />
+              {profileErrors.nim && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.nim[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Phone className="h-3.5 w-3.5" />
+                No. Telepon / WhatsApp
+              </label>
+              <input
+                type="text"
+                name="phone"
+                value={profileForm.phone}
+                onChange={handleProfileChange}
+                placeholder="081234567890"
+                className={inputClass(!!profileErrors.phone)}
+              />
+              {profileErrors.phone && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.phone[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Program Studi & Angkatan */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <GraduationCap className="h-3.5 w-3.5" />
+                Program Studi
+              </label>
+              <input
+                type="text"
+                name="prodi"
+                value={profileForm.prodi}
+                onChange={handleProfileChange}
+                placeholder="Contoh: Teknik Informatika"
+                className={inputClass(!!profileErrors.prodi)}
+              />
+              {profileErrors.prodi && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.prodi[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Calendar className="h-3.5 w-3.5" />
+                Tahun Angkatan
+              </label>
+              <input
+                type="text"
+                name="angkatan"
+                value={profileForm.angkatan}
+                onChange={handleProfileChange}
+                placeholder="Contoh: 2024"
+                className={inputClass(!!profileErrors.angkatan)}
+              />
+              {profileErrors.angkatan && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.angkatan[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 4: Alamat */}
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <MapPin className="h-3.5 w-3.5" />
+              Alamat Domisili
+            </label>
+            <textarea
+              name="address"
+              rows={3}
+              value={profileForm.address}
+              onChange={handleProfileChange}
+              placeholder="Masukkan alamat lengkap domisili saat ini..."
+              className={inputClass(!!profileErrors.address)}
+            />
+            {profileErrors.address && (
+              <p className="mt-1 text-xs text-red-400">{profileErrors.address[0]}</p>
+            )}
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={isSavingProfile}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Card 2: Keamanan Akun */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div className="flex items-center gap-2.5">
+            <Key className="h-5 w-5 text-amber-500" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Keamanan Akun</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Ganti kata sandi secara berkala untuk menjaga keamanan akun Anda.
+              </p>
+            </div>
+          </div>
+          <ShieldCheck className="h-5 w-5 text-slate-400 dark:text-slate-500" />
+        </div>
+
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          {/* Current Password */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Kata Sandi Saat Ini
+            </label>
+            <input
+              type="password"
+              name="current_password"
+              value={passwordForm.current_password}
+              onChange={handlePasswordChange}
+              placeholder="Masukkan kata sandi lama Anda"
+              className={inputClass(!!passwordErrors.current_password)}
+            />
+            {passwordErrors.current_password && (
+              <p className="mt-1 text-xs text-red-400">{passwordErrors.current_password[0]}</p>
+            )}
+          </div>
+
+          {/* New Password & Confirmation */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Kata Sandi Baru
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={passwordForm.password}
+                onChange={handlePasswordChange}
+                placeholder="Minimal 8 karakter"
+                className={inputClass(!!passwordErrors.password)}
+              />
+              {passwordErrors.password && (
+                <p className="mt-1 text-xs text-red-400">{passwordErrors.password[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Konfirmasi Kata Sandi Baru
+              </label>
+              <input
+                type="password"
+                name="password_confirmation"
+                value={passwordForm.password_confirmation}
+                onChange={handlePasswordChange}
+                placeholder="Ulangi kata sandi baru"
+                className={inputClass(!!passwordErrors.password_confirmation)}
+              />
+              {passwordErrors.password_confirmation && (
+                <p className="mt-1 text-xs text-red-400">{passwordErrors.password_confirmation[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={isSavingPassword}
+              className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-400"
+            >
+              {isSavingPassword ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Key className="h-4 w-4" />
+              )}
+              <span>{isSavingPassword ? 'Memperbarui...' : 'Perbarui Password'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
 ## File: src/routes/ProtectedRoute.jsx
 ```javascript
 import { Navigate, Outlet } from 'react-router-dom';
@@ -2944,6 +3098,294 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
 }
 ```
 
+## File: src/components/EventModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2 } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+const initialForm = {
+  name: '',
+  description: '',
+  budget_approved: '',
+  drive_folder_url: '',
+  start_date: '',
+  end_date: '',
+  document_sync_url: '',
+  finance_sync_url: '',
+};
+
+export default function EventModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData = null,
+}) {
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        budget_approved: initialData.budget_approved ?? '',
+        drive_folder_url: initialData.drive_folder_url || '',
+        start_date: initialData.start_date ? initialData.start_date.substring(0, 10) : '',
+        end_date: initialData.end_date ? initialData.end_date.substring(0, 10) : '',
+        document_sync_url: initialData.document_sync_url || '',
+        finance_sync_url: initialData.finance_sync_url || '',
+      });
+    } else {
+      setForm(initialForm);
+    }
+    setErrors({});
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const payload = {
+        name: form.name,
+        description: form.description || null,
+        budget_approved: form.budget_approved !== '' ? Number(form.budget_approved) : 0,
+        drive_folder_url: form.drive_folder_url || null,
+        start_date: form.start_date,
+        end_date: form.end_date || null,
+        document_sync_url: form.document_sync_url || null,
+        finance_sync_url: form.finance_sync_url || null,
+      };
+
+      if (initialData?.id) {
+        await api.put(`/api/events/${initialData.id}`, payload);
+        toast.success('Event berhasil diperbarui.');
+      } else {
+        await api.post('/api/events', payload);
+        toast.success('Event berhasil ditambahkan.');
+      }
+
+      setForm(initialForm);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) {
+          toast.error(data.message);
+        }
+        if (data.errors) {
+          setErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError && !data.message) {
+            toast.error(firstError);
+          }
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const modalTitle = initialData?.id ? 'Edit Event' : 'Tambah Event';
+
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Name */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Nama Event <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Contoh: Workshop Web Development 2026"
+              className={inputClass('name')}
+            />
+            {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name[0]}</p>}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Deskripsi Event
+            </label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Jelaskan gambaran umum atau tujuan event..."
+              rows={3}
+              className={inputClass('description') + ' resize-none'}
+            />
+            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
+          </div>
+
+          {/* Budget Approved */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Anggaran Disetujui (Rp)
+            </label>
+            <input
+              type="number"
+              name="budget_approved"
+              value={form.budget_approved}
+              onChange={handleChange}
+              placeholder="0"
+              min="0"
+              className={inputClass('budget_approved')}
+            />
+            {errors.budget_approved && <p className="mt-1 text-xs text-red-400">{errors.budget_approved[0]}</p>}
+          </div>
+
+          {/* Dates (Start & End) */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tanggal Mulai <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="start_date"
+                value={form.start_date}
+                onChange={handleChange}
+                className={inputClass('start_date')}
+              />
+              {errors.start_date && <p className="mt-1 text-xs text-red-400">{errors.start_date[0]}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tanggal Selesai
+              </label>
+              <input
+                type="date"
+                name="end_date"
+                value={form.end_date}
+                onChange={handleChange}
+                className={inputClass('end_date')}
+              />
+              {errors.end_date && <p className="mt-1 text-xs text-red-400">{errors.end_date[0]}</p>}
+            </div>
+          </div>
+
+          {/* Drive Folder URL */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Tautan Folder Drive (Opsional)
+            </label>
+            <input
+              type="url"
+              name="drive_folder_url"
+              value={form.drive_folder_url}
+              onChange={handleChange}
+              placeholder="https://drive.google.com/drive/folders/..."
+              className={inputClass('drive_folder_url')}
+            />
+            {errors.drive_folder_url && <p className="mt-1 text-xs text-red-400">{errors.drive_folder_url[0]}</p>}
+          </div>
+
+          {/* Sync URLs */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sinkronisasi Dokumen
+              </label>
+              <input
+                type="url"
+                name="document_sync_url"
+                value={form.document_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/spreadsheets/..."
+                className={inputClass('document_sync_url')}
+              />
+              {errors.document_sync_url && <p className="mt-1 text-xs text-red-400">{errors.document_sync_url[0]}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sinkronisasi Keuangan
+              </label>
+              <input
+                type="url"
+                name="finance_sync_url"
+                value={form.finance_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/spreadsheets/..."
+                className={inputClass('finance_sync_url')}
+              />
+              {errors.finance_sync_url && <p className="mt-1 text-xs text-red-400">{errors.finance_sync_url[0]}</p>}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
 ## File: src/components/WarningModal.jsx
 ```javascript
 import { useState } from 'react';
@@ -3109,6 +3551,61 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
       </div>
     </div>
   );
+}
+```
+
+## File: src/contexts/AuthContext.jsx
+```javascript
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../api/axios';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const isAuthenticated = !!user;
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/user');
+      setUser(data?.data || data);
+    } catch {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const login = useCallback(async (email, password) => {
+    await api.get('/sanctum/csrf-cookie');
+    await api.post('/login', { email, password });
+    await checkAuth();
+  }, [checkAuth]);
+
+  const logout = useCallback(async () => {
+    await api.post('/logout');
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, checkAuth }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
 ```
 
@@ -3342,244 +3839,6 @@ export default function Dashboard() {
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.0"
   }
-}
-```
-
-## File: src/components/DocumentModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-const initialForm = {
-  letter_number: '',
-  title: '',
-  drive_url: '',
-  event_id: '',
-};
-
-export default function DocumentModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  currentUserId,
-  initialData = null,
-  isReadOnly = false,
-  activeEventId = null,
-}) {
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        letter_number: initialData.letter_number || '',
-        title: initialData.title || '',
-        drive_url: initialData.drive_url || '',
-        event_id: initialData.event_id ?? (activeEventId ?? ''),
-      });
-    } else {
-      setForm({
-        ...initialForm,
-        event_id: activeEventId ?? '',
-      });
-    }
-    setErrors({});
-  }, [initialData, activeEventId, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleChange = (e) => {
-    if (isReadOnly) return;
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isReadOnly) return;
-
-    setSubmitting(true);
-    setErrors({});
-
-    try {
-      const targetEventId = initialData
-        ? (form.event_id ? Number(form.event_id) : null)
-        : (activeEventId ? Number(activeEventId) : (form.event_id ? Number(form.event_id) : null));
-
-      const payload = {
-        created_by: currentUserId,
-        letter_number: form.letter_number,
-        title: form.title,
-        drive_url: form.drive_url,
-        event_id: targetEventId,
-      };
-
-      if (initialData?.id) {
-        await api.put(`/api/documents/${initialData.id}`, payload);
-        toast.success('Surat berhasil diperbarui.');
-      } else {
-        await api.post('/api/documents', payload);
-        toast.success('Surat berhasil ditambahkan.');
-      }
-
-      setForm(initialForm);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) {
-          toast.error(data.message);
-        }
-        if (data.errors) {
-          setErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError && !data.message) {
-            toast.error(firstError);
-          }
-        }
-      } else {
-        toast.error('Terjadi kesalahan. Silakan coba lagi.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const modalTitle = isReadOnly
-    ? 'Detail Dokumen'
-    : initialData?.id
-    ? 'Edit Surat'
-    : 'Tambah Surat';
-
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Letter Number */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Nomor Surat
-            </label>
-            <input
-              type="text"
-              name="letter_number"
-              value={form.letter_number}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Contoh: 001/PROTIK/VIII/2026"
-              className={inputClass('letter_number')}
-            />
-            {errors.letter_number && <p className="mt-1 text-xs text-red-400">{errors.letter_number[0]}</p>}
-          </div>
-
-          {/* Title */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Judul Surat
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Masukkan judul surat"
-              className={inputClass('title')}
-            />
-            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
-          </div>
-
-          {/* Drive URL */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tautan Dokumen
-            </label>
-            <input
-              type="url"
-              name="drive_url"
-              value={form.drive_url}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="https://drive.google.com/..."
-              className={inputClass('drive_url')}
-            />
-            {errors.drive_url && <p className="mt-1 text-xs text-red-400">{errors.drive_url[0]}</p>}
-          </div>
-
-          {/* Event ID */}
-          {!activeEventId && (
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Event ID (Opsional)
-              </label>
-              <input
-                type="text"
-                name="event_id"
-                value={form.event_id}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="Masukkan ID event terkait"
-                className={inputClass('event_id')}
-              />
-              {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              {isReadOnly ? 'Tutup' : 'Batal'}
-            </button>
-            {!isReadOnly && (
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 }
 ```
 
@@ -4052,35 +4311,23 @@ export default function Warning() {
 }
 ```
 
-## File: src/components/FinanceModal.jsx
+## File: src/components/DocumentModal.jsx
 ```javascript
 import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
-function formatRupiah(value) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-}
-
 const initialForm = {
-  type: 'income',
+  letter_number: '',
   title: '',
-  qty: 1,
-  unit: '',
-  unit_price: '',
-  date: '',
-  notes: '',
-  funding_source: '',
+  letter_link: '',
+  scan_link: '',
+  activity_date: '',
   event_id: '',
 };
 
-export default function FinanceModal({
+export default function DocumentModal({
   isOpen,
   onClose,
   onSuccess,
@@ -4096,14 +4343,11 @@ export default function FinanceModal({
   useEffect(() => {
     if (initialData) {
       setForm({
-        type: initialData.type || 'income',
-        title: initialData.title || initialData.description || '',
-        qty: initialData.qty ?? 1,
-        unit: initialData.unit || '',
-        unit_price: initialData.unit_price ?? initialData.amount ?? '',
-        date: initialData.date ? initialData.date.substring(0, 10) : '',
-        notes: initialData.notes || '',
-        funding_source: initialData.funding_source || '',
+        letter_number: initialData.letter_number || '',
+        title: initialData.title || '',
+        letter_link: initialData.letter_link || '',
+        scan_link: initialData.scan_link || '',
+        activity_date: initialData.activity_date ? String(initialData.activity_date).substring(0, 10) : '',
         event_id: initialData.event_id ?? (activeEventId ?? ''),
       });
     } else {
@@ -4124,8 +4368,6 @@ export default function FinanceModal({
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  const calculatedTotal = (Number(form.qty) || 0) * (Number(form.unit_price) || 0);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isReadOnly) return;
@@ -4139,15 +4381,389 @@ export default function FinanceModal({
         : (activeEventId ? Number(activeEventId) : (form.event_id ? Number(form.event_id) : null));
 
       const payload = {
-        user_id: currentUserId,
-        type: form.type,
+        created_by: currentUserId,
+        letter_number: form.letter_number,
         title: form.title,
-        qty: Number(form.qty) || 1,
-        unit: form.unit || null,
-        unit_price: Number(form.unit_price) || 0,
-        date: form.date,
-        notes: form.notes || null,
-        funding_source: form.funding_source || null,
+        letter_link: form.letter_link || null,
+        scan_link: form.scan_link || null,
+        activity_date: form.activity_date || null,
+        event_id: targetEventId,
+      };
+
+      if (initialData?.id) {
+        await api.put(`/api/documents/${initialData.id}`, payload);
+        toast.success('Surat berhasil diperbarui.');
+      } else {
+        await api.post('/api/documents', payload);
+        toast.success('Surat berhasil ditambahkan.');
+      }
+
+      setForm(initialForm);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) {
+          toast.error(data.message);
+        }
+        if (data.errors) {
+          setErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError && !data.message) {
+            toast.error(firstError);
+          }
+        }
+      } else {
+        toast.error('Terjadi kesalahan. Silakan coba lagi.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const modalTitle = isReadOnly
+    ? 'Detail Dokumen'
+    : initialData?.id
+    ? 'Edit Surat'
+    : 'Tambah Surat';
+
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Letter Number */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Nomor Surat
+            </label>
+            <input
+              type="text"
+              name="letter_number"
+              value={form.letter_number}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="Contoh: 001/PROTIK/VIII/2026"
+              className={inputClass('letter_number')}
+            />
+            {errors.letter_number && <p className="mt-1 text-xs text-red-400">{errors.letter_number[0]}</p>}
+          </div>
+
+          {/* Title */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Judul Surat
+            </label>
+            <input
+              type="text"
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="Masukkan judul surat"
+              className={inputClass('title')}
+            />
+            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
+          </div>
+
+          {/* Activity Date */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Tanggal Kegiatan (Opsional)
+            </label>
+            <input
+              type="date"
+              name="activity_date"
+              value={form.activity_date}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              className={inputClass('activity_date')}
+            />
+            {errors.activity_date && <p className="mt-1 text-xs text-red-400">{errors.activity_date[0]}</p>}
+          </div>
+
+          {/* Letter Link (Draft Word) */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Link Draft Surat - Word (Opsional)
+            </label>
+            <input
+              type="url"
+              name="letter_link"
+              value={form.letter_link}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="https://docs.google.com/..."
+              className={inputClass('letter_link')}
+            />
+            {errors.letter_link && <p className="mt-1 text-xs text-red-400">{errors.letter_link[0]}</p>}
+          </div>
+
+          {/* Scan Link (Valid PDF) */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Link Scan Valid - PDF (Opsional)
+            </label>
+            <input
+              type="url"
+              name="scan_link"
+              value={form.scan_link}
+              onChange={handleChange}
+              disabled={isReadOnly}
+              placeholder="https://drive.google.com/..."
+              className={inputClass('scan_link')}
+            />
+            {errors.scan_link && <p className="mt-1 text-xs text-red-400">{errors.scan_link[0]}</p>}
+          </div>
+
+          {/* Event ID */}
+          {!activeEventId && (
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Event ID (Opsional)
+              </label>
+              <input
+                type="text"
+                name="event_id"
+                value={form.event_id}
+                onChange={handleChange}
+                disabled={isReadOnly}
+                placeholder="Masukkan ID event terkait"
+                className={inputClass('event_id')}
+              />
+              {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              {isReadOnly ? 'Tutup' : 'Batal'}
+            </button>
+            {!isReadOnly && (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {submitting ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
+## File: src/index.css
+```css
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: light dark;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white transition-colors duration-300;
+  }
+}
+
+@layer components {
+  /* Memaksa input untuk beradaptasi dengan mode */
+  input[type="date"],
+  input[type="datetime-local"] {
+    color-scheme: light;
+  }
+
+  .dark input[type="date"],
+  .dark input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-fade {
+  animation: slideUpFade 0.4s ease-out forwards;
+}
+```
+
+## File: src/components/FinanceModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2 } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+function formatRupiah(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
+const initialForm = {
+  type: 'income',
+  description: '',
+  qty: 1,
+  unit: '',
+  unit_price: '',
+  date: '',
+  category: '',
+  pic: '',
+  payment_method: '',
+  receipt_url: '',
+  notes: '',
+  funding_source: '',
+  event_id: '',
+};
+
+export default function FinanceModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  currentUserId,
+  initialData = null,
+  isReadOnly = false,
+  activeEventId = null,
+}) {
+  const [formData, setFormData] = useState(initialForm);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        type: initialData.type || 'income',
+        description: initialData.description || initialData.title || '',
+        qty: initialData.qty ?? 1,
+        unit: initialData.unit || '',
+        unit_price: initialData.unit_price ?? initialData.amount ?? '',
+        date: initialData.date ? String(initialData.date).substring(0, 10) : '',
+        category: initialData.category || '',
+        pic: initialData.pic || '',
+        payment_method: initialData.payment_method || '',
+        receipt_url: initialData.receipt_url || '',
+        notes: initialData.notes || '',
+        funding_source: initialData.funding_source || '',
+        event_id: initialData.event_id ?? (activeEventId ?? ''),
+      });
+    } else {
+      setFormData({
+        ...initialForm,
+        event_id: activeEventId ?? '',
+      });
+    }
+    setErrors({});
+  }, [initialData, activeEventId, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    if (isReadOnly) return;
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isReadOnly) return;
+
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const targetEventId = initialData
+        ? (formData.event_id ? Number(formData.event_id) : null)
+        : (activeEventId ? Number(activeEventId) : (formData.event_id ? Number(formData.event_id) : null));
+
+      const payload = {
+        user_id: currentUserId,
+        type: formData.type,
+        title: formData.description,
+        description: formData.description,
+        qty: Number(formData.qty) || 1,
+        unit: formData.unit || null,
+        unit_price: Number(formData.unit_price) || 0,
+        date: formData.date,
+        category: formData.category || null,
+        pic: formData.pic || null,
+        payment_method: formData.payment_method || null,
+        receipt_url: formData.receipt_url || null,
+        notes: formData.notes || null,
+        funding_source: formData.funding_source || null,
         event_id: targetEventId,
       };
 
@@ -4159,7 +4775,7 @@ export default function FinanceModal({
         toast.success('Transaksi berhasil ditambahkan.');
       }
 
-      setForm(initialForm);
+      setFormData(initialForm);
       onSuccess();
       onClose();
     } catch (err) {
@@ -4189,13 +4805,6 @@ export default function FinanceModal({
     ? 'Edit Transaksi'
     : 'Tambah Transaksi';
 
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* Backdrop */}
@@ -4205,7 +4814,7 @@ export default function FinanceModal({
       />
 
       {/* Modal */}
-      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
         {/* Header */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white/80 px-6 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/80">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
@@ -4217,216 +4826,250 @@ export default function FinanceModal({
           </button>
         </div>
 
-        {/* Datalist Options */}
-        <datalist id="funding-list">
-          <option value="Pribadi" />
-          <option value="IKM" />
-          <option value="KAS" />
-          <option value="SPONSOR" />
-          <option value="LAINNYA" />
-        </datalist>
-
-        <datalist id="unit-list">
-          <option value="Pcs" />
-          <option value="Pack" />
-          <option value="Box" />
-          <option value="Ls" />
-          <option value="Rim" />
-          <option value="Kg" />
-          <option value="Liter" />
-          <option value="Orang" />
-          <option value="Hari" />
-          <option value="Bulan" />
-          <option value="Kegiatan" />
-        </datalist>
-
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Row 1: Tipe Transaksi & Sumber Dana */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tipe Transaksi
-              </label>
-              <select
-                name="type"
-                value={form.type}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                className={inputClass('type')}
-              >
-                <option value="income" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pemasukan (Income)</option>
-                <option value="expense" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">Pengeluaran (Expense)</option>
-              </select>
-              {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Sumber Dana
-              </label>
-              <input
-                type="text"
-                name="funding_source"
-                list="funding-list"
-                value={form.funding_source}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="Pribadi / IKM / KAS..."
-                className={inputClass('funding_source')}
-              />
-              {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
-            </div>
-          </div>
-
-          {/* Row 2: Tanggal & Event ID */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tanggal Transaksi
-              </label>
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                className={inputClass('date')}
-              />
-              {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
-            </div>
-
-            {!activeEventId ? (
-              <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Event ID (Opsional)
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="space-y-5">
+            {/* Tipe & Sumber Dana */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Tipe Transaksi
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
+                >
+                  <option value="income">Pemasukan (Income)</option>
+                  <option value="expense">Pengeluaran (Expense)</option>
+                </select>
+                {errors.type && <p className="mt-1 text-xs text-red-400">{errors.type[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Sumber Dana
                 </label>
                 <input
                   type="text"
-                  name="event_id"
-                  value={form.event_id}
+                  name="funding_source"
+                  value={formData.funding_source}
                   onChange={handleChange}
                   disabled={isReadOnly}
+                  placeholder="Pribadi / IKM / KAS..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.funding_source && <p className="mt-1 text-xs text-red-400">{errors.funding_source[0]}</p>}
+              </div>
+            </div>
+
+            {/* Tanggal & Event ID */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Tanggal Transaksi
+                </label>
+                <input
+                  type="date"
+                  name="date"
+                  required
+                  value={formData.date}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Event ID (Opsional)
+                </label>
+                <input
+                  type="number"
+                  name="event_id"
+                  value={formData.event_id}
+                  onChange={handleChange}
                   placeholder="ID Event (kosongkan jika Kas Umum)"
-                  className={inputClass('event_id')}
+                  disabled={isReadOnly || activeEventId !== null}
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/50 dark:text-white"
                 />
                 {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
               </div>
-            ) : (
-              <div className="flex items-end">
-                <div className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50/50 px-4 py-2.5 text-xs text-slate-500 dark:border-white/10 dark:bg-white/[0.02] dark:text-slate-400">
-                  Ruang Kerja: <span className="font-semibold text-primary-600 dark:text-primary-400">Event ID #{activeEventId}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Row 3: Rincian (Title) */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Rincian Item / Pengeluaran
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Contoh: Konsumsi Panitia, Pembelian Kertas..."
-              className={inputClass('title')}
-            />
-            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
-          </div>
-
-          {/* Row 4: Volume (Qty) & Satuan (Unit) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Volume / Kuantitas (Qty)
-              </label>
-              <input
-                type="number"
-                name="qty"
-                value={form.qty}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="1"
-                min="0.01"
-                step="any"
-                className={inputClass('qty')}
-              />
-              {errors.qty && <p className="mt-1 text-xs text-red-400">{errors.qty[0]}</p>}
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Satuan (Unit)
+            {/* Kategori & PIC */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Kategori
+                </label>
+                <input
+                  type="text"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Konsumsi / ATK / Cetak..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.category && <p className="mt-1 text-xs text-red-400">{errors.category[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  PIC / Penanggungjawab
+                </label>
+                <input
+                  type="text"
+                  name="pic"
+                  value={formData.pic}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Nama PIC..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.pic && <p className="mt-1 text-xs text-red-400">{errors.pic[0]}</p>}
+              </div>
+            </div>
+
+            {/* Rincian */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Rincian Item / Pengeluaran
               </label>
               <input
                 type="text"
-                name="unit"
-                list="unit-list"
-                value={form.unit}
+                name="description"
+                required
+                value={formData.description}
                 onChange={handleChange}
                 disabled={isReadOnly}
-                placeholder="Pcs / Pack / Box / Ls..."
-                className={inputClass('unit')}
+                placeholder="Contoh: Konsumsi Panitia..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
-              {errors.unit && <p className="mt-1 text-xs text-red-400">{errors.unit[0]}</p>}
+              {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
+              {errors.title && !errors.description && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
             </div>
-          </div>
 
-          {/* Row 5: Harga Satuan */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Harga Satuan (Rp)
-            </label>
-            <input
-              type="number"
-              name="unit_price"
-              value={form.unit_price}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="0"
-              min="0"
-              className={inputClass('unit_price')}
-            />
-            {errors.unit_price && <p className="mt-1 text-xs text-red-400">{errors.unit_price[0]}</p>}
-          </div>
+            {/* Volume & Satuan */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Volume (Qty)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="qty"
+                  required
+                  value={formData.qty}
+                  onChange={handleChange}
+                  min="0.01"
+                  disabled={isReadOnly}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.qty && <p className="mt-1 text-xs text-red-400">{errors.qty[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Satuan (Unit)
+                </label>
+                <input
+                  type="text"
+                  name="unit"
+                  required
+                  value={formData.unit}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Pcs / Box / Lbr..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.unit && <p className="mt-1 text-xs text-red-400">{errors.unit[0]}</p>}
+              </div>
+            </div>
 
-          {/* Row 6: Keterangan (Notes) */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Keterangan Tambahan / Catatan
-            </label>
-            <textarea
-              name="notes"
-              rows={3}
-              value={form.notes}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Catatan tambahan (opsional)..."
-              className={inputClass('notes')}
-            />
-            {errors.notes && <p className="mt-1 text-xs text-red-400">{errors.notes[0]}</p>}
-          </div>
+            {/* Harga Satuan */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Harga Satuan (Rp)
+              </label>
+              <input
+                type="number"
+                name="unit_price"
+                required
+                value={formData.unit_price}
+                onChange={handleChange}
+                min="0"
+                disabled={isReadOnly}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+              {errors.unit_price && <p className="mt-1 text-xs text-red-400">{errors.unit_price[0]}</p>}
+            </div>
 
-          {/* Kalkulasi Otomatis (Read-Only Total Box) */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {/* Metode & Nota */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Metode Bayar
+                </label>
+                <input
+                  type="text"
+                  name="payment_method"
+                  value={formData.payment_method}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="Tunai / Transfer..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.payment_method && <p className="mt-1 text-xs text-red-400">{errors.payment_method[0]}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Link Nota
+                </label>
+                <input
+                  type="url"
+                  name="receipt_url"
+                  value={formData.receipt_url}
+                  onChange={handleChange}
+                  disabled={isReadOnly}
+                  placeholder="https://..."
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                {errors.receipt_url && <p className="mt-1 text-xs text-red-400">{errors.receipt_url[0]}</p>}
+              </div>
+            </div>
+
+            {/* Keterangan */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Keterangan / Catatan
+              </label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={2}
+                disabled={isReadOnly}
+                placeholder="Catatan tambahan..."
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+              {errors.notes && <p className="mt-1 text-xs text-red-400">{errors.notes[0]}</p>}
+            </div>
+
+            {/* Kalkulasi Total (Otomatis) */}
+            <div className="flex items-center justify-between rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Total Kalkulasi (Vol × Harga)
               </span>
-              <span className={`text-base font-bold ${
-                form.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-              }`}>
-                {formatRupiah(calculatedTotal)}
+              <span className={`text-lg font-black ${formData.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                {formatRupiah((parseFloat(formData.qty) || 0) * (parseFloat(formData.unit_price) || 0))}
               </span>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
@@ -4470,7 +5113,7 @@ import {
   Loader2,
   AlertCircle,
   FileText,
-  ExternalLink,
+  FileBadge,
   ArrowLeft,
   Calendar,
   User,
@@ -4480,6 +5123,8 @@ import {
   Layers,
   ChevronRight as ChevronRightIcon,
   Search,
+  RefreshCw,
+  MoreVertical,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -4497,10 +5142,19 @@ export default function Document() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenDropdownId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   // Debounce search input (500ms)
   useEffect(() => {
@@ -4545,6 +5199,21 @@ export default function Document() {
     (c) => c.user_id === user?.id && ['Ketua', 'Sekretaris'].includes(c.position)
   );
   const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
+
+  // --- Sync Handler ---
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const payload = activeWorkspace?.id ? { event_id: activeWorkspace.id } : {};
+      const res = await api.post('/api/documents/sync', payload);
+      toast.success(res.data.message || 'Sinkronisasi berhasil.');
+      mutateDocuments();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal melakukan sinkronisasi.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // --- Delete Handler ---
   const handleDelete = async (id) => {
@@ -4619,7 +5288,7 @@ export default function Document() {
             }}
             className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-xl hover:shadow-violet-500/10 dark:from-violet-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-violet-500/15"
           >
-            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-violet-500/30" />
+            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/30" />
             <div className="relative flex flex-col justify-between h-full space-y-6">
               <div>
                 <div className="flex items-center justify-between">
@@ -4784,19 +5453,29 @@ export default function Document() {
           </div>
         </div>
 
-        {/* Action: Add Button (Only if authorized) */}
+        {/* Action: Sync & Add Buttons (Only if authorized) */}
         {canEdit && (
-          <button
-            onClick={() => {
-              setSelectedDocument(null);
-              setIsReadOnlyModal(false);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Surat
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/50 px-4 py-2.5 text-sm font-semibold text-violet-700 shadow-sm transition hover:bg-violet-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-400 dark:hover:bg-violet-500/20"
+            >
+              <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
+            </button>
+            <button
+              onClick={() => {
+                setSelectedDocument(null);
+                setIsReadOnlyModal(false);
+                setModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Surat
+            </button>
+          </div>
         )}
       </div>
 
@@ -4819,21 +5498,19 @@ export default function Document() {
 
       {/* Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="overflow-x-auto">
+        {/* FIX: Menambahkan pb-32 dan min-h-[300px] agar dropdown menu aksi di baris terakhir tidak terpotong (clipping) */}
+        <div className="overflow-x-auto pb-32 min-h-[300px]">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Nomor Surat
+                  Nomor & Tanggal
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Judul
+                  Judul & Kegiatan
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Pembuat
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Link Drive
                 </th>
                 <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Aksi
@@ -4844,67 +5521,118 @@ export default function Document() {
               {documents.length > 0 ? (
                 documents.map((item) => (
                   <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+                    {/* Kolom 1: Nomor & Tanggal Buat */}
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 dark:bg-slate-700/50 dark:text-slate-200">
-                        {item.letter_number}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-mono font-bold text-slate-700 w-max dark:bg-slate-800 dark:text-slate-300">
+                          {item.letter_number}
+                        </span>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Dibuat: {formatTanggal(item.created_at)}
+                        </span>
+                      </div>
                     </td>
-                    <td className="max-w-xs truncate px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
-                      {item.title}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {item.creator?.name ?? '-'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {item.drive_url ? (
-                        <a
-                          href={item.drive_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400 transition hover:bg-primary-500/25"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Buka
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
+
+                    {/* Kolom 2: Judul & Tanggal Kegiatan */}
+                    <td className="max-w-[200px] px-6 py-4">
+                      <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                        {item.title}
+                      </p>
+                      {item.activity_date && (
+                        <div className="mt-1 flex items-center gap-1 text-[10px] font-medium text-primary-600 dark:text-primary-400">
+                          <Calendar className="h-3 w-3" />
+                          Kegiatan: {formatTanggal(item.activity_date)}
+                        </div>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      {canEdit ? (
-                        <div className="flex items-center justify-end gap-2">
+
+                    {/* Kolom 3: Pembuat */}
+                    <td className="whitespace-nowrap px-6 py-4 text-xs font-medium text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 text-slate-400" />
+                        {item.creator?.name ?? 'Sistem'}
+                      </div>
+                    </td>
+
+                    {/* Kolom 4: Kebab Menu Aksi */}
+                    <td className="relative whitespace-nowrap px-6 py-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDropdownId(openDropdownId === item.id ? null : item.id);
+                        }}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+
+                      {openDropdownId === item.id && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-10 top-4 z-50 mt-2 w-48 origin-top-right rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none dark:border-white/10 dark:bg-slate-800"
+                        >
+                          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            Tautan Dokumen
+                          </div>
+
+                          {item.letter_link && (
+                            <a
+                              href={item.letter_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
+                            >
+                              <FileText className="h-4 w-4 text-blue-500" /> Draft Surat (Word)
+                            </a>
+                          )}
+
+                          {item.scan_link && (
+                            <a
+                              href={item.scan_link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
+                            >
+                              <FileBadge className="h-4 w-4 text-red-500" /> Scan Valid (PDF)
+                            </a>
+                          )}
+
+                          <div className="my-1 h-px bg-slate-100 dark:bg-white/10"></div>
+                          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                            Aksi Data
+                          </div>
+
                           <button
                             onClick={() => {
+                              setOpenDropdownId(null);
                               setSelectedDocument(item);
-                              setIsReadOnlyModal(false);
+                              setIsReadOnlyModal(!canEdit);
                               setModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
+                            {canEdit ? (
+                              <>
+                                <Pencil className="h-4 w-4 text-amber-500" /> Edit Metadata
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="h-4 w-4 text-indigo-500" /> Detail Surat
+                              </>
+                            )}
                           </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Hapus
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end">
-                          <button
-                            onClick={() => {
-                              setSelectedDocument(item);
-                              setIsReadOnlyModal(true);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Detail
-                          </button>
+
+                          {canEdit && (
+                            <button
+                              onClick={() => {
+                                setOpenDropdownId(null);
+                                handleDelete(item.id);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                            >
+                              <Trash2 className="h-4 w-4" /> Hapus Surat
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -4912,7 +5640,7 @@ export default function Document() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                     Belum ada data dokumen untuk ruang kerja ini.
                   </td>
                 </tr>
@@ -4979,6 +5707,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import MeetingModal from '../components/MeetingModal';
+import AttendanceModal from '../components/AttendanceModal';
 import {
   Plus,
   ChevronLeft,
@@ -4996,6 +5725,7 @@ import {
   Layers,
   ChevronRight as ChevronRightIcon,
   Search,
+  UserCheck,
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
@@ -5022,6 +5752,9 @@ export default function Meeting() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [selectedMeetingForAttendance, setSelectedMeetingForAttendance] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
@@ -5392,6 +6125,16 @@ export default function Meeting() {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => {
+                              setSelectedMeetingForAttendance(item);
+                              setAttendanceModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                          >
+                            <UserCheck className="h-3.5 w-3.5" />
+                            Absensi
+                          </button>
+                          <button
+                            onClick={() => {
                               setSelectedMeeting(item);
                               setIsReadOnlyModal(false);
                               setModalOpen(true);
@@ -5479,77 +6222,19 @@ export default function Meeting() {
         isReadOnly={isReadOnlyModal}
         activeEventId={activeWorkspace?.id}
       />
+
+      {/* Attendance Modal */}
+      <AttendanceModal
+        isOpen={attendanceModalOpen}
+        onClose={() => {
+          setAttendanceModalOpen(false);
+          setSelectedMeetingForAttendance(null);
+        }}
+        meeting={selectedMeetingForAttendance}
+        activeEventId={activeWorkspace?.id}
+      />
     </div>
   );
-}
-```
-
-## File: src/index.css
-```css
-@import "tailwindcss";
-
-@variant dark (&:where(.dark, .dark *));
-
-@theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
-
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-}
-
-@layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    color-scheme: light dark;
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white transition-colors duration-300;
-  }
-}
-
-@layer components {
-  /* Memaksa input untuk beradaptasi dengan mode */
-  input[type="date"],
-  input[type="datetime-local"] {
-    color-scheme: light;
-  }
-
-  .dark input[type="date"],
-  .dark input[type="datetime-local"] {
-    color-scheme: dark;
-  }
-}
-
-@keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up-fade {
-  animation: slideUpFade 0.4s ease-out forwards;
 }
 ```
 
@@ -5563,6 +6248,7 @@ import {
   LayoutDashboard,
   CalendarRange,
   Database,
+  Activity,
   CalendarClock,
   Wallet,
   FileText,
@@ -5578,8 +6264,10 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
   { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
+  { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
   { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
   { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
+  { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
   { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
   { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
@@ -5604,7 +6292,7 @@ export default function DashboardLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -5781,69 +6469,9 @@ export default function DashboardLayout() {
 }
 ```
 
-## File: src/App.jsx
-```javascript
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from './routes/ProtectedRoute';
-import DashboardLayout from './layouts/DashboardLayout';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import EventManagement from './pages/EventManagement';
-import MasterData from './pages/MasterData';
-import Finance from './pages/Finance';
-import Meeting from './pages/Meeting';
-import Document from './pages/Document';
-import Warning from './pages/Warning';
-import Profile from './pages/Profile';
-
-export default function App() {
-  return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/events" element={<EventManagement />} />
-                <Route path="/dashboard/master-data" element={<MasterData />} />
-                <Route path="/dashboard/finance" element={<Finance />} />
-                <Route path="/dashboard/meetings" element={<Meeting />} />
-                <Route path="/dashboard/documents" element={<Document />} />
-                <Route path="/dashboard/profile" element={<Profile />} />
-                <Route path="/dashboard/warnings" element={<Warning />} />
-              </Route>
-            </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#1e293b',
-                color: '#f1f5f9',
-                border: '1px solid rgba(255,255,255,0.1)',
-              },
-              error: {
-                iconTheme: { primary: '#ef4444', secondary: '#f1f5f9' },
-              },
-            }}
-          />
-        </AuthProvider>
-      </BrowserRouter>
-    </ThemeProvider>
-  );
-}
-```
-
 ## File: src/pages/Finance.jsx
 ```javascript
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
@@ -5872,9 +6500,8 @@ import {
   ChevronRight as ChevronRightIcon,
   Search,
   Filter,
-  Download,
-  Upload,
   FileSpreadsheet,
+  RefreshCw,
 } from 'lucide-react';
 
 function formatRupiah(value) {
@@ -5904,9 +6531,8 @@ export default function Finance() {
   const [typeFilter, setTypeFilter] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [showFilter, setShowFilter] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const fileInputRef = useRef(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedFinance, setSelectedFinance] = useState(null);
@@ -5970,134 +6596,19 @@ export default function Finance() {
   );
   const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
 
-  // --- Download Template Multi-Sheet ---
-  const handleDownloadTemplate = () => {
-    const formSheetData = [
-      {
-        'Tanggal (YYYY-MM-DD)': '2026-08-25',
-        'Tipe (Pemasukan/Pengeluaran)': 'Pengeluaran',
-        'Rincian': 'Konsumsi Rapat Pleno',
-        'Volume': 25,
-        'Satuan': 'Kotak',
-        'Harga Satuan': 20000,
-        'Sumber Dana': 'KAS',
-        'Keterangan': 'Nasi kotak untuk panitia dan peserta',
-      },
-    ];
-
-    const guideSheetData = [
-      {
-        'No': 1,
-        'Petunjuk Pengisian': 'Tanggal wajib menggunakan format tahun-bulan-tanggal (contoh: 2026-08-25).',
-      },
-      {
-        'No': 2,
-        'Petunjuk Pengisian': "Tipe wajib diisi dengan teks persis: 'Pemasukan' atau 'Pengeluaran'.",
-      },
-      {
-        'No': 3,
-        'Petunjuk Pengisian': 'Harga Satuan hanya diisi angka tanpa titik/koma rupiah.',
-      },
-      {
-        'No': 4,
-        'Petunjuk Pengisian': 'Volume dan Harga Satuan akan otomatis dikalikan oleh sistem menjadi Total.',
-      },
-    ];
-
-    const ws1 = XLSX.utils.json_to_sheet(formSheetData);
-    const ws2 = XLSX.utils.json_to_sheet(guideSheetData);
-    const wb = XLSX.utils.book_new();
-
-    XLSX.utils.book_append_sheet(wb, ws1, 'Form_Buku_Kas');
-    XLSX.utils.book_append_sheet(wb, ws2, 'Panduan_Sistem');
-    XLSX.writeFile(wb, 'Template_Buku_Kas.xlsx');
-  };
-
-  // --- Bulk Upload Excel ---
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    const reader = new FileReader();
-
-    reader.onload = async (evt) => {
-      try {
-        const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const ws = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(ws, { raw: false });
-
-        if (!rows || rows.length === 0) {
-          toast.error('File Excel kosong atau format tidak sesuai.');
-          setIsUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-
-        let successCount = 0;
-        let failCount = 0;
-
-        for (const row of rows) {
-          try {
-            const rawDate = row['Tanggal (YYYY-MM-DD)'] || row['Tanggal'] || row['date'];
-            const rawType = row['Tipe (Pemasukan/Pengeluaran)'] || row['Tipe'] || row['type'] || 'expense';
-            const type =
-              String(rawType).toLowerCase().includes('pemasukan') || String(rawType).toLowerCase() === 'income'
-                ? 'income'
-                : 'expense';
-            const title = row['Rincian'] || row['Deskripsi'] || row['title'] || row['description'] || 'Item Transaksi';
-            const qty = Number(row['Volume'] || row['Qty'] || row['qty']) || 1;
-            const unit =
-              row['Satuan'] !== undefined && row['Satuan'] !== ''
-                ? String(row['Satuan'])
-                : 'Ls';
-            const unitPrice = Number(row['Harga Satuan'] || row['Harga'] || row['unit_price'] || row['amount']) || 0;
-            const fundingSource = row['Sumber Dana'] || row['sumber_dana'] || row['funding_source'] || '';
-            const notes = row['Keterangan'] || row['Catatan'] || row['notes'] || '';
-
-            let dateStr = rawDate;
-            if (!dateStr) {
-              dateStr = new Date().toISOString().substring(0, 10);
-            }
-
-            const payload = {
-              user_id: user?.id,
-              type,
-              title,
-              qty,
-              unit: unit || null,
-              unit_price: unitPrice,
-              date: dateStr,
-              notes: notes || null,
-              funding_source: fundingSource || null,
-              event_id: activeWorkspace?.id ?? null,
-            };
-
-            await api.post('/api/finances', payload);
-            successCount++;
-          } catch {
-            failCount++;
-          }
-        }
-
-        if (successCount > 0) {
-          toast.success(`Berhasil mengimpor ${successCount} transaksi.`);
-          mutateFinances();
-        }
-        if (failCount > 0) {
-          toast.error(`${failCount} baris transaksi gagal diimpor.`);
-        }
-      } catch (err) {
-        toast.error('Gagal memproses file Excel.');
-      } finally {
-        setIsUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    };
-
-    reader.readAsBinaryString(file);
+  // --- Cloud Sync Handler ---
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const payload = activeWorkspace?.id ? { event_id: activeWorkspace.id } : {};
+      const res = await api.post('/api/finances/sync', payload);
+      toast.success(res.data.message || 'Sinkronisasi berhasil.');
+      mutateFinances();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal melakukan sinkronisasi.');
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // --- Export LPJ (Array-of-Arrays) ---
@@ -6428,14 +6939,17 @@ export default function Finance() {
         {/* Action Buttons Container */}
         {canEdit && (
           <div className="flex flex-wrap items-center gap-3">
-            {/* Hidden File Input */}
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept=".xlsx, .xls"
-              className="hidden"
-            />
+            {/* Sinkronisasi Cloud */}
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-2.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+            >
+              <Loader2 className={`h-4 w-4 ${isSyncing ? 'animate-spin' : 'hidden'}`} />
+              {!isSyncing && <RefreshCw className="h-4 w-4" />}
+              <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
+            </button>
 
             {/* Ekspor LPJ */}
             <button
@@ -6450,31 +6964,6 @@ export default function Finance() {
                 <FileSpreadsheet className="h-4 w-4" />
               )}
               <span>{isExporting ? 'Mengekspor...' : 'Ekspor LPJ'}</span>
-            </button>
-
-            {/* Unduh Template */}
-            <button
-              type="button"
-              onClick={handleDownloadTemplate}
-              className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
-            >
-              <Download className="h-4 w-4" />
-              Unduh Template
-            </button>
-
-            {/* Impor Excel */}
-            <button
-              type="button"
-              disabled={isUploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/50 px-4 py-2.5 text-xs font-semibold text-indigo-600 shadow-sm transition hover:bg-indigo-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
-            >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              <span>{isUploading ? 'Mengimpor...' : 'Impor Excel'}</span>
             </button>
 
             {/* Tambah Transaksi */}
@@ -6640,16 +7129,23 @@ export default function Finance() {
                       <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">
                         {item.title || item.description || '-'}
                       </div>
-                      {item.notes && (
-                        <div className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
-                          {item.notes}
-                        </div>
-                      )}
-                      {item.funding_source && (
-                        <span className="mt-1 inline-block rounded-md bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:text-primary-400">
-                          {item.funding_source}
-                        </span>
-                      )}
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        {item.category && (
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {item.category}
+                          </span>
+                        )}
+                        {item.pic && (
+                          <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                            PIC: {item.pic}
+                          </span>
+                        )}
+                        {item.funding_source && (
+                          <span className="rounded-md bg-primary-50 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-500/10 dark:text-primary-400">
+                            Dana: {item.funding_source}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
                       {item.qty ?? 1} {item.unit || ''}
@@ -6763,6 +7259,70 @@ export default function Finance() {
 }
 ```
 
+## File: src/App.jsx
+```javascript
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './routes/ProtectedRoute';
+import DashboardLayout from './layouts/DashboardLayout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import EventManagement from './pages/EventManagement';
+import MasterData from './pages/MasterData';
+import Finance from './pages/Finance';
+import Meeting from './pages/Meeting';
+import Document from './pages/Document';
+import Warning from './pages/Warning';
+import Profile from './pages/Profile';
+import AuditTrail from './pages/AuditTrail';
+import MonthlyDue from './pages/MonthlyDue';
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<ProtectedRoute />}>
+              <Route element={<DashboardLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard/events" element={<EventManagement />} />
+                <Route path="/dashboard/master-data" element={<MasterData />} />
+                <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
+                <Route path="/dashboard/finance" element={<Finance />} />
+                <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
+                <Route path="/dashboard/meetings" element={<Meeting />} />
+                <Route path="/dashboard/documents" element={<Document />} />
+                <Route path="/dashboard/profile" element={<Profile />} />
+                <Route path="/dashboard/warnings" element={<Warning />} />
+              </Route>
+            </Route>
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#1e293b',
+                color: '#f1f5f9',
+                border: '1px solid rgba(255,255,255,0.1)',
+              },
+              error: {
+                iconTheme: { primary: '#ef4444', secondary: '#f1f5f9' },
+              },
+            }}
+          />
+        </AuthProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+}
+```
+
 ## File: docs/CHANGELOG.md
 ```markdown
 ## [2026-08-20]
@@ -6871,4 +7431,22 @@ export default function Finance() {
 - Mengintegrasikan modul keamanan *Ganti Kata Sandi* secara mandiri (terisolasi tanpa harus menghubungi Admin).
 ### Changed
 - Memperbarui komponen `DashboardLayout.jsx` dengan mengonversi *User Card Info* menjadi *Navigation Link* interaktif.
+## [2026-08-22]
+### Added
+- Mengimplementasikan `AttendanceModal.jsx` untuk antarmuka "Simpan Massal" (Bulk Upsert) absensi rapat, menggunakan *Local State Tracking* untuk meniadakan latensi beban jaringan.
+- Mengintegrasikan fitur *Auto-Fill* (Tombol "Hadirkan Semua") yang memutasikan keseluruhan *state* entitas partisipan dalam satu siklus render komponen.
+### Changed
+- Memperbarui `Meeting.jsx` untuk menampilkan tombol aksi operasional "Absensi" (berbasis otorisasi kontekstual *Role*) di dalam *Table Row*.
+## [2026-08-22]
+### Added
+- Membuat antarmuka `AuditTrail.jsx` eksklusif untuk Admin BPH Pusat guna memantau riwayat mutasi *database*.
+- Mengimplementasikan *JSON Viewer Modal* untuk membedah perbedaan komparatif antara data lama dan data baru secara visual.
+### Changed
+- Memperbarui `DashboardLayout.jsx` dengan menambahkan modul *Log Aktivitas* pada navigasi *sidebar*.   
+## [2026-08-23]
+### Added
+- Mengimplementasikan input formulir `document_sync_url` dan `finance_sync_url` pada `EventModal.jsx` untuk mengakomodasi penautan *spreadsheet* terdistribusi bagi kepanitiaan.
+### Changed
+- Merefaktor *Engine* Sinkronisasi `FinanceController` dan `DocumentController` menjadi arsitektur *Context-Aware*. *Endpoint* kini memproses injeksi parameter `event_id` untuk melakukan *routing data* (Wipe & Reload / UpdateOrCreate) secara terisolasi berdasarkan tautan URL milik ruang kerja masing-masing kepanitiaan.
+- Membuka blokir render tombol "Sinkronisasi Cloud" di UI Dokumen dan Keuangan agar fitur *SSOT* dapat dieksekusi secara universal lintas ruang kerja.
 ```

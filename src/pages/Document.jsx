@@ -399,7 +399,8 @@ export default function Document() {
 
       {/* Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="overflow-x-auto">
+        {/* FIX: Menambahkan pb-32 dan min-h-[300px] agar dropdown menu aksi di baris terakhir tidak terpotong (clipping) */}
+        <div className="overflow-x-auto pb-32 min-h-[300px]">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">

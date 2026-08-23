@@ -16,7 +16,7 @@ export default function AttendanceModal({ isOpen, onClose, meeting, activeEventI
   const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
 
   // Fetch Absensi Existing
-  const attendanceUrl = isOpen && meeting ? `/api/meeting-attendances?meeting_id=${meeting.id}` : null;
+  const attendanceUrl = isOpen && meeting ? `/api/agenda-attendances?agenda_id=${meeting.id}` : null;
   const { data: attendanceData, isLoading: attendanceLoading, mutate } = useSWR(attendanceUrl, fetcher);
 
   const participants = activeEventId 
@@ -68,8 +68,8 @@ export default function AttendanceModal({ isOpen, onClose, meeting, activeEventI
         proof_url: data.proof_url || null
       }));
 
-      await api.post('/api/meeting-attendances/bulk', {
-        meeting_id: meeting.id,
+      await api.post('/api/agenda-attendances/bulk', {
+        agenda_id: meeting.id,
         attendances: payload
       });
 

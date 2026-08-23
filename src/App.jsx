@@ -9,7 +9,7 @@ import Dashboard from './pages/Dashboard';
 import EventManagement from './pages/EventManagement';
 import MasterData from './pages/MasterData';
 import Finance from './pages/Finance';
-import Meeting from './pages/Meeting';
+import Agenda from './pages/Agenda';
 import Document from './pages/Document';
 import Warning from './pages/Warning';
 import Profile from './pages/Profile';
@@ -31,7 +31,7 @@ export default function App() {
                 <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
                 <Route path="/dashboard/finance" element={<Finance />} />
                 <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
-                <Route path="/dashboard/meetings" element={<Meeting />} />
+                <Route path="/dashboard/agendas" element={<Agenda />} />
                 <Route path="/dashboard/documents" element={<Document />} />
                 <Route path="/dashboard/profile" element={<Profile />} />
                 <Route path="/dashboard/warnings" element={<Warning />} />
