@@ -24,6 +24,7 @@ export default function UserModal({
   const [divisionId, setDivisionId] = useState('');
   const [role, setRole] = useState('member');
   const [status, setStatus] = useState('active');
+  const [isCoordinator, setIsCoordinator] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -32,6 +33,7 @@ export default function UserModal({
       setDivisionId(initialData.division_id ?? '');
       setRole(initialData.roles?.[0]?.name || 'member');
       setStatus(initialData.status || 'active');
+      setIsCoordinator(initialData.is_coordinator || false);
     }
     setErrors({});
   }, [initialData, isOpen]);
@@ -48,6 +50,7 @@ export default function UserModal({
         division_id: divisionId ? Number(divisionId) : null,
         role,
         status,
+        is_coordinator: isCoordinator,
       };
 
       await api.put(`/api/users/${initialData.id}`, payload);
@@ -195,6 +198,27 @@ export default function UserModal({
             {errors.status && (
               <p className="mt-1 text-xs text-red-400">{errors.status[0]}</p>
             )}
+          </div>
+
+          {/* Status Koordinator */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Koordinator Divisi
+              </label>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                Tandai jika anggota ini adalah ketua/koordinator dari divisi yang dipilih.
+              </p>
+            </div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={isCoordinator}
+                onChange={(e) => setIsCoordinator(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 dark:bg-slate-700 dark:border-slate-600"></div>
+            </label>
           </div>
 
           {/* Actions */}
