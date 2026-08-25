@@ -54,7 +54,6 @@ src/
     DocumentModal.jsx
     EventModal.jsx
     FinanceModal.jsx
-    MeetingModal.jsx
     UserModal.jsx
     WarningModal.jsx
   contexts/
@@ -63,6 +62,7 @@ src/
   layouts/
     DashboardLayout.jsx
   pages/
+    Agenda.jsx
     AuditTrail.jsx
     Dashboard.jsx
     Document.jsx
@@ -70,7 +70,6 @@ src/
     Finance.jsx
     Login.jsx
     MasterData.jsx
-    Meeting.jsx
     MonthlyDue.jsx
     Profile.jsx
     Warning.jsx
@@ -159,186 +158,6 @@ export default axiosInstance;
 ## File: src/assets/vite.svg
 ```xml
 <svg xmlns="http://www.w3.org/2000/svg" width="77" height="47" fill="none" aria-labelledby="vite-logo-title" viewBox="0 0 77 47"><title id="vite-logo-title">Vite</title><style>.parenthesis{fill:#000}@media (prefers-color-scheme:dark){.parenthesis{fill:#fff}}</style><path fill="#9135ff" d="M40.151 45.71c-.663.844-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.493c-.92 0-1.457-1.04-.92-1.788l7.479-10.471c1.07-1.498 0-3.578-1.842-3.578H15.443c-.92 0-1.456-1.04-.92-1.788l9.696-13.576c.213-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.472c-1.07 1.497 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.087.89 1.83L40.153 45.712z"/><mask id="a" width="48" height="47" x="14" y="0" maskUnits="userSpaceOnUse" style="mask-type:alpha"><path fill="#000" d="M40.047 45.71c-.663.843-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.389c-.92 0-1.457-1.04-.92-1.788l7.479-10.472c1.07-1.497 0-3.578-1.842-3.578H15.34c-.92 0-1.456-1.04-.92-1.788l9.696-13.575c.213-.297.556-.474.92-.474H53.93c.92 0 1.456 1.04.92 1.788L47.37 13.03c-1.07 1.498 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.088.89 1.831L40.049 45.712z"/></mask><g mask="url(#a)"><g filter="url(#b)"><ellipse cx="5.508" cy="14.704" fill="#eee6ff" rx="5.508" ry="14.704" transform="rotate(269.814 20.96 11.29)scale(-1 1)"/></g><g filter="url(#c)"><ellipse cx="10.399" cy="29.851" fill="#eee6ff" rx="10.399" ry="29.851" transform="rotate(89.814 -16.902 -8.275)scale(1 -1)"/></g><g filter="url(#d)"><ellipse cx="5.508" cy="30.487" fill="#8900ff" rx="5.508" ry="30.487" transform="rotate(89.814 -19.197 -7.127)scale(1 -1)"/></g><g filter="url(#e)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.928 4.177)scale(1 -1)"/></g><g filter="url(#f)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.738 5.52)scale(1 -1)"/></g><g filter="url(#g)"><ellipse cx="14.072" cy="22.078" fill="#eee6ff" rx="14.072" ry="22.078" transform="rotate(93.35 31.245 55.578)scale(-1 1)"/></g><g filter="url(#h)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#i)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#j)"><ellipse cx="14.592" cy="9.743" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(39.51 14.592 9.743)"/></g><g filter="url(#k)"><ellipse cx="61.728" cy="-5.321" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 61.728 -5.32)"/></g><g filter="url(#l)"><ellipse cx="55.618" cy="7.104" fill="#00c2ff" rx="5.971" ry="9.665" transform="rotate(37.892 55.618 7.104)"/></g><g filter="url(#m)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#n)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#o)"><ellipse cx="49.857" cy="30.678" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 49.857 30.678)"/></g><g filter="url(#p)"><ellipse cx="52.623" cy="33.171" fill="#00c2ff" rx="5.971" ry="15.297" transform="rotate(37.892 52.623 33.17)"/></g></g><path d="M6.919 0c-9.198 13.166-9.252 33.575 0 46.789h6.215c-9.25-13.214-9.196-33.623 0-46.789zm62.424 0h-6.215c9.198 13.166 9.252 33.575 0 46.789h6.215c9.25-13.214 9.196-33.623 0-46.789" class="parenthesis"/><defs><filter id="b" width="60.045" height="41.654" x="-5.564" y="16.92" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="c" width="90.34" height="51.437" x="-40.407" y="-6.762" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="d" width="79.355" height="29.4" x="-35.435" y="2.801" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="e" width="79.579" height="29.4" x="-30.84" y="20.8" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="f" width="79.579" height="29.4" x="-29.307" y="21.949" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="g" width="74.749" height="58.852" x="29.961" y="-17.13" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="h" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="i" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="j" width="56.045" height="63.649" x="-13.43" y="-22.082" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="k" width="54.814" height="64.646" x="34.321" y="-37.644" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="l" width="33.541" height="35.313" x="38.847" y="-10.552" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="m" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="n" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="o" width="54.814" height="64.646" x="22.45" y="-1.645" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="p" width="39.409" height="43.623" x="32.919" y="11.36" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter></defs></svg>
-```
-
-## File: src/components/AttendanceModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
-import { X, Loader2, UserCheck, Save, CheckCircle2 } from 'lucide-react';
-import api from '../api/axios';
-import { fetcher } from '../api/fetcher';
-import toast from 'react-hot-toast';
-
-export default function AttendanceModal({ isOpen, onClose, meeting, activeEventId }) {
-  const [localData, setLocalData] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  // Fetch Partisipan
-  const participantUrl = isOpen
-    ? (activeEventId ? `/api/event-committees?event_id=${activeEventId}` : `/api/users?page=1`)
-    : null;
-  const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
-
-  // Fetch Absensi Existing
-  const attendanceUrl = isOpen && meeting ? `/api/meeting-attendances?meeting_id=${meeting.id}` : null;
-  const { data: attendanceData, isLoading: attendanceLoading, mutate } = useSWR(attendanceUrl, fetcher);
-
-  const participants = activeEventId 
-    ? (participantData || []) 
-    : (participantData?.data || participantData || []);
-    
-  const existingAttendances = attendanceData || [];
-
-  // Sinkronisasi State Lokal
-  useEffect(() => {
-    if (isOpen && participants.length > 0) {
-      const initialState = {};
-      participants.forEach((p) => {
-        const user = activeEventId ? p.user : p;
-        if (!user) return;
-        const existing = existingAttendances.find(a => a.user_id === user.id);
-        initialState[user.id] = {
-          status: existing?.status || 'absent',
-          proof_url: existing?.proof_url || '',
-        };
-      });
-      setLocalData(initialState);
-    }
-  }, [isOpen, participantData, attendanceData, activeEventId]);
-
-  if (!isOpen || !meeting) return null;
-
-  const handleChange = (userId, field, value) => {
-    setLocalData(prev => ({
-      ...prev,
-      [userId]: { ...prev[userId], [field]: value }
-    }));
-  };
-
-  const handleMarkAllPresent = () => {
-    const newState = { ...localData };
-    Object.keys(newState).forEach(key => {
-      newState[key].status = 'present';
-    });
-    setLocalData(newState);
-  };
-
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      const payload = Object.entries(localData).map(([userId, data]) => ({
-        user_id: Number(userId),
-        status: data.status,
-        proof_url: data.proof_url || null
-      }));
-
-      await api.post('/api/meeting-attendances/bulk', {
-        meeting_id: meeting.id,
-        attendances: payload
-      });
-
-      toast.success('Seluruh absensi berhasil disimpan.');
-      mutate();
-      onClose();
-    } catch (err) {
-      toast.error('Gagal menyimpan absensi massal.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md shadow-emerald-500/25">
-              <UserCheck className="h-5 w-5 text-white"/>
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Absensi Rapat</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{meeting.title}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10">
-            <X className="h-5 w-5"/>
-          </button>
-        </div>
-
-        {/* Content (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="mb-4 flex justify-end">
-             <button onClick={handleMarkAllPresent} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20">
-                <CheckCircle2 className="h-4 w-4"/> Hadirkan Semua
-             </button>
-          </div>
-
-          {(participantLoading || attendanceLoading) ? (
-            <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-emerald-500"/></div>
-          ) : participants.length === 0 ? (
-            <div className="text-center text-sm text-slate-500">Belum ada anggota terdaftar.</div>
-          ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
-                <tr>
-                  <th className="pb-3 pr-4">Nama Anggota</th>
-                  <th className="pb-3 px-4">Status</th>
-                  <th className="pb-3 pl-4">URL Bukti (Opsional)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                {participants.map(p => {
-                  const user = activeEventId ? p.user : p;
-                  if (!user) return null;
-                  const rowData = localData[user.id] || { status: 'absent', proof_url: '' };
-                  
-                  return (
-                    <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                      <td className="py-3 pr-4 font-medium text-slate-900 dark:text-white">{user.name}</td>
-                      <td className="py-3 px-4">
-                        <select 
-                          value={rowData.status}
-                          onChange={(e) => handleChange(user.id, 'status', e.target.value)}
-                          className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${rowData.status === 'present' ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' : rowData.status === 'absent' ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10' : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'}`}
-                        >
-                          <option value="present">Hadir</option>
-                          <option value="permit">Izin</option>
-                          <option value="sick">Sakit</option>
-                          <option value="absent">Alpha</option>
-                        </select>
-                      </td>
-                      <td className="py-3 pl-4">
-                        <input 
-                          type="url" 
-                          placeholder="https://..." 
-                          value={rowData.proof_url}
-                          onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none dark:border-white/10 dark:bg-slate-800 dark:text-white"
-                        />
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
-           <button onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">Batal</button>
-           <button onClick={handleSubmit} disabled={submitting || participantLoading} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50">
-             {submitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>} Simpan Semua Absensi
-           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 ```
 
 ## File: src/components/DivisionModal.jsx
@@ -485,232 +304,6 @@ export default function DivisionModal({
 }
 ```
 
-## File: src/components/UserModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { X, Loader2, UserCog } from 'lucide-react';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-const ROLES = [
-  { value: 'admin', label: 'Admin (BPH Pusat)' },
-  { value: 'member', label: 'Member (Anggota Biasa)' },
-  { value: 'advisor', label: 'Advisor (Pembina / Demisioner)' },
-];
-
-const STATUSES = [
-  { value: 'active', label: 'Aktif (Active)' },
-  { value: 'suspended', label: 'Suspended (Nonaktif)' },
-];
-
-export default function UserModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialData = null,
-  divisions = [],
-}) {
-  const [divisionId, setDivisionId] = useState('');
-  const [role, setRole] = useState('member');
-  const [status, setStatus] = useState('active');
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialData) {
-      setDivisionId(initialData.division_id ?? '');
-      setRole(initialData.roles?.[0]?.name || 'member');
-      setStatus(initialData.status || 'active');
-    }
-    setErrors({});
-  }, [initialData, isOpen]);
-
-  if (!isOpen || !initialData) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrors({});
-
-    try {
-      const payload = {
-        division_id: divisionId ? Number(divisionId) : null,
-        role,
-        status,
-      };
-
-      await api.put(`/api/users/${initialData.id}`, payload);
-      toast.success(`Data pengguna ${initialData.name} berhasil diperbarui.`);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) toast.error(data.message);
-        if (data.errors) setErrors(data.errors);
-      } else {
-        toast.error(err.response?.data?.message || 'Gagal memperbarui pengguna.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 dark:bg-white/5 dark:text-white ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-500/25">
-              <UserCog className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Edit Data Anggota
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Ubah divisi, hak akses (role), atau status akun anggota.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* User Info Preview */}
-        <div className="border-b border-slate-100 bg-slate-50/60 px-6 py-3 dark:border-white/5 dark:bg-white/[0.02]">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {initialData.name}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {initialData.email}
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Division */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Divisi Organisasi
-            </label>
-            <select
-              value={divisionId}
-              onChange={(e) => setDivisionId(e.target.value)}
-              className={inputClass('division_id')}
-            >
-              <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
-                -- Tanpa Divisi (BPH Inti / Umum) --
-              </option>
-              {divisions.map((div) => (
-                <option
-                  key={div.id}
-                  value={div.id}
-                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
-                >
-                  {div.name}
-                </option>
-              ))}
-            </select>
-            {errors.division_id && (
-              <p className="mt-1 text-xs text-red-400">{errors.division_id[0]}</p>
-            )}
-          </div>
-
-          {/* Role */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Hak Akses (Role)
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className={inputClass('role')}
-            >
-              {ROLES.map((r) => (
-                <option
-                  key={r.value}
-                  value={r.value}
-                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
-                >
-                  {r.label}
-                </option>
-              ))}
-            </select>
-            {errors.role && (
-              <p className="mt-1 text-xs text-red-400">{errors.role[0]}</p>
-            )}
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Status Akun
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className={inputClass('status')}
-            >
-              {STATUSES.map((s) => (
-                <option
-                  key={s.value}
-                  value={s.value}
-                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
-                >
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            {errors.status && (
-              <p className="mt-1 text-xs text-red-400">{errors.status[0]}</p>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-```
-
 ## File: src/contexts/ThemeContext.jsx
 ```javascript
 import { createContext, useContext, useState, useEffect } from 'react';
@@ -747,6 +340,350 @@ export function useTheme() {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
+}
+```
+
+## File: src/pages/Agenda.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '../contexts/AuthContext';
+import { paginatedFetcher } from '../api/fetcher';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import { format } from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import AttendanceModal from '../components/AttendanceModal';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  CalendarClock,
+  ExternalLink,
+  ArrowLeft,
+  Calendar,
+  User,
+  Layers,
+  ChevronRight as ChevronRightIcon,
+  Search,
+  UserCheck,
+  RefreshCw,
+  MapPin,
+} from 'lucide-react';
+
+function formatTanggalWaktu(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return format(new Date(dateStr), 'd MMM yyyy, HH:mm', { locale: localeID });
+  } catch {
+    return dateStr;
+  }
+}
+
+export default function Agenda() {
+  const { user } = useAuth();
+  const [activeWorkspace, setActiveWorkspace] = useState(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [selectedAgendaForAttendance, setSelectedAgendaForAttendance] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // --- Directory Mode ---
+  const {
+    data: eventsData,
+    error: eventsError,
+    isLoading: eventsLoading,
+  } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
+
+  // --- Workspace Mode ---
+  let agendaUrl = null;
+  if (activeWorkspace) {
+    const params = new URLSearchParams();
+    params.append('page', String(page));
+    if (activeWorkspace.id) params.append('event_id', String(activeWorkspace.id));
+    if (debouncedSearch) params.append('search', debouncedSearch);
+    agendaUrl = `/api/agendas?${params.toString()}`;
+  }
+
+  const {
+    data: agendasData,
+    error: agendasError,
+    isLoading: agendasLoading,
+    mutate: mutateAgendas,
+  } = useSWR(agendaUrl, paginatedFetcher);
+
+  // --- RBAC ---
+  const isGlobalAdmin = user?.roles?.[0]?.name === 'admin';
+  const isCommittee = activeWorkspace?.committees?.some(
+    (c) => c.user_id === user?.id && ['Ketua', 'Sekretaris'].includes(c.position)
+  );
+  const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
+
+  // --- Sync Handler ---
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const payload = activeWorkspace?.id ? { event_id: activeWorkspace.id } : {};
+      const res = await api.post('/api/agendas/sync', payload);
+      toast.success(res.data.message || 'Sinkronisasi berhasil.');
+      mutateAgendas();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal melakukan sinkronisasi.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    const s = String(status).toLowerCase();
+    if (s.includes('selesai') || s.includes('berhasil')) {
+      return 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20';
+    }
+    if (s.includes('berjalan') || s.includes('proses')) {
+      return 'bg-blue-500/15 text-blue-600 border-blue-500/20';
+    }
+    if (s.includes('kendala') || s.includes('batal')) {
+      return 'bg-red-500/15 text-red-600 border-red-500/20';
+    }
+    if (s.includes('reschedule') || s.includes('tunda')) {
+      return 'bg-amber-500/15 text-amber-600 border-amber-500/20';
+    }
+    return 'bg-slate-500/15 text-slate-600 border-slate-500/20 dark:text-slate-400';
+  };
+
+  // ==========================================
+  // VIEW 1: DIRECTORY MODE
+  // ==========================================
+  if (!activeWorkspace) {
+    if (eventsLoading) {
+      return (
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+        </div>
+      );
+    }
+    if (eventsError) {
+      return <div className="text-center text-red-500 py-16">Gagal memuat direktori event.</div>;
+    }
+
+    const eventList = eventsData?.data?.data || (Array.isArray(eventsData?.data) ? eventsData.data : []) || [];
+
+    return (
+      <div className="space-y-8 animate-slide-up-fade">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-lg">
+            <CalendarClock className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Direktori Agenda Kegiatan</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Pilih ruang kerja BPH Pusat atau Event untuk melihat timeline kegiatan.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            onClick={() => {
+              setActiveWorkspace({ id: null, name: 'Agenda Umum BPH Pusat', type: 'global' });
+              setPage(1);
+            }}
+            className="group cursor-pointer rounded-2xl border border-blue-500/30 bg-blue-50/50 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-blue-500/20 dark:bg-blue-900/10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <CalendarClock className="h-8 w-8 text-blue-600" />
+              <span className="rounded-full bg-blue-500/15 px-3 py-1 text-[10px] font-bold uppercase text-blue-600">
+                BPH Pusat
+              </span>
+            </div>
+            <h3 className="font-bold text-slate-900 dark:text-white">Agenda BPH Pusat</h3>
+            <p className="text-xs text-slate-500 mt-1">Timeline kegiatan operasional organisasi.</p>
+          </div>
+
+          {eventList.map((event) => (
+            <div
+              key={event.id}
+              onClick={() => {
+                setActiveWorkspace(event);
+                setPage(1);
+              }}
+              className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-primary-500/40 hover:shadow-xl dark:border-white/10 dark:bg-white/5"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <Calendar className="h-8 w-8 text-primary-600" />
+                <span className="rounded-full bg-primary-500/10 px-3 py-1 text-[10px] font-bold uppercase text-primary-600">
+                  Event
+                </span>
+              </div>
+              <h3 className="font-bold text-slate-900 line-clamp-1 dark:text-white">{event.name}</h3>
+              <p className="text-xs text-slate-500 mt-1">Ruang kerja timeline kepanitiaan.</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // VIEW 2: WORKSPACE MODE (TIMELINE LIST)
+  // ==========================================
+  const agendas = agendasData?.data?.data || (Array.isArray(agendasData?.data) ? agendasData.data : []) || [];
+  const meta = agendasData?.meta || (agendasData?.data && !Array.isArray(agendasData?.data) ? agendasData.data : null);
+
+  return (
+    <div className="space-y-6">
+      <button
+        onClick={() => setActiveWorkspace(null)}
+        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white"
+      >
+        <ArrowLeft className="h-4 w-4" /> Kembali ke Direktori
+      </button>
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-lg">
+            <CalendarClock className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">{activeWorkspace.name}</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {meta?.total ?? agendas.length} agenda kegiatan
+            </p>
+          </div>
+        </div>
+
+        {canEdit && (
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-100 disabled:opacity-50 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400"
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
+          </button>
+        )}
+      </div>
+
+      <div className="max-w-md">
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nama agenda..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 focus:ring-2 dark:border-white/10 dark:bg-white/5 dark:text-white"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+        <div className="overflow-x-auto pb-32 min-h-[300px]">
+          <table className="w-full">
+            <thead className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent text-xs font-semibold uppercase text-slate-600 dark:text-slate-400 text-left">
+              <tr>
+                <th className="px-6 py-3.5">Agenda Kegiatan</th>
+                <th className="px-6 py-3.5">Waktu & Tempat</th>
+                <th className="px-6 py-3.5">PJ / Divisi</th>
+                <th className="px-6 py-3.5 text-right">Aksi & Notulensi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {agendas.length > 0 ? (
+                agendas.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-sm text-slate-900 dark:text-white">{item.title}</div>
+                      <div className="mt-1.5">
+                        <span
+                          className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusBadge(
+                            item.status
+                          )}`}
+                        >
+                          {item.status || 'Belum Ditentukan'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-slate-400" /> {formatTanggalWaktu(item.start_date)}{' '}
+                        {item.end_date && `- ${formatTanggalWaktu(item.end_date)}`}
+                      </div>
+                      {item.location && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-slate-400" /> {item.location}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 text-slate-400" /> {item.pic || 'Belum Ada PIC'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        {canEdit && (
+                          <button
+                            onClick={() => {
+                              setSelectedAgendaForAttendance(item);
+                              setAttendanceModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+                          >
+                            <UserCheck className="h-3.5 w-3.5" /> Absensi
+                          </button>
+                        )}
+                        {item.minutes_url ? (
+                          <a
+                            href={item.minutes_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 text-blue-500" /> Notulensi
+                          </a>
+                        ) : (
+                          <span className="text-xs text-slate-400 dark:text-slate-500 mr-2">Tidak Ada Link</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">
+                    Belum ada agenda untuk ruang kerja ini.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <AttendanceModal
+        isOpen={attendanceModalOpen}
+        onClose={() => {
+          setAttendanceModalOpen(false);
+          setSelectedAgendaForAttendance(null);
+        }}
+        meeting={selectedAgendaForAttendance}
+        activeEventId={activeWorkspace?.id}
+      />
+    </div>
+  );
 }
 ```
 
@@ -3386,6 +3323,256 @@ export default function EventModal({
 }
 ```
 
+## File: src/components/UserModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2, UserCog } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+const ROLES = [
+  { value: 'admin', label: 'Admin (BPH Pusat)' },
+  { value: 'member', label: 'Member (Anggota Biasa)' },
+  { value: 'advisor', label: 'Advisor (Pembina / Demisioner)' },
+];
+
+const STATUSES = [
+  { value: 'active', label: 'Aktif (Active)' },
+  { value: 'suspended', label: 'Suspended (Nonaktif)' },
+];
+
+export default function UserModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData = null,
+  divisions = [],
+}) {
+  const [divisionId, setDivisionId] = useState('');
+  const [role, setRole] = useState('member');
+  const [status, setStatus] = useState('active');
+  const [isCoordinator, setIsCoordinator] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setDivisionId(initialData.division_id ?? '');
+      setRole(initialData.roles?.[0]?.name || 'member');
+      setStatus(initialData.status || 'active');
+      setIsCoordinator(initialData.is_coordinator || false);
+    }
+    setErrors({});
+  }, [initialData, isOpen]);
+
+  if (!isOpen || !initialData) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const payload = {
+        division_id: divisionId ? Number(divisionId) : null,
+        role,
+        status,
+        is_coordinator: isCoordinator,
+      };
+
+      await api.put(`/api/users/${initialData.id}`, payload);
+      toast.success(`Data pengguna ${initialData.name} berhasil diperbarui.`);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) toast.error(data.message);
+        if (data.errors) setErrors(data.errors);
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui pengguna.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 dark:bg-white/5 dark:text-white ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-500/25">
+              <UserCog className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                Edit Data Anggota
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Ubah divisi, hak akses (role), atau status akun anggota.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* User Info Preview */}
+        <div className="border-b border-slate-100 bg-slate-50/60 px-6 py-3 dark:border-white/5 dark:bg-white/[0.02]">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+            {initialData.name}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {initialData.email}
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Division */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Divisi Organisasi
+            </label>
+            <select
+              value={divisionId}
+              onChange={(e) => setDivisionId(e.target.value)}
+              className={inputClass('division_id')}
+            >
+              <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                -- Tanpa Divisi (BPH Inti / Umum) --
+              </option>
+              {divisions.map((div) => (
+                <option
+                  key={div.id}
+                  value={div.id}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {div.name}
+                </option>
+              ))}
+            </select>
+            {errors.division_id && (
+              <p className="mt-1 text-xs text-red-400">{errors.division_id[0]}</p>
+            )}
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Hak Akses (Role)
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className={inputClass('role')}
+            >
+              {ROLES.map((r) => (
+                <option
+                  key={r.value}
+                  value={r.value}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            {errors.role && (
+              <p className="mt-1 text-xs text-red-400">{errors.role[0]}</p>
+            )}
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Status Akun
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className={inputClass('status')}
+            >
+              {STATUSES.map((s) => (
+                <option
+                  key={s.value}
+                  value={s.value}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            {errors.status && (
+              <p className="mt-1 text-xs text-red-400">{errors.status[0]}</p>
+            )}
+          </div>
+
+          {/* Status Koordinator */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Koordinator Divisi
+              </label>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                Tandai jika anggota ini adalah ketua/koordinator dari divisi yang dipilih.
+              </p>
+            </div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={isCoordinator}
+                onChange={(e) => setIsCoordinator(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 dark:bg-slate-700 dark:border-slate-600"></div>
+            </label>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
 ## File: src/components/WarningModal.jsx
 ```javascript
 import { useState } from 'react';
@@ -3842,247 +4029,461 @@ export default function Dashboard() {
 }
 ```
 
-## File: src/components/MeetingModal.jsx
+## File: src/components/AttendanceModal.jsx
 ```javascript
 import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import useSWR from 'swr';
+import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search } from 'lucide-react';
 import api from '../api/axios';
+import { fetcher } from '../api/fetcher';
 import toast from 'react-hot-toast';
 
-const initialForm = {
-  title: '',
-  date: '',
-  minutes_url: '',
-  event_id: '',
-};
-
-function formatForDateTimeInput(dateStr) {
-  if (!dateStr) return '';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr.replace(' ', 'T').substring(0, 16);
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } catch {
-    return dateStr.replace(' ', 'T').substring(0, 16);
-  }
-}
-
-export default function MeetingModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialData = null,
-  isReadOnly = false,
-  activeEventId = null,
-}) {
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
+export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
+  const [activeTab, setActiveTab] = useState('targets'); // 'targets' | 'attendance'
+  const [localData, setLocalData] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
+  // --- State for Targets ---
+  const [selectedTargets, setSelectedTargets] = useState([]);
+  const [searchUser, setSearchUser] = useState('');
+
+  // Fetch Partisipan & Divisions
+  const participantUrl = isOpen
+    ? activeEventId
+      ? `/api/event-committees?event_id=${activeEventId}`
+      : `/api/users?page=1`
+    : null;
+  const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
+  const { data: divData } = useSWR(isOpen && !activeEventId ? '/api/divisions' : null, fetcher); // Hanya ditarik jika BPH Pusat
+
+  // Fetch Absensi Existing
+  const attendanceUrl = isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null;
+  const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
+    attendanceUrl,
+    fetcher
+  );
+
+  // FIX: Mengamankan ekstraksi array karena fetcher sudah mengembalikan array (res.data.data)
+  const rawParticipants = Array.isArray(participantData) ? participantData : (participantData?.data || []);
+  const divisions = Array.isArray(divData) ? divData : (divData?.data || []);
+  const existingAttendances = attendanceData || [];
+
+  // Reset & Load Initial Targets
   useEffect(() => {
-    if (initialData) {
-      setForm({
-        title: initialData.title || '',
-        date: formatForDateTimeInput(initialData.date),
-        minutes_url: initialData.minutes_url || '',
-        event_id: initialData.event_id ?? (activeEventId ?? ''),
-      });
+    if (isOpen && agenda) {
+      if (agenda.targets && agenda.targets.length > 0) {
+        setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
+        setActiveTab('attendance'); // Langsung loncat ke absen jika target sudah diatur sebelumnya
+      } else {
+        setSelectedTargets([]);
+        setActiveTab('targets');
+      }
     } else {
-      setForm({
-        ...initialForm,
-        event_id: activeEventId ?? '',
-      });
+      setActiveTab('targets');
     }
-    setErrors({});
-  }, [initialData, activeEventId, isOpen]);
+  }, [isOpen, agenda]);
 
-  if (!isOpen) return null;
+  // Filtering Peserta berdasarkan Selected Targets
+  const isAllInvited = selectedTargets.length === 0 || selectedTargets.some((t) => t.type === 'all');
 
-  const handleChange = (e) => {
-    if (isReadOnly) return;
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  const participants = rawParticipants.filter((p) => {
+    if (isAllInvited) return true;
+    const user = activeEventId ? p.user : p;
+    if (!user) return false;
+
+    return selectedTargets.some((t) => {
+      if (t.type === 'bph') return user.roles?.[0]?.name === 'admin';
+      if (t.type === 'coordinator') return user.is_coordinator;
+      if (t.type === 'division' && !activeEventId) return String(user.division_id) === String(t.value);
+      if (t.type === 'position' && activeEventId)
+        return p.position?.toLowerCase() === String(t.value).toLowerCase();
+      if (t.type === 'user') return String(user.id) === String(t.value);
+      return false;
+    });
+  });
+
+  // Sinkronisasi State Lokal Absensi
+  useEffect(() => {
+    if (isOpen && activeTab === 'attendance' && participants.length > 0) {
+      const initialState = {};
+      participants.forEach((p) => {
+        const user = activeEventId ? p.user : p;
+        if (!user) return;
+        const existing = existingAttendances.find((a) => a.user_id === user.id);
+        initialState[user.id] = {
+          status: existing?.status || 'uninvited', // default kosong
+          proof_url: existing?.proof_url || '',
+        };
+      });
+      setLocalData(initialState);
+    }
+  }, [isOpen, activeTab, participantData, attendanceData, activeEventId, selectedTargets]);
+
+  if (!isOpen || !agenda) return null;
+
+  // --- Handlers ---
+  const toggleTarget = (type, value = null) => {
+    setSelectedTargets((prev) => {
+      // Jika "all", hapus yang lain
+      if (type === 'all') return [{ type: 'all', value: null }];
+
+      let newTargets = prev.filter((t) => t.type !== 'all'); // Hapus 'all' jika milih spesifik
+      const exists = newTargets.some((t) => t.type === type && t.value === value);
+      if (exists) {
+        return newTargets.filter((t) => !(t.type === type && t.value === value));
+      } else {
+        return [...newTargets, { type, value }];
+      }
+    });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isReadOnly) return;
-
+  const handleSaveTargetsAndProceed = async () => {
+    if (selectedTargets.length === 0) {
+      toast.error('Pilih minimal satu target (misal: Semua Peserta).');
+      return;
+    }
     setSubmitting(true);
-    setErrors({});
-
     try {
-      const targetEventId = initialData
-        ? (form.event_id ? Number(form.event_id) : null)
-        : (activeEventId ? Number(activeEventId) : (form.event_id ? Number(form.event_id) : null));
-
-      const payload = {
-        title: form.title,
-        date: form.date ? form.date.replace('T', ' ') : '',
-        minutes_url: form.minutes_url || null,
-        event_id: targetEventId,
-      };
-
-      if (initialData?.id) {
-        await api.put(`/api/meetings/${initialData.id}`, payload);
-        toast.success('Rapat berhasil diperbarui.');
-      } else {
-        await api.post('/api/meetings', payload);
-        toast.success('Rapat berhasil ditambahkan.');
-      }
-
-      setForm(initialForm);
-      onSuccess();
-      onClose();
+      await api.post(`/api/agendas/${agenda.id}/targets`, { targets: selectedTargets });
+      toast.success('Target peserta diperbarui.');
+      setActiveTab('attendance');
     } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) {
-          toast.error(data.message);
-        }
-        if (data.errors) {
-          setErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError && !data.message) {
-            toast.error(firstError);
-          }
-        }
-      } else {
-        toast.error('Terjadi kesalahan. Silakan coba lagi.');
-      }
+      toast.error('Gagal menyimpan target.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const modalTitle = isReadOnly
-    ? 'Detail Rapat'
-    : initialData?.id
-    ? 'Edit Rapat'
-    : 'Tambah Rapat';
+  const handleChange = (userId, field, value) => {
+    setLocalData((prev) => ({ ...prev, [userId]: { ...prev[userId], [field]: value } }));
+  };
 
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
+  const handleMarkAllPresent = () => {
+    const newState = { ...localData };
+    Object.keys(newState).forEach((key) => {
+      newState[key].status = 'present';
+    });
+    setLocalData(newState);
+  };
+
+  const handleSubmitAttendance = async () => {
+    setSubmitting(true);
+    try {
+      // Hanya kirim yang statusnya disetel (bukan 'uninvited')
+      const payload = Object.entries(localData)
+        .filter(([_, data]) => data.status && data.status !== 'uninvited')
+        .map(([userId, data]) => ({
+          user_id: Number(userId),
+          status: data.status,
+          proof_url: data.proof_url || null,
+        }));
+
+      await api.post('/api/agenda-attendances/bulk', { agenda_id: agenda.id, attendances: payload });
+      toast.success('Data absensi berhasil disimpan.');
+      mutateAttendance();
+      onClose();
+    } catch (err) {
+      toast.error('Gagal menyimpan absensi massal.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // --- RENDERERS ---
+  const renderTargetsTab = () => (
+    <div className="p-6 space-y-6 animate-slide-up-fade">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800/50">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          Grup Utama
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => toggleTarget('all')}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
+              selectedTargets.some((t) => t.type === 'all')
+                ? 'bg-primary-500 text-white border-primary-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+            }`}
+          >
+            Semua Peserta / Umum
+          </button>
+          {!activeEventId && (
+            <>
+              <button
+                type="button"
+                onClick={() => toggleTarget('bph')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
+                  selectedTargets.some((t) => t.type === 'bph')
+                    ? 'bg-violet-500 text-white border-violet-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+                }`}
+              >
+                BPH Inti (Admin)
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleTarget('coordinator')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
+                  selectedTargets.some((t) => t.type === 'coordinator')
+                    ? 'bg-amber-500 text-white border-amber-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+                }`}
+              >
+                Koordinator Divisi
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {!activeEventId && divisions.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            Spesifik Divisi
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {divisions.map((div) => (
+              <button
+                type="button"
+                key={div.id}
+                onClick={() => toggleTarget('division', String(div.id))}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  selectedTargets.some((t) => t.type === 'division' && t.value === String(div.id))
+                    ? 'bg-indigo-500 text-white border-indigo-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+                }`}
+              >
+                {div.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Target Lepas (Search User) */}
+      <div>
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          Undang Personal (Target Lepas)
+        </h3>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchUser}
+            onChange={(e) => setSearchUser(e.target.value)}
+            placeholder="Cari nama anggota untuk diundang khusus..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+        {searchUser && (
+          <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800">
+            {rawParticipants
+              .filter((p) => {
+                const u = activeEventId ? p.user : p;
+                return u?.name?.toLowerCase().includes(searchUser.toLowerCase());
+              })
+              .map((p) => {
+                const u = activeEventId ? p.user : p;
+                const isSelected = selectedTargets.some((t) => t.type === 'user' && t.value === String(u.id));
+                return (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between px-3 py-2 border-b last:border-0 border-slate-100 dark:border-white/5"
+                  >
+                    <span className="text-xs text-slate-700 dark:text-slate-300">{u.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleTarget('user', String(u.id))}
+                      className={`px-2 py-1 rounded text-[10px] font-bold ${
+                        isSelected ? 'bg-red-100 text-red-600' : 'bg-primary-100 text-primary-600'
+                      }`}
+                    >
+                      {isSelected ? 'Batal' : 'Undang'}
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderAttendanceTab = () => (
+    <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-500">
+          Menampilkan {participants.length} peserta tertarget.
+        </p>
+        <button
+          type="button"
+          onClick={handleMarkAllPresent}
+          className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
+        >
+          <CheckCircle2 className="h-4 w-4" /> Hadirkan Semua
+        </button>
+      </div>
+
+      {participantLoading || attendanceLoading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        </div>
+      ) : participants.length === 0 ? (
+        <div className="text-center text-sm text-slate-500">Tidak ada peserta yang cocok dengan target.</div>
+      ) : (
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
+            <tr>
+              <th className="pb-3 pr-4">Nama Anggota</th>
+              <th className="pb-3 px-4">Status Absensi</th>
+              <th className="pb-3 pl-4">URL Bukti Izin (Opsional)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+            {participants.map((p) => {
+              const user = activeEventId ? p.user : p;
+              if (!user) return null;
+              const rowData = localData[user.id] || { status: 'uninvited', proof_url: '' };
+
+              return (
+                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="py-3 pr-4">
+                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
+                    <p className="text-[10px] text-slate-500">
+                      {activeEventId ? p.position : user.division?.name || 'BPH'}
+                    </p>
+                  </td>
+                  <td className="py-3 px-4">
+                    <select
+                      value={rowData.status}
+                      onChange={(e) => handleChange(user.id, 'status', e.target.value)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${
+                        rowData.status === 'present'
+                          ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10'
+                          : rowData.status === 'absent'
+                          ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10'
+                          : rowData.status === 'uninvited'
+                          ? 'border-slate-300 text-slate-400 bg-slate-50 dark:bg-white/5 dark:border-white/10'
+                          : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'
+                      }`}
+                    >
+                      <option value="uninvited">- Belum Diabsen -</option>
+                      <option value="present">Hadir</option>
+                      <option value="permit">Izin</option>
+                      <option value="sick">Sakit</option>
+                      <option value="absent">Alpha</option>
+                    </select>
+                  </td>
+                  <td className="py-3 pl-4">
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={rowData.proof_url}
+                      disabled={rowData.status === 'present' || rowData.status === 'uninvited'}
+                      onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none disabled:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Title */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Judul Rapat
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="Masukkan judul rapat"
-              className={inputClass('title')}
-            />
-            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tanggal & Waktu
-            </label>
-            <input
-              type="datetime-local"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              className={inputClass('date')}
-            />
-            {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
-          </div>
-
-          {/* Minutes URL */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              URL Notulensi (Opsional)
-            </label>
-            <input
-              type="url"
-              name="minutes_url"
-              value={form.minutes_url}
-              onChange={handleChange}
-              disabled={isReadOnly}
-              placeholder="https://docs.google.com/..."
-              className={inputClass('minutes_url')}
-            />
-            {errors.minutes_url && <p className="mt-1 text-xs text-red-400">{errors.minutes_url[0]}</p>}
-          </div>
-
-          {/* Event ID */}
-          {!activeEventId && (
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Event ID (Opsional)
-              </label>
-              <input
-                type="text"
-                name="event_id"
-                value={form.event_id}
-                onChange={handleChange}
-                disabled={isReadOnly}
-                placeholder="Masukkan ID event terkait"
-                className={inputClass('event_id')}
-              />
-              {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header (Tabs) */}
+        <div className="flex flex-col border-b border-slate-200 bg-white px-6 pt-4 dark:border-white/10 dark:bg-slate-900">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
+                <UserCheck className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Buku Tamu Absensi</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{agenda.title}</p>
+              </div>
             </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
             >
-              {isReadOnly ? 'Tutup' : 'Batal'}
+              <X className="h-5 w-5" />
             </button>
-            {!isReadOnly && (
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? 'Menyimpan...' : 'Simpan'}
-              </button>
-            )}
           </div>
-        </form>
+
+          <div className="flex gap-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('targets')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition ${
+                activeTab === 'targets'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Target className="h-4 w-4" /> 1. Tentukan Target
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('attendance')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition ${
+                activeTab === 'attendance'
+                  ? 'border-emerald-500 text-emerald-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> 2. Catat Kehadiran
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        {activeTab === 'targets' ? renderTargetsTab() : renderAttendanceTab()}
+
+        {/* Footer Actions */}
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300"
+          >
+            Batal
+          </button>
+
+          {activeTab === 'targets' ? (
+            <button
+              type="button"
+              onClick={handleSaveTargetsAndProceed}
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan & Lanjut Absen'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmitAttendance}
+              disabled={submitting || participantLoading}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan
+              Rekap Kehadiran
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -5696,779 +6097,6 @@ export default function Document() {
 }
 ```
 
-## File: src/pages/Meeting.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
-import { useAuth } from '../contexts/AuthContext';
-import { paginatedFetcher } from '../api/fetcher';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-import { format } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
-import MeetingModal from '../components/MeetingModal';
-import AttendanceModal from '../components/AttendanceModal';
-import {
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  AlertCircle,
-  CalendarClock,
-  ExternalLink,
-  ArrowLeft,
-  Calendar,
-  User,
-  Pencil,
-  Trash2,
-  Eye,
-  Layers,
-  ChevronRight as ChevronRightIcon,
-  Search,
-  UserCheck,
-} from 'lucide-react';
-
-function formatTanggal(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
-  } catch {
-    return dateStr;
-  }
-}
-
-function formatTanggalWaktu(dateStr) {
-  if (!dateStr) return '-';
-  try {
-    return format(new Date(dateStr), 'EEEE, d MMMM yyyy — HH:mm', { locale: localeID });
-  } catch {
-    return dateStr;
-  }
-}
-
-export default function Meeting() {
-  const { user } = useAuth();
-  const [activeWorkspace, setActiveWorkspace] = useState(null);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-
-  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
-  const [selectedMeetingForAttendance, setSelectedMeetingForAttendance] = useState(null);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedMeeting, setSelectedMeeting] = useState(null);
-  const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
-
-  // Debounce search input (500ms)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  // --- Directory Mode: Fetch Events ---
-  const {
-    data: eventsData,
-    error: eventsError,
-    isLoading: eventsLoading,
-  } = useSWR(!activeWorkspace ? '/api/events?page=1' : null, paginatedFetcher);
-
-  // --- Workspace Mode: Fetch Meetings ---
-  let meetingUrl = null;
-  if (activeWorkspace) {
-    const params = new URLSearchParams();
-    params.append('page', String(page));
-    if (activeWorkspace.id) {
-      params.append('event_id', String(activeWorkspace.id));
-    }
-    if (debouncedSearch) {
-      params.append('search', debouncedSearch);
-    }
-    meetingUrl = `/api/meetings?${params.toString()}`;
-  }
-
-  const {
-    data: meetingsData,
-    error: meetingsError,
-    isLoading: meetingsLoading,
-    mutate: mutateMeetings,
-  } = useSWR(meetingUrl, paginatedFetcher);
-
-  // --- RBAC: Row-Level Authorization ---
-  const isGlobalAdmin = user?.roles?.[0]?.name === 'admin';
-  const isCommittee = activeWorkspace?.committees?.some(
-    (c) => c.user_id === user?.id && ['Ketua', 'Sekretaris'].includes(c.position)
-  );
-  const canEdit = isGlobalAdmin || (activeWorkspace?.id !== null && isCommittee);
-
-  // --- Delete Handler ---
-  const handleDelete = async (id) => {
-    if (window.confirm('Yakin hapus rapat ini?')) {
-      try {
-        await api.delete(`/api/meetings/${id}`);
-        toast.success('Rapat berhasil dihapus.');
-        mutateMeetings();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus rapat.');
-      }
-    }
-  };
-
-  // ==========================================
-  // VIEW 1: DIRECTORY MODE (CARD DIRECTORY)
-  // ==========================================
-  if (!activeWorkspace) {
-    if (eventsLoading) {
-      return (
-        <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">Memuat direktori rapat...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (eventsError) {
-      return (
-        <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-            <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
-            <div className="text-center">
-              <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat direktori</p>
-              <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil daftar event.</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    const eventList = eventsData?.data?.data || (Array.isArray(eventsData?.data) ? eventsData.data : []) || [];
-
-    return (
-      <div className="space-y-8">
-        {/* Header */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-              <Layers className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">Direktori Rapat & Notulensi</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Pilih ruang kerja rapat umum BPH Pusat atau kepanitiaan event untuk mengelola agenda dan notulensi.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Directory Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
-          {/* Card: Rapat Umum BPH Pusat */}
-          <div
-            onClick={() => {
-              setActiveWorkspace({ id: null, name: 'Rapat Umum BPH Pusat', type: 'global' });
-              setPage(1);
-              setSearch('');
-              setDebouncedSearch('');
-            }}
-            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-primary-500/30 bg-gradient-to-br from-blue-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/60 hover:shadow-xl hover:shadow-primary-500/10 dark:from-primary-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-primary-500/15"
-          >
-            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/30" />
-            <div className="relative flex flex-col justify-between h-full space-y-6">
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-500/20 text-primary-600 dark:text-primary-400">
-                    <CalendarClock className="h-6 w-6" />
-                  </div>
-                  <span className="rounded-full bg-primary-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-600 border border-primary-500/20 dark:text-primary-400">
-                    BPH Pusat
-                  </span>
-                </div>
-                <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors dark:text-white dark:group-hover:text-primary-300">
-                  Rapat Umum BPH Pusat
-                </h3>
-                <p className="mt-1.5 text-xs text-slate-600 leading-relaxed dark:text-slate-400">
-                  Pencatatan dan arsip notulensi rapat umum BPH Pusat organisasi.
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-primary-600 dark:border-white/10 dark:text-primary-400">
-                <span>Buka Ruang Kerja</span>
-                <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
-            </div>
-          </div>
-
-          {/* Cards: Event Workspaces */}
-          {eventList.map((event) => {
-            const sekretaris =
-              event.committees?.find((c) => c.position === 'Sekretaris')?.user?.name ||
-              'Belum Ditentukan';
-            const dateDisplay = event.start_date || event.date;
-
-            return (
-              <div
-                key={event.id}
-                onClick={() => {
-                  setActiveWorkspace(event);
-                  setPage(1);
-                  setSearch('');
-                  setDebouncedSearch('');
-                }}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-primary-500/40 hover:bg-slate-50/80 hover:shadow-xl hover:shadow-primary-500/10 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:bg-white/[0.08] dark:hover:shadow-2xl"
-              >
-                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-primary-500/10 blur-2xl transition-opacity duration-300 group-hover:bg-primary-500/20" />
-                <div className="relative flex flex-col justify-between h-full space-y-6">
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600/15 text-primary-600 dark:text-primary-400">
-                        <Calendar className="h-6 w-6" />
-                      </div>
-                      <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-600 border border-primary-500/20 dark:text-primary-400">
-                        Event
-                      </span>
-                    </div>
-
-                    <h3 className="mt-4 text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors line-clamp-1 dark:text-white dark:group-hover:text-primary-300">
-                      {event.name}
-                    </h3>
-
-                    <div className="mt-3 space-y-2 text-xs text-slate-600 dark:text-slate-400">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-                        <span>{formatTanggal(dateDisplay)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-                        <span className="truncate">Sekretaris: {sekretaris}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs font-medium text-slate-500 group-hover:text-primary-600 transition-colors dark:border-white/10 dark:text-slate-400 dark:group-hover:text-primary-400">
-                    <span>Buka Ruang Kerja</span>
-                    <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  // ==========================================
-  // VIEW 2: WORKSPACE MODE (MEETING TABLE)
-  // ==========================================
-  if (meetingsLoading && !meetingsData) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data rapat {activeWorkspace.name}...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (meetingsError) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
-          <div className="text-center">
-            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data rapat</p>
-            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data rapat.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const meetings = meetingsData?.data?.data || (Array.isArray(meetingsData?.data) ? meetingsData.data : []) || [];
-  const meta = meetingsData?.meta || (meetingsData?.data && !Array.isArray(meetingsData?.data) ? meetingsData.data : null);
-
-  return (
-    <div className="space-y-6">
-      {/* Back Button */}
-      <div>
-        <button
-          onClick={() => {
-            setActiveWorkspace(null);
-            setPage(1);
-            setSearch('');
-            setDebouncedSearch('');
-          }}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Kembali ke Direktori
-        </button>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div
-            className={`flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg ${
-              activeWorkspace.id === null
-                ? 'bg-gradient-to-br from-primary-500 to-primary-700 shadow-primary-500/25'
-                : 'bg-gradient-to-br from-blue-500 to-indigo-700 shadow-indigo-500/25'
-            }`}
-          >
-            <CalendarClock className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 dark:text-white">{activeWorkspace.name}</h1>
-              <span
-                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                  activeWorkspace.id === null
-                    ? 'bg-primary-500/15 text-primary-600 border border-primary-500/20 dark:text-primary-400'
-                    : 'bg-indigo-500/15 text-indigo-600 border border-indigo-500/20 dark:text-indigo-400'
-                }`}
-              >
-                {activeWorkspace.id === null ? 'BPH Pusat' : 'Event'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {meta?.total ?? meetings.length} rapat terdaftar
-            </p>
-          </div>
-        </div>
-
-        {/* Action: Add Button (Only if authorized) */}
-        {canEdit && (
-          <button
-            onClick={() => {
-              setSelectedMeeting(null);
-              setIsReadOnlyModal(false);
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Rapat
-          </button>
-        )}
-      </div>
-
-      {/* Search Bar with Label */}
-      <div className="max-w-md">
-        <label className="mb-1 block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
-          Cari Agenda Rapat
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari judul agenda rapat..."
-            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
-          />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Judul Rapat
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Tanggal & Waktu
-                </th>
-                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Link Notulensi
-                </th>
-                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                  Aksi
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {meetings.length > 0 ? (
-                meetings.map((item) => (
-                  <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
-                    <td className="max-w-xs truncate px-6 py-4 text-sm font-medium text-slate-900 dark:text-white">
-                      {item.title}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {formatTanggalWaktu(item.date)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {item.minutes_url ? (
-                        <a
-                          href={item.minutes_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400 transition hover:bg-primary-500/25"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Lihat
-                        </a>
-                      ) : (
-                        <span className="text-xs text-slate-400 dark:text-slate-500">—</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      {canEdit ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedMeetingForAttendance(item);
-                              setAttendanceModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100 hover:text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-                          >
-                            <UserCheck className="h-3.5 w-3.5" />
-                            Absensi
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedMeeting(item);
-                              setIsReadOnlyModal(false);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Hapus
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end">
-                          <button
-                            onClick={() => {
-                              setSelectedMeeting(item);
-                              setIsReadOnlyModal(true);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Detail
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
-                    Belum ada data rapat untuk ruang kerja ini.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {meta && meta.last_page > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Halaman {meta.current_page} dari {meta.last_page}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Prev
-              </button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page >= meta.last_page || !meetingsData?.links?.next}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Modal */}
-      <MeetingModal
-        isOpen={modalOpen}
-        onClose={() => {
-          setModalOpen(false);
-          setSelectedMeeting(null);
-          setIsReadOnlyModal(false);
-        }}
-        onSuccess={() => mutateMeetings()}
-        initialData={selectedMeeting}
-        isReadOnly={isReadOnlyModal}
-        activeEventId={activeWorkspace?.id}
-      />
-
-      {/* Attendance Modal */}
-      <AttendanceModal
-        isOpen={attendanceModalOpen}
-        onClose={() => {
-          setAttendanceModalOpen(false);
-          setSelectedMeetingForAttendance(null);
-        }}
-        meeting={selectedMeetingForAttendance}
-        activeEventId={activeWorkspace?.id}
-      />
-    </div>
-  );
-}
-```
-
-## File: src/layouts/DashboardLayout.jsx
-```javascript
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
-import {
-  LayoutDashboard,
-  CalendarRange,
-  Database,
-  Activity,
-  CalendarClock,
-  Wallet,
-  FileText,
-  User,
-  AlertTriangle,
-  LogOut,
-  Menu,
-  X,
-  ChevronRight,
-} from 'lucide-react';
-
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
-  { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
-  { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
-  { name: 'Rapat', href: '/dashboard/meetings', icon: CalendarClock, restrictedForMember: true },
-  { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
-  { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
-  { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
-  { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
-  { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
-];
-
-export default function DashboardLayout() {
-  const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const isAdmin = user?.roles?.[0]?.name === 'admin';
-  const isMember = user?.roles?.[0]?.name === 'member';
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
-  };
-
-  return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-primary-950 transition-colors duration-300">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white/80 dark:border-white/10 dark:bg-slate-950/80 backdrop-blur-2xl transition-transform duration-300 ease-in-out
-          lg:static lg:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
-      >
-        {/* Logo area */}
-        <div className="flex h-16 items-center justify-between border-b border-slate-200 dark:border-white/10 px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-              <LayoutDashboard className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Protik</span>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navigation.map((item) => {
-            if (item.adminOnly && !isAdmin) return null;
-
-            return (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                end={item.href === '/dashboard'}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-primary-500/10'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon
-                      className={`h-5 w-5 shrink-0 transition-colors ${
-                        isActive
-                          ? 'text-primary-600 dark:text-primary-400'
-                          : 'text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300'
-                      }`}
-                    />
-                    <span className="flex-1">{item.name}</span>
-                    {isMember && item.restrictedForMember && (
-                      <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                        Read Only
-                      </span>
-                    )}
-                    {isActive && (
-                      <ChevronRight className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                    )}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        {/* User card */}
-        <Link
-          to="/dashboard/profile"
-          className="block border-t border-slate-200 px-4 py-4 transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
-        >
-          <div className="flex items-center gap-3 rounded-xl bg-slate-100 dark:bg-white/5 px-3 py-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white">
-              {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{user?.name ?? 'Pengguna'}</p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.roles?.[0]?.name ?? 'user'}</p>
-            </div>
-          </div>
-        </Link>
-      </aside>
-
-      {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 dark:border-white/10 dark:bg-white/5 px-4 backdrop-blur-xl sm:px-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Halo, {user?.name ?? 'Pengguna'} 👋
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Selamat datang kembali di panel manajemen.</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              title={theme === 'dark' ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
-              aria-label="Toggle Theme"
-              className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-600 transition-colors duration-200 hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-            >
-              {theme === 'dark' ? (
-                /* Sun Icon */
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4 text-amber-400"
-                >
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2" />
-                  <path d="M12 20v2" />
-                  <path d="m4.93 4.93 1.41 1.41" />
-                  <path d="m17.66 17.66 1.41 1.41" />
-                  <path d="M2 12h2" />
-                  <path d="M20 12h2" />
-                  <path d="m6.34 17.66-1.41 1.41" />
-                  <path d="m19.07 4.93-1.41 1.41" />
-                </svg>
-              ) : (
-                /* Moon Icon */
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4 text-slate-600"
-                >
-                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                </svg>
-              )}
-            </button>
-
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Keluar</span>
-            </button>
-          </div>
-        </header>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <Outlet />
-        </main>
-      </div>
-    </div>
-  );
-}
-```
-
 ## File: src/pages/Finance.jsx
 ```javascript
 import { useState, useEffect } from 'react';
@@ -7259,6 +6887,237 @@ export default function Finance() {
 }
 ```
 
+## File: src/layouts/DashboardLayout.jsx
+```javascript
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import {
+  LayoutDashboard,
+  CalendarRange,
+  Database,
+  Activity,
+  CalendarClock,
+  Wallet,
+  FileText,
+  User,
+  AlertTriangle,
+  LogOut,
+  Menu,
+  X,
+  ChevronRight,
+} from 'lucide-react';
+
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
+  { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
+  { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
+  { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
+  { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
+  { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
+  { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
+  { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
+  { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
+];
+
+export default function DashboardLayout() {
+  const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isAdmin = user?.roles?.[0]?.name === 'admin';
+  const isMember = user?.roles?.[0]?.name === 'member';
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-primary-950 transition-colors duration-300">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white/80 dark:border-white/10 dark:bg-slate-950/80 backdrop-blur-2xl transition-transform duration-300 ease-in-out
+          lg:static lg:translate-x-0
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Logo area */}
+        <div className="flex h-16 items-center justify-between border-b border-slate-200 dark:border-white/10 px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+              <LayoutDashboard className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Protik</span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          {navigation.map((item) => {
+            if (item.adminOnly && !isAdmin) return null;
+
+            return (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                end={item.href === '/dashboard'}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-primary-500/10'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <item.icon
+                      className={`h-5 w-5 shrink-0 transition-colors ${
+                        isActive
+                          ? 'text-primary-600 dark:text-primary-400'
+                          : 'text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300'
+                      }`}
+                    />
+                    <span className="flex-1">{item.name}</span>
+                    {isMember && item.restrictedForMember && (
+                      <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                        Read Only
+                      </span>
+                    )}
+                    {isActive && (
+                      <ChevronRight className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        {/* User card */}
+        <Link
+          to="/dashboard/profile"
+          className="block border-t border-slate-200 px-4 py-4 transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+        >
+          <div className="flex items-center gap-3 rounded-xl bg-slate-100 dark:bg-white/5 px-3 py-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white">
+              {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{user?.name ?? 'Pengguna'}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.roles?.[0]?.name ?? 'user'}</p>
+            </div>
+          </div>
+        </Link>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Header */}
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 dark:border-white/10 dark:bg-white/5 px-4 backdrop-blur-xl sm:px-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div>
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                Halo, {user?.name ?? 'Pengguna'} 👋
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Selamat datang kembali di panel manajemen.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
+              aria-label="Toggle Theme"
+              className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-600 transition-colors duration-200 hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+            >
+              {theme === 'dark' ? (
+                /* Sun Icon */
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 text-amber-400"
+                >
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+              ) : (
+                /* Moon Icon */
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4 text-slate-600"
+                >
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+              )}
+            </button>
+
+            {/* Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Keluar</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+}
+```
+
 ## File: src/App.jsx
 ```javascript
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -7272,7 +7131,7 @@ import Dashboard from './pages/Dashboard';
 import EventManagement from './pages/EventManagement';
 import MasterData from './pages/MasterData';
 import Finance from './pages/Finance';
-import Meeting from './pages/Meeting';
+import Agenda from './pages/Agenda';
 import Document from './pages/Document';
 import Warning from './pages/Warning';
 import Profile from './pages/Profile';
@@ -7294,7 +7153,7 @@ export default function App() {
                 <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
                 <Route path="/dashboard/finance" element={<Finance />} />
                 <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
-                <Route path="/dashboard/meetings" element={<Meeting />} />
+                <Route path="/dashboard/agendas" element={<Agenda />} />
                 <Route path="/dashboard/documents" element={<Document />} />
                 <Route path="/dashboard/profile" element={<Profile />} />
                 <Route path="/dashboard/warnings" element={<Warning />} />
@@ -7449,4 +7308,16 @@ export default function App() {
 ### Changed
 - Merefaktor *Engine* Sinkronisasi `FinanceController` dan `DocumentController` menjadi arsitektur *Context-Aware*. *Endpoint* kini memproses injeksi parameter `event_id` untuk melakukan *routing data* (Wipe & Reload / UpdateOrCreate) secara terisolasi berdasarkan tautan URL milik ruang kerja masing-masing kepanitiaan.
 - Membuka blokir render tombol "Sinkronisasi Cloud" di UI Dokumen dan Keuangan agar fitur *SSOT* dapat dieksekusi secara universal lintas ruang kerja.
+## [2026-08-23]
+### Added
+- Mengimplementasikan `Agenda.jsx` untuk menggantikan modul Rapat lama, memperkenalkan antarmuka visualisasi *Timeline/Kanban List* yang reaktif dengan *Badge Status* kontekstual (Selesai/Proses/Tunda/Kendala).
+### Changed
+- Mengintegrasikan tombol *Cloud Sync* pada antarmuka Agenda sebagai gerbang utama mutasi data, meniadakan ketergantungan pada formulir input konvensional.
+- Merevisi struktur *Routing* (`App.jsx`), navigasi *Sidebar* (`DashboardLayout.jsx`), dan *Payload API* (`AttendanceModal.jsx`) untuk mengakomodasi transisi terminologi dan URL *endpoint* dari `meetings` menjadi `agendas`.
+### Removed
+- Membuang komponen *Legacy* `Meeting.jsx` dan `MeetingModal.jsx` secara permanen.
+## [2026-08-23]
+### Added
+- Mengimplementasikan antarmuka *Switch/Toggle Checkbox* `is_coordinator` pada `UserModal.jsx` untuk kontrol hierarkis (Master Data).
+- Merombak arsitektur `AttendanceModal.jsx` menjadi *Wizard Flow* 2-Langkah: (1) Konfigurasi Otorisasi Target (*Target Provisioning*) dan (2) Eksekusi Mutasi Kehadiran (*Attendance Logging*). Perombakan ini secara fungsional menghubungkan interaksi UI dengan algoritma *Client-Side Filtering* secara dinamis sebelum di-*submit* ke *Backend*.
 ```

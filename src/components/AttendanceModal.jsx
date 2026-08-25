@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
 import api from '../api/axios';
-import { fetcher } from '../api/fetcher';
+import { fetcher, paginatedFetcher } from '../api/fetcher';
 import toast from 'react-hot-toast';
 
 export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
@@ -18,30 +19,41 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
   const participantUrl = isOpen
     ? activeEventId
       ? `/api/event-committees?event_id=${activeEventId}`
-      : `/api/users?page=1`
+      : `/api/users?all=true`
     : null;
   const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
   const { data: divData } = useSWR(isOpen && !activeEventId ? '/api/divisions' : null, fetcher); // Hanya ditarik jika BPH Pusat
 
-  // Fetch Absensi Existing
+  // Fetch Absensi Existing (Gunakan paginatedFetcher karena controller me-return array langsung tanpa wrapper data ganda)
   const attendanceUrl = isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null;
   const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
     attendanceUrl,
-    fetcher
+    paginatedFetcher
   );
 
-  const rawParticipants = activeEventId
-    ? participantData || []
-    : participantData?.data || participantData || [];
-  const divisions = divData?.data?.data || (Array.isArray(divData?.data) ? divData.data : []) || [];
-  const existingAttendances = attendanceData || [];
+  // FIX: Ekstraksi agresif untuk menghindari jebakan Pagination (res.data.data vs res.data)
+  const getRawData = (res) => {
+    if (!res) return [];
+    if (Array.isArray(res)) return res;
+    if (res.data && Array.isArray(res.data)) return res.data;
+    if (res.data?.data && Array.isArray(res.data.data)) return res.data.data;
+    return [];
+  };
+
+  const rawParticipants = getRawData(participantData);
+  const divisions = getRawData(divData);
+  const existingAttendances = getRawData(attendanceData);
+
+  // Kunci agar revalidasi SWR di background tidak mereset inputan user
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // Reset & Load Initial Targets
   useEffect(() => {
     if (isOpen && agenda) {
+      setIsDataLoaded(false); // Reset kunci setiap buka modal
       if (agenda.targets && agenda.targets.length > 0) {
         setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
-        setActiveTab('attendance'); // Langsung loncat ke absen jika target sudah diatur sebelumnya
+        setActiveTab('attendance');
       } else {
         setSelectedTargets([]);
         setActiveTab('targets');
@@ -72,7 +84,8 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
 
   // Sinkronisasi State Lokal Absensi
   useEffect(() => {
-    if (isOpen && activeTab === 'attendance' && participants.length > 0) {
+    // FIX: Hanya eksekusi jika data selesai diload dan BELUM pernah diset (isDataLoaded = false)
+    if (isOpen && activeTab === 'attendance' && participants.length > 0 && !attendanceLoading && !isDataLoaded) {
       const initialState = {};
       participants.forEach((p) => {
         const user = activeEventId ? p.user : p;
@@ -84,8 +97,9 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
         };
       });
       setLocalData(initialState);
+      setIsDataLoaded(true); // Kunci state agar tidak tertimpa re-render SWR
     }
-  }, [isOpen, activeTab, participantData, attendanceData, activeEventId, selectedTargets]);
+  }, [isOpen, activeTab, participants.length, attendanceLoading, isDataLoaded, existingAttendances]);
 
   if (!isOpen || !agenda) return null;
 
@@ -155,6 +169,49 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleExportExcel = () => {
+    const wsData = [];
+    wsData.push(['DAFTAR HADIR KEGIATAN PROTIK', '']);
+    wsData.push(['Nama Agenda', ':', agenda.title]);
+    wsData.push(['Waktu Pelaksanaan', ':', agenda.start_date ? new Date(agenda.start_date).toLocaleString('id-ID') : '-']);
+    wsData.push(['Tempat / Lokasi', ':', agenda.location || '-']);
+    wsData.push([]);
+    wsData.push(['No', 'Nama Anggota', 'Divisi / Jabatan', 'Status Kehadiran', 'Bukti / Keterangan']);
+
+    participants.forEach((p, index) => {
+      const user = activeEventId ? p.user : p;
+      if (!user) return;
+      
+      const savedAtt = existingAttendances.find((a) => a.user_id === user.id);
+      let statusText = 'Belum Diabsen';
+      if (savedAtt?.status === 'present') statusText = 'Hadir';
+      if (savedAtt?.status === 'permit') statusText = 'Izin';
+      if (savedAtt?.status === 'sick') statusText = 'Sakit';
+      if (savedAtt?.status === 'absent') statusText = 'Alpha';
+
+      const position = activeEventId ? p.position : (user.division?.name || 'BPH');
+      
+      wsData.push([
+        index + 1,
+        user.name,
+        position,
+        statusText,
+        savedAtt?.proof_url || ''
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    // Optimasi Lebar Kolom Excel
+    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 20 }, { wch: 18 }, { wch: 45 }];
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Hadir');
+    
+    const safeTitle = agenda.title.replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.writeFile(wb, `Absensi_${safeTitle}.xlsx`);
+    toast.success('Daftar hadir berhasil diunduh!');
   };
 
   // --- RENDERERS ---
@@ -280,17 +337,26 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
 
   const renderAttendanceTab = () => (
     <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs font-semibold text-slate-500">
           Menampilkan {participants.length} peserta tertarget.
         </p>
-        <button
-          type="button"
-          onClick={handleMarkAllPresent}
-          className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
-        >
-          <CheckCircle2 className="h-4 w-4" /> Hadirkan Semua
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400"
+          >
+            <FileSpreadsheet className="h-4 w-4"/> Ekspor Excel
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkAllPresent}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
+          >
+            <CheckCircle2 className="h-4 w-4"/> Hadirkan Semua
+          </button>
+        </div>
       </div>
 
       {participantLoading || attendanceLoading ? (

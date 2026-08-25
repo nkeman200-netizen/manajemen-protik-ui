@@ -134,3 +134,10 @@
 ### Added
 - Mengimplementasikan antarmuka *Switch/Toggle Checkbox* `is_coordinator` pada `UserModal.jsx` untuk kontrol hierarkis (Master Data).
 - Merombak arsitektur `AttendanceModal.jsx` menjadi *Wizard Flow* 2-Langkah: (1) Konfigurasi Otorisasi Target (*Target Provisioning*) dan (2) Eksekusi Mutasi Kehadiran (*Attendance Logging*). Perombakan ini secara fungsional menghubungkan interaksi UI dengan algoritma *Client-Side Filtering* secara dinamis sebelum di-*submit* ke *Backend*.
+## [2026-08-25]
+### Fixed
+- Menambal celah *State Hydration Failure* pada `AttendanceModal` dengan mengimplementasikan state *lock* `isDataLoaded`. Ini mencegah mekanisme *background revalidation* bawaan SWR menimpa (*wipe*) *local state* formulir absensi pengguna secara paksa.
+- Merevisi penggunaan `fetcher` menjadi `paginatedFetcher` pada inisialisasi `attendanceData` untuk meluruskan asimetri *wrapper* respons JSON antara *Controller* API dan klien.
+## [2026-08-25]
+### Added
+- Mengimplementasikan modul *Data Export* mandiri pada `AttendanceModal` menggunakan kapabilitas *Client-Side Array-of-Arrays (AoA) Mapping* dari pustaka `xlsx`. Fitur ini merakit laporan *Buku Tamu Digital* berformat Excel secara lokal, meniadakan latensi komputasi *Backend* sekaligus memberikan struktur pelaporan LPJ *Out-of-the-Box* bagi administrator.
