@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import { fetcher } from '../api/fetcher';
 import { 
@@ -82,18 +82,18 @@ export default function Dashboard() {
   const financial = stats?.financial_health;
 
   // Chart Logic
-  const chartKeys = financial?.chart_data ? Object.keys(financial.chart_data) : [];
-  const currentChartData = financial?.chart_data?.[activeChartTab] || [];
-  const displayChartData = timeRange === '3m' ? currentChartData.slice(-3) : currentChartData;
+  const chartKeys = useMemo(() => (financial?.chart_data ? Object.keys(financial.chart_data) : []), [financial?.chart_data]);
+  const currentChartData = useMemo(() => financial?.chart_data?.[activeChartTab] || [], [financial?.chart_data, activeChartTab]);
+  const displayChartData = useMemo(() => (timeRange === '3m' ? currentChartData.slice(-3) : currentChartData), [currentChartData, timeRange]);
 
   // Calendar Logic
   const allAgendas = agenda?.upcoming_meetings || [];
   const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
 
-  const renderCalendar = () => {
+  const renderedCalendar = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Senin awal minggu
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
     const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
@@ -187,7 +187,7 @@ export default function Dashboard() {
         </div>
       </div>
     );
-  };
+  }, [currentMonth, selectedDate, allAgendas]);
 
   return (
     <div className="space-y-6 animate-slide-up-fade">
@@ -360,7 +360,7 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Native Calendar */}
         <div className="lg:col-span-2">
-          {renderCalendar()}
+          {renderedCalendar}
         </div>
 
         {/* Selected Date Agendas */}

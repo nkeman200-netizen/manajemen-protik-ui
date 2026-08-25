@@ -40,6 +40,8 @@ export default function App() {
               revalidateOnFocus: false,
               revalidateIfStale: false,
               shouldRetryOnError: false,
+              dedupingInterval: 10000, // Mencegah duplikat request dalam 10 detik
+              keepPreviousData: true, // Pertahankan data lama saat memuat halaman/filter baru (Cegah UI Berkedip)
             }}
           >
             <ErrorBoundary>

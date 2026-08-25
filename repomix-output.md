@@ -52,6 +52,7 @@ src/
     CommitteeModal.jsx
     DivisionModal.jsx
     DocumentModal.jsx
+    ErrorBoundary.jsx
     EventModal.jsx
     FinanceModal.jsx
     UserModal.jsx
@@ -120,34 +121,6 @@ vite.config.js
     <path fill="#08060d" fill-rule="evenodd" d="M1.893 1.98c.052.072 1.245 1.769 2.653 3.77l2.892 4.114c.183.261.333.48.333.486s-.068.089-.152.183l-.522.593-.765.867-3.597 4.087c-.375.426-.734.834-.798.905a1 1 0 0 0-.118.148c0 .01.236.017.664.017h.663l.729-.83c.4-.457.796-.906.879-.999a692 692 0 0 0 1.794-2.038c.034-.037.301-.34.594-.675l.551-.624.345-.392a7 7 0 0 1 .34-.374c.006 0 .93 1.306 2.052 2.903l2.084 2.965.045.063h2.275c1.87 0 2.273-.003 2.266-.021-.008-.02-1.098-1.572-3.894-5.547-2.013-2.862-2.28-3.246-2.273-3.266.008-.019.282-.332 2.085-2.38l2-2.274 1.567-1.782c.022-.028-.016-.03-.65-.03h-.674l-.3.342a871 871 0 0 1-1.782 2.025c-.067.075-.405.458-.75.852a100 100 0 0 1-.803.91c-.148.172-.299.344-.99 1.127-.304.343-.32.358-.345.327-.015-.019-.904-1.282-1.976-2.808L6.365 1.85H1.8zm1.782.91 8.078 11.294c.772 1.08 1.413 1.973 1.425 1.984.016.017.241.02 1.05.017l1.03-.004-2.694-3.766L7.796 5.75 5.722 2.852l-1.039-.004-1.039-.004z" clip-rule="evenodd"/>
   </symbol>
 </svg>
-```
-
-## File: src/api/axios.js
-```javascript
-import axios from 'axios';
-
-const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
-    withCredentials: true,
-    withXSRFToken: true, // INI KUNCI UTAMANYA UNTUK AXIOS VERSI TERBARU!
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
-});
-
-axiosInstance.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        // Jika error 401/419 dan user TIDAK sedang berada di halaman login
-        if ((error.response?.status === 401 || error.response?.status === 419) && window.location.pathname !== '/login') {
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
-    }
-);
-
-export default axiosInstance;
 ```
 
 ## File: src/assets/react.svg
@@ -302,6 +275,52 @@ export default function DivisionModal({
     </div>
   );
 }
+```
+
+## File: src/components/ErrorBoundary.jsx
+```javascript
+import React from 'react';
+import { AlertTriangle, RefreshCcw } from 'lucide-react';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-[400px] w-full flex-col items-center justify-center rounded-2xl border border-red-500/20 bg-red-50 p-6 text-center dark:bg-red-500/10">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
+            <AlertTriangle className="h-8 w-8"/>
+          </div>
+          <h2 className="text-lg font-bold text-red-700 dark:text-red-400">Terjadi Kesalahan Visual</h2>
+          <p className="mt-2 max-w-md text-sm text-red-600/80 dark:text-red-400/80">
+            Sistem gagal memuat komponen ini. Mohon muat ulang halaman atau hubungi administrator jika masalah berlanjut.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 flex items-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-red-500"
+          >
+            <RefreshCcw className="h-4 w-4"/> Muat Ulang Halaman
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
 ```
 
 ## File: src/contexts/ThemeContext.jsx
@@ -2459,6 +2478,39 @@ export default defineConfig({
 })
 ```
 
+## File: src/api/axios.js
+```javascript
+import axios from 'axios';
+import toast from 'react-hot-toast';
+
+const axiosInstance = axios.create({
+    baseURL: import.meta.env.VITE_API_URL,
+    withCredentials: true,
+    withXSRFToken: true, // INI KUNCI UTAMANYA UNTUK AXIOS VERSI TERBARU!
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+});
+
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        // Tangkap Network Error (Internet mati atau Server Down)
+        if (!error.response) {
+            toast.error('Koneksi terputus. Periksa jaringan internet Anda.');
+        } else if (error.response.status >= 500) {
+            toast.error('Terjadi kesalahan internal server (500).');
+        } else if ((error.response?.status === 401 || error.response?.status === 419) && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
+export default axiosInstance;
+```
+
 ## File: src/api/fetcher.js
 ```javascript
 import api from './axios';
@@ -3796,700 +3848,6 @@ export function useAuth() {
 }
 ```
 
-## File: src/pages/Dashboard.jsx
-```javascript
-import useSWR from 'swr';
-import { fetcher } from '../api/fetcher';
-import { format } from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
-import {
-  Wallet,
-  CalendarCheck,
-  FileOutput,
-  CalendarClock,
-  Users,
-  TrendingUp,
-  AlertCircle,
-  Loader2,
-} from 'lucide-react';
-
-function formatRupiah(value) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-}
-
-function formatTanggal(dateStr) {
-  if (!dateStr) return '-';
-  return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
-}
-
-// --- Stat Card ---
-function StatCard({ icon: Icon, label, value, gradient, iconBg }) {
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm p-6 backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
-      {/* Gradient glow */}
-      <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
-      <div className="relative flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{value}</p>
-        </div>
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${iconBg}`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Agenda List ---
-function AgendaSection({ title, icon: Icon, items, renderItem, emptyText }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-white/10 px-6 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600/15 dark:bg-primary-600/20">
-          <Icon className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-        </div>
-        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">{title}</h3>
-      </div>
-      <div className="divide-y divide-slate-100 dark:divide-white/5">
-        {items && items.length > 0 ? (
-          items.map(renderItem)
-        ) : (
-          <div className="px-6 py-10 text-center text-sm text-slate-400 dark:text-slate-500">{emptyText}</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// --- Main Dashboard ---
-export default function Dashboard() {
-  const {
-    data: stats,
-    error: statsError,
-    isLoading: statsLoading,
-  } = useSWR('/api/dashboard/statistics', fetcher);
-
-  const {
-    data: agenda,
-    error: agendaError,
-    isLoading: agendaLoading,
-  } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
-
-  const isLoading = statsLoading || agendaLoading;
-  const error = statsError || agendaError;
-
-  // --- Loading state ---
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // --- Error state ---
-  if (error) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
-          <div className="text-center">
-            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
-            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data dari server.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const financial = stats?.financial_health;
-  const events = stats?.event_performance;
-  const activity = stats?.organizational_activity;
-
-  return (
-    <div className="space-y-6">
-      {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          icon={Wallet}
-          label="Total Saldo"
-          value={formatRupiah(financial?.total_balance)}
-          gradient="bg-emerald-500"
-          iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700"
-        />
-        <StatCard
-          icon={CalendarCheck}
-          label="Event Aktif"
-          value={events?.active_events ?? 0}
-          gradient="bg-primary-500"
-          iconBg="bg-gradient-to-br from-primary-500 to-primary-700"
-        />
-        <StatCard
-          icon={FileOutput}
-          label="Surat Keluar"
-          value={activity?.outgoing_letters ?? 0}
-          gradient="bg-violet-500"
-          iconBg="bg-gradient-to-br from-violet-500 to-violet-700"
-        />
-      </div>
-
-      {/* Agenda Sections */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Upcoming Events */}
-        <AgendaSection
-          title="Jadwal Event Terdekat"
-          icon={TrendingUp}
-          items={agenda?.upcoming_events}
-          emptyText="Belum ada event mendatang."
-          renderItem={(event) => (
-            <div
-              key={event.id}
-              className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600/10 dark:bg-primary-600/15">
-                <CalendarCheck className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{event.name}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{formatTanggal(event.start_date)}</p>
-              </div>
-            </div>
-          )}
-        />
-
-        {/* Upcoming Meetings */}
-        <AgendaSection
-          title="Jadwal Rapat Terdekat"
-          icon={Users}
-          items={agenda?.upcoming_meetings}
-          emptyText="Belum ada rapat mendatang."
-          renderItem={(meeting) => (
-            <div
-              key={meeting.id}
-              className="flex items-center gap-4 px-6 py-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600/10 dark:bg-violet-600/15">
-                <CalendarClock className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{meeting.title}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{formatTanggal(meeting.date)}</p>
-              </div>
-            </div>
-          )}
-        />
-      </div>
-    </div>
-  );
-}
-```
-
-## File: package.json
-```json
-{
-  "name": "manajemen-protik-ui",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "axios": "^1.19.0",
-    "date-fns": "^4.4.0",
-    "lucide-react": "^1.33.0",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^7.18.2",
-    "swr": "^2.5.1",
-    "xlsx": "^0.18.5"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.4",
-    "oxlint": "^1.75.0",
-    "tailwindcss": "^4.3.3",
-    "vite": "^8.2.0"
-  }
-}
-```
-
-## File: src/components/AttendanceModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import useSWR from 'swr';
-import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search } from 'lucide-react';
-import api from '../api/axios';
-import { fetcher } from '../api/fetcher';
-import toast from 'react-hot-toast';
-
-export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
-  const [activeTab, setActiveTab] = useState('targets'); // 'targets' | 'attendance'
-  const [localData, setLocalData] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  // --- State for Targets ---
-  const [selectedTargets, setSelectedTargets] = useState([]);
-  const [searchUser, setSearchUser] = useState('');
-
-  // Fetch Partisipan & Divisions
-  const participantUrl = isOpen
-    ? activeEventId
-      ? `/api/event-committees?event_id=${activeEventId}`
-      : `/api/users?page=1`
-    : null;
-  const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
-  const { data: divData } = useSWR(isOpen && !activeEventId ? '/api/divisions' : null, fetcher); // Hanya ditarik jika BPH Pusat
-
-  // Fetch Absensi Existing
-  const attendanceUrl = isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null;
-  const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
-    attendanceUrl,
-    fetcher
-  );
-
-  // FIX: Mengamankan ekstraksi array karena fetcher sudah mengembalikan array (res.data.data)
-  const rawParticipants = Array.isArray(participantData) ? participantData : (participantData?.data || []);
-  const divisions = Array.isArray(divData) ? divData : (divData?.data || []);
-  const existingAttendances = attendanceData || [];
-
-  // Reset & Load Initial Targets
-  useEffect(() => {
-    if (isOpen && agenda) {
-      if (agenda.targets && agenda.targets.length > 0) {
-        setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
-        setActiveTab('attendance'); // Langsung loncat ke absen jika target sudah diatur sebelumnya
-      } else {
-        setSelectedTargets([]);
-        setActiveTab('targets');
-      }
-    } else {
-      setActiveTab('targets');
-    }
-  }, [isOpen, agenda]);
-
-  // Filtering Peserta berdasarkan Selected Targets
-  const isAllInvited = selectedTargets.length === 0 || selectedTargets.some((t) => t.type === 'all');
-
-  const participants = rawParticipants.filter((p) => {
-    if (isAllInvited) return true;
-    const user = activeEventId ? p.user : p;
-    if (!user) return false;
-
-    return selectedTargets.some((t) => {
-      if (t.type === 'bph') return user.roles?.[0]?.name === 'admin';
-      if (t.type === 'coordinator') return user.is_coordinator;
-      if (t.type === 'division' && !activeEventId) return String(user.division_id) === String(t.value);
-      if (t.type === 'position' && activeEventId)
-        return p.position?.toLowerCase() === String(t.value).toLowerCase();
-      if (t.type === 'user') return String(user.id) === String(t.value);
-      return false;
-    });
-  });
-
-  // Sinkronisasi State Lokal Absensi
-  useEffect(() => {
-    if (isOpen && activeTab === 'attendance' && participants.length > 0) {
-      const initialState = {};
-      participants.forEach((p) => {
-        const user = activeEventId ? p.user : p;
-        if (!user) return;
-        const existing = existingAttendances.find((a) => a.user_id === user.id);
-        initialState[user.id] = {
-          status: existing?.status || 'uninvited', // default kosong
-          proof_url: existing?.proof_url || '',
-        };
-      });
-      setLocalData(initialState);
-    }
-  }, [isOpen, activeTab, participantData, attendanceData, activeEventId, selectedTargets]);
-
-  if (!isOpen || !agenda) return null;
-
-  // --- Handlers ---
-  const toggleTarget = (type, value = null) => {
-    setSelectedTargets((prev) => {
-      // Jika "all", hapus yang lain
-      if (type === 'all') return [{ type: 'all', value: null }];
-
-      let newTargets = prev.filter((t) => t.type !== 'all'); // Hapus 'all' jika milih spesifik
-      const exists = newTargets.some((t) => t.type === type && t.value === value);
-      if (exists) {
-        return newTargets.filter((t) => !(t.type === type && t.value === value));
-      } else {
-        return [...newTargets, { type, value }];
-      }
-    });
-  };
-
-  const handleSaveTargetsAndProceed = async () => {
-    if (selectedTargets.length === 0) {
-      toast.error('Pilih minimal satu target (misal: Semua Peserta).');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await api.post(`/api/agendas/${agenda.id}/targets`, { targets: selectedTargets });
-      toast.success('Target peserta diperbarui.');
-      setActiveTab('attendance');
-    } catch (err) {
-      toast.error('Gagal menyimpan target.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleChange = (userId, field, value) => {
-    setLocalData((prev) => ({ ...prev, [userId]: { ...prev[userId], [field]: value } }));
-  };
-
-  const handleMarkAllPresent = () => {
-    const newState = { ...localData };
-    Object.keys(newState).forEach((key) => {
-      newState[key].status = 'present';
-    });
-    setLocalData(newState);
-  };
-
-  const handleSubmitAttendance = async () => {
-    setSubmitting(true);
-    try {
-      // Hanya kirim yang statusnya disetel (bukan 'uninvited')
-      const payload = Object.entries(localData)
-        .filter(([_, data]) => data.status && data.status !== 'uninvited')
-        .map(([userId, data]) => ({
-          user_id: Number(userId),
-          status: data.status,
-          proof_url: data.proof_url || null,
-        }));
-
-      await api.post('/api/agenda-attendances/bulk', { agenda_id: agenda.id, attendances: payload });
-      toast.success('Data absensi berhasil disimpan.');
-      mutateAttendance();
-      onClose();
-    } catch (err) {
-      toast.error('Gagal menyimpan absensi massal.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // --- RENDERERS ---
-  const renderTargetsTab = () => (
-    <div className="p-6 space-y-6 animate-slide-up-fade">
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800/50">
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-          Grup Utama
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => toggleTarget('all')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
-              selectedTargets.some((t) => t.type === 'all')
-                ? 'bg-primary-500 text-white border-primary-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-            }`}
-          >
-            Semua Peserta / Umum
-          </button>
-          {!activeEventId && (
-            <>
-              <button
-                type="button"
-                onClick={() => toggleTarget('bph')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
-                  selectedTargets.some((t) => t.type === 'bph')
-                    ? 'bg-violet-500 text-white border-violet-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-                }`}
-              >
-                BPH Inti (Admin)
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleTarget('coordinator')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
-                  selectedTargets.some((t) => t.type === 'coordinator')
-                    ? 'bg-amber-500 text-white border-amber-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-                }`}
-              >
-                Koordinator Divisi
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {!activeEventId && divisions.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-            Spesifik Divisi
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {divisions.map((div) => (
-              <button
-                type="button"
-                key={div.id}
-                onClick={() => toggleTarget('division', String(div.id))}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                  selectedTargets.some((t) => t.type === 'division' && t.value === String(div.id))
-                    ? 'bg-indigo-500 text-white border-indigo-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-                }`}
-              >
-                {div.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Target Lepas (Search User) */}
-      <div>
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-          Undang Personal (Target Lepas)
-        </h3>
-        <div className="relative">
-          <input
-            type="text"
-            value={searchUser}
-            onChange={(e) => setSearchUser(e.target.value)}
-            placeholder="Cari nama anggota untuk diundang khusus..."
-            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white"
-          />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-        </div>
-        {searchUser && (
-          <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800">
-            {rawParticipants
-              .filter((p) => {
-                const u = activeEventId ? p.user : p;
-                return u?.name?.toLowerCase().includes(searchUser.toLowerCase());
-              })
-              .map((p) => {
-                const u = activeEventId ? p.user : p;
-                const isSelected = selectedTargets.some((t) => t.type === 'user' && t.value === String(u.id));
-                return (
-                  <div
-                    key={u.id}
-                    className="flex items-center justify-between px-3 py-2 border-b last:border-0 border-slate-100 dark:border-white/5"
-                  >
-                    <span className="text-xs text-slate-700 dark:text-slate-300">{u.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleTarget('user', String(u.id))}
-                      className={`px-2 py-1 rounded text-[10px] font-bold ${
-                        isSelected ? 'bg-red-100 text-red-600' : 'bg-primary-100 text-primary-600'
-                      }`}
-                    >
-                      {isSelected ? 'Batal' : 'Undang'}
-                    </button>
-                  </div>
-                );
-              })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderAttendanceTab = () => (
-    <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-xs font-semibold text-slate-500">
-          Menampilkan {participants.length} peserta tertarget.
-        </p>
-        <button
-          type="button"
-          onClick={handleMarkAllPresent}
-          className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
-        >
-          <CheckCircle2 className="h-4 w-4" /> Hadirkan Semua
-        </button>
-      </div>
-
-      {participantLoading || attendanceLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-        </div>
-      ) : participants.length === 0 ? (
-        <div className="text-center text-sm text-slate-500">Tidak ada peserta yang cocok dengan target.</div>
-      ) : (
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
-            <tr>
-              <th className="pb-3 pr-4">Nama Anggota</th>
-              <th className="pb-3 px-4">Status Absensi</th>
-              <th className="pb-3 pl-4">URL Bukti Izin (Opsional)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-            {participants.map((p) => {
-              const user = activeEventId ? p.user : p;
-              if (!user) return null;
-              const rowData = localData[user.id] || { status: 'uninvited', proof_url: '' };
-
-              return (
-                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                  <td className="py-3 pr-4">
-                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                    <p className="text-[10px] text-slate-500">
-                      {activeEventId ? p.position : user.division?.name || 'BPH'}
-                    </p>
-                  </td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={rowData.status}
-                      onChange={(e) => handleChange(user.id, 'status', e.target.value)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${
-                        rowData.status === 'present'
-                          ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10'
-                          : rowData.status === 'absent'
-                          ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10'
-                          : rowData.status === 'uninvited'
-                          ? 'border-slate-300 text-slate-400 bg-slate-50 dark:bg-white/5 dark:border-white/10'
-                          : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'
-                      }`}
-                    >
-                      <option value="uninvited">- Belum Diabsen -</option>
-                      <option value="present">Hadir</option>
-                      <option value="permit">Izin</option>
-                      <option value="sick">Sakit</option>
-                      <option value="absent">Alpha</option>
-                    </select>
-                  </td>
-                  <td className="py-3 pl-4">
-                    <input
-                      type="url"
-                      placeholder="https://..."
-                      value={rowData.proof_url}
-                      disabled={rowData.status === 'present' || rowData.status === 'uninvited'}
-                      onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none disabled:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-white"
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header (Tabs) */}
-        <div className="flex flex-col border-b border-slate-200 bg-white px-6 pt-4 dark:border-white/10 dark:bg-slate-900">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
-                <UserCheck className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">Buku Tamu Absensi</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{agenda.title}</p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="flex gap-6">
-            <button
-              type="button"
-              onClick={() => setActiveTab('targets')}
-              className={`pb-3 text-sm font-semibold border-b-2 transition ${
-                activeTab === 'targets'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Target className="h-4 w-4" /> 1. Tentukan Target
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('attendance')}
-              className={`pb-3 text-sm font-semibold border-b-2 transition ${
-                activeTab === 'attendance'
-                  ? 'border-emerald-500 text-emerald-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" /> 2. Catat Kehadiran
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        {activeTab === 'targets' ? renderTargetsTab() : renderAttendanceTab()}
-
-        {/* Footer Actions */}
-        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300"
-          >
-            Batal
-          </button>
-
-          {activeTab === 'targets' ? (
-            <button
-              type="button"
-              onClick={handleSaveTargetsAndProceed}
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan & Lanjut Absen'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmitAttendance}
-              disabled={submitting || participantLoading}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan
-              Rekap Kehadiran
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
 ## File: src/pages/Warning.jsx
 ```javascript
 import { useState, useEffect } from 'react';
@@ -4709,6 +4067,43 @@ export default function Warning() {
       />
     </div>
   );
+}
+```
+
+## File: package.json
+```json
+{
+  "name": "manajemen-protik-ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.19.0",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.33.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.18.2",
+    "recharts": "^3.10.1",
+    "swr": "^2.5.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "oxlint": "^1.75.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.2.0"
+  }
 }
 ```
 
@@ -4989,72 +4384,534 @@ export default function DocumentModal({
 }
 ```
 
-## File: src/index.css
-```css
-@import "tailwindcss";
+## File: src/components/AttendanceModal.jsx
+```javascript
+import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
+import * as XLSX from 'xlsx';
+import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
+import api from '../api/axios';
+import { fetcher, paginatedFetcher } from '../api/fetcher';
+import toast from 'react-hot-toast';
 
-@variant dark (&:where(.dark, .dark *));
+export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
+  const [activeTab, setActiveTab] = useState('targets'); // 'targets' | 'attendance'
+  const [localData, setLocalData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
-@theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
+  // --- State for Targets ---
+  const [selectedTargets, setSelectedTargets] = useState([]);
+  const [searchUser, setSearchUser] = useState('');
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-}
+  // Fetch Partisipan & Divisions
+  const participantUrl = isOpen
+    ? activeEventId
+      ? `/api/event-committees?event_id=${activeEventId}`
+      : `/api/users?all=true`
+    : null;
+  const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
+  const { data: divData } = useSWR(isOpen && !activeEventId ? '/api/divisions' : null, fetcher); // Hanya ditarik jika BPH Pusat
 
-@layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
+  // Fetch Absensi Existing (Gunakan paginatedFetcher karena controller me-return array langsung tanpa wrapper data ganda)
+  const attendanceUrl = isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null;
+  const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
+    attendanceUrl,
+    paginatedFetcher
+  );
 
-  body {
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    color-scheme: light dark;
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white transition-colors duration-300;
-  }
-}
+  // FIX: Bungkus dengan useMemo agar React tidak menganggapnya sebagai array baru di setiap render (mencegah Infinite Loop)
+  const rawParticipants = useMemo(() => {
+    if (!participantData) return [];
+    return Array.isArray(participantData) ? participantData : (participantData?.data || []);
+  }, [participantData]);
 
-@layer components {
-  /* Memaksa input untuk beradaptasi dengan mode */
-  input[type="date"],
-  input[type="datetime-local"] {
-    color-scheme: light;
-  }
+  const divisions = useMemo(() => {
+    if (!divData) return [];
+    return Array.isArray(divData) ? divData : (divData?.data || []);
+  }, [divData]);
 
-  .dark input[type="date"],
-  .dark input[type="datetime-local"] {
-    color-scheme: dark;
-  }
-}
+  const existingAttendances = useMemo(() => {
+    if (!attendanceData) return [];
+    return Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
+  }, [attendanceData]);
 
-@keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+  // Kunci agar revalidasi SWR di background tidak mereset inputan user
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-.animate-slide-up-fade {
-  animation: slideUpFade 0.4s ease-out forwards;
+  // Reset & Load Initial Targets
+  useEffect(() => {
+    if (isOpen && agenda) {
+      setIsDataLoaded(false); // Reset kunci setiap buka modal
+      if (agenda.targets && agenda.targets.length > 0) {
+        setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
+        setActiveTab('attendance');
+      } else {
+        setSelectedTargets([]);
+        setActiveTab('targets');
+      }
+    } else {
+      setActiveTab('targets');
+    }
+  }, [isOpen, agenda]);
+
+  // Filtering Peserta berdasarkan Selected Targets
+  const isAllInvited = selectedTargets.length === 0 || selectedTargets.some((t) => t.type === 'all');
+
+  const participants = rawParticipants.filter((p) => {
+    if (isAllInvited) return true;
+    const user = activeEventId ? p.user : p;
+    if (!user) return false;
+
+    return selectedTargets.some((t) => {
+      if (t.type === 'bph') return user.roles?.[0]?.name === 'admin';
+      if (t.type === 'coordinator') return user.is_coordinator;
+      if (t.type === 'division' && !activeEventId) return String(user.division_id) === String(t.value);
+      if (t.type === 'position' && activeEventId)
+        return p.position?.toLowerCase() === String(t.value).toLowerCase();
+      if (t.type === 'user') return String(user.id) === String(t.value);
+      return false;
+    });
+  });
+
+  // Sinkronisasi State Lokal Absensi
+  useEffect(() => {
+    // FIX: Hanya eksekusi jika data selesai diload dan BELUM pernah diset (isDataLoaded = false)
+    if (isOpen && activeTab === 'attendance' && participants.length > 0 && !attendanceLoading && !isDataLoaded) {
+      const initialState = {};
+      participants.forEach((p) => {
+        const user = activeEventId ? p.user : p;
+        if (!user) return;
+        const existing = existingAttendances.find((a) => a.user_id === user.id);
+        initialState[user.id] = {
+          status: existing?.status || 'uninvited', // default kosong
+          proof_url: existing?.proof_url || '',
+        };
+      });
+      setLocalData(initialState);
+      setIsDataLoaded(true); // Kunci state agar tidak tertimpa re-render SWR
+    }
+  }, [isOpen, activeTab, participants.length, attendanceLoading, isDataLoaded, existingAttendances]);
+
+  if (!isOpen || !agenda) return null;
+
+  // --- Handlers ---
+  const toggleTarget = (type, value = null) => {
+    setSelectedTargets((prev) => {
+      // Jika "all", hapus yang lain
+      if (type === 'all') return [{ type: 'all', value: null }];
+
+      let newTargets = prev.filter((t) => t.type !== 'all'); // Hapus 'all' jika milih spesifik
+      const exists = newTargets.some((t) => t.type === type && t.value === value);
+      if (exists) {
+        return newTargets.filter((t) => !(t.type === type && t.value === value));
+      } else {
+        return [...newTargets, { type, value }];
+      }
+    });
+  };
+
+  const handleSaveTargetsAndProceed = async () => {
+    if (selectedTargets.length === 0) {
+      toast.error('Pilih minimal satu target (misal: Semua Peserta).');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post(`/api/agendas/${agenda.id}/targets`, { targets: selectedTargets });
+      toast.success('Target peserta diperbarui.');
+      setActiveTab('attendance');
+    } catch (err) {
+      toast.error('Gagal menyimpan target.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleChange = (userId, field, value) => {
+    setLocalData((prev) => ({ ...prev, [userId]: { ...prev[userId], [field]: value } }));
+  };
+
+  const handleMarkAllPresent = () => {
+    const newState = { ...localData };
+    Object.keys(newState).forEach((key) => {
+      newState[key].status = 'present';
+    });
+    setLocalData(newState);
+  };
+
+  const handleSubmitAttendance = async () => {
+    setSubmitting(true);
+    try {
+      // Hanya kirim yang statusnya disetel (bukan 'uninvited')
+      const payload = Object.entries(localData)
+        .filter(([_, data]) => data.status && data.status !== 'uninvited')
+        .map(([userId, data]) => ({
+          user_id: Number(userId),
+          status: data.status,
+          proof_url: data.proof_url || null,
+        }));
+
+      await api.post('/api/agenda-attendances/bulk', { agenda_id: agenda.id, attendances: payload });
+      toast.success('Data absensi berhasil disimpan.');
+      mutateAttendance();
+      onClose();
+    } catch (err) {
+      toast.error('Gagal menyimpan absensi massal.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleExportExcel = () => {
+    const wsData = [];
+    wsData.push(['DAFTAR HADIR KEGIATAN PROTIK', '']);
+    wsData.push(['Nama Agenda', ':', agenda.title]);
+    wsData.push(['Waktu Pelaksanaan', ':', agenda.start_date ? new Date(agenda.start_date).toLocaleString('id-ID') : '-']);
+    wsData.push(['Tempat / Lokasi', ':', agenda.location || '-']);
+    wsData.push([]);
+    wsData.push(['No', 'Nama Anggota', 'Divisi / Jabatan', 'Status Kehadiran', 'Bukti / Keterangan']);
+
+    participants.forEach((p, index) => {
+      const user = activeEventId ? p.user : p;
+      if (!user) return;
+      
+      const savedAtt = existingAttendances.find((a) => a.user_id === user.id);
+      let statusText = 'Belum Diabsen';
+      if (savedAtt?.status === 'present') statusText = 'Hadir';
+      if (savedAtt?.status === 'permit') statusText = 'Izin';
+      if (savedAtt?.status === 'sick') statusText = 'Sakit';
+      if (savedAtt?.status === 'absent') statusText = 'Alpha';
+
+      const position = activeEventId ? p.position : (user.division?.name || 'BPH');
+      
+      wsData.push([
+        index + 1,
+        user.name,
+        position,
+        statusText,
+        savedAtt?.proof_url || ''
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    // Optimasi Lebar Kolom Excel
+    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 20 }, { wch: 18 }, { wch: 45 }];
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Hadir');
+    
+    const safeTitle = agenda.title.replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.writeFile(wb, `Absensi_${safeTitle}.xlsx`);
+    toast.success('Daftar hadir berhasil diunduh!');
+  };
+
+  // --- RENDERERS ---
+  const renderTargetsTab = () => (
+    <div className="p-6 space-y-6 animate-slide-up-fade">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800/50">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          Grup Utama
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => toggleTarget('all')}
+            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
+              selectedTargets.some((t) => t.type === 'all')
+                ? 'bg-primary-500 text-white border-primary-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+            }`}
+          >
+            Semua Peserta / Umum
+          </button>
+          {!activeEventId && (
+            <>
+              <button
+                type="button"
+                onClick={() => toggleTarget('bph')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
+                  selectedTargets.some((t) => t.type === 'bph')
+                    ? 'bg-violet-500 text-white border-violet-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+                }`}
+              >
+                BPH Inti (Admin)
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleTarget('coordinator')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
+                  selectedTargets.some((t) => t.type === 'coordinator')
+                    ? 'bg-amber-500 text-white border-amber-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+                }`}
+              >
+                Koordinator Divisi
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {!activeEventId && divisions.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            Spesifik Divisi
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {divisions.map((div) => (
+              <button
+                type="button"
+                key={div.id}
+                onClick={() => toggleTarget('division', String(div.id))}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                  selectedTargets.some((t) => t.type === 'division' && t.value === String(div.id))
+                    ? 'bg-indigo-500 text-white border-indigo-600'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
+                }`}
+              >
+                {div.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Target Lepas (Search User) */}
+      <div>
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          Undang Personal (Target Lepas)
+        </h3>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchUser}
+            onChange={(e) => setSearchUser(e.target.value)}
+            placeholder="Cari nama anggota untuk diundang khusus..."
+            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+          />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+        </div>
+        {searchUser && (
+          <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800">
+            {rawParticipants
+              .filter((p) => {
+                const u = activeEventId ? p.user : p;
+                return u?.name?.toLowerCase().includes(searchUser.toLowerCase());
+              })
+              .map((p) => {
+                const u = activeEventId ? p.user : p;
+                const isSelected = selectedTargets.some((t) => t.type === 'user' && t.value === String(u.id));
+                return (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between px-3 py-2 border-b last:border-0 border-slate-100 dark:border-white/5"
+                  >
+                    <span className="text-xs text-slate-700 dark:text-slate-300">{u.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleTarget('user', String(u.id))}
+                      className={`px-2 py-1 rounded text-[10px] font-bold ${
+                        isSelected ? 'bg-red-100 text-red-600' : 'bg-primary-100 text-primary-600'
+                      }`}
+                    >
+                      {isSelected ? 'Batal' : 'Undang'}
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderAttendanceTab = () => (
+    <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-slate-500">
+          Menampilkan {participants.length} peserta tertarget.
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400"
+          >
+            <FileSpreadsheet className="h-4 w-4"/> Ekspor Excel
+          </button>
+          <button
+            type="button"
+            onClick={handleMarkAllPresent}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
+          >
+            <CheckCircle2 className="h-4 w-4"/> Hadirkan Semua
+          </button>
+        </div>
+      </div>
+
+      {participantLoading || attendanceLoading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        </div>
+      ) : participants.length === 0 ? (
+        <div className="text-center text-sm text-slate-500">Tidak ada peserta yang cocok dengan target.</div>
+      ) : (
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
+            <tr>
+              <th className="pb-3 pr-4">Nama Anggota</th>
+              <th className="pb-3 px-4">Status Absensi</th>
+              <th className="pb-3 pl-4">URL Bukti Izin (Opsional)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+            {participants.map((p) => {
+              const user = activeEventId ? p.user : p;
+              if (!user) return null;
+              const rowData = localData[user.id] || { status: 'uninvited', proof_url: '' };
+
+              return (
+                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="py-3 pr-4">
+                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
+                    <p className="text-[10px] text-slate-500">
+                      {activeEventId ? p.position : user.division?.name || 'BPH'}
+                    </p>
+                  </td>
+                  <td className="py-3 px-4">
+                    <select
+                      value={rowData.status}
+                      onChange={(e) => handleChange(user.id, 'status', e.target.value)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${
+                        rowData.status === 'present'
+                          ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10'
+                          : rowData.status === 'absent'
+                          ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10'
+                          : rowData.status === 'uninvited'
+                          ? 'border-slate-300 text-slate-400 bg-slate-50 dark:bg-white/5 dark:border-white/10'
+                          : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'
+                      }`}
+                    >
+                      <option value="uninvited">- Belum Diabsen -</option>
+                      <option value="present">Hadir</option>
+                      <option value="permit">Izin</option>
+                      <option value="sick">Sakit</option>
+                      <option value="absent">Alpha</option>
+                    </select>
+                  </td>
+                  <td className="py-3 pl-4">
+                    <input
+                      type="url"
+                      placeholder="https://..."
+                      value={rowData.proof_url}
+                      disabled={rowData.status === 'present' || rowData.status === 'uninvited'}
+                      onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none disabled:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header (Tabs) */}
+        <div className="flex flex-col border-b border-slate-200 bg-white px-6 pt-4 dark:border-white/10 dark:bg-slate-900">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
+                <UserCheck className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Buku Tamu Absensi</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{agenda.title}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex gap-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab('targets')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition ${
+                activeTab === 'targets'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Target className="h-4 w-4" /> 1. Tentukan Target
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('attendance')}
+              className={`pb-3 text-sm font-semibold border-b-2 transition ${
+                activeTab === 'attendance'
+                  ? 'border-emerald-500 text-emerald-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Users className="h-4 w-4" /> 2. Catat Kehadiran
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        {activeTab === 'targets' ? renderTargetsTab() : renderAttendanceTab()}
+
+        {/* Footer Actions */}
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300"
+          >
+            Batal
+          </button>
+
+          {activeTab === 'targets' ? (
+            <button
+              type="button"
+              onClick={handleSaveTargetsAndProceed}
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan & Lanjut Absen'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSubmitAttendance}
+              disabled={submitting || participantLoading}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan
+              Rekap Kehadiran
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 ```
 
@@ -5490,6 +5347,513 @@ export default function FinanceModal({
             )}
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+```
+
+## File: src/index.css
+```css
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: light dark;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white transition-colors duration-300;
+  }
+
+  /* Custom Elegant Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full dark:bg-slate-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-600;
+  }
+}
+
+@layer components {
+  /* Memaksa input untuk beradaptasi dengan mode */
+  input[type="date"],
+  input[type="datetime-local"] {
+    color-scheme: light;
+  }
+
+  .dark input[type="date"],
+  .dark input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-fade {
+  animation: slideUpFade 0.4s ease-out forwards;
+}
+```
+
+## File: src/pages/Dashboard.jsx
+```javascript
+import { useState } from 'react';
+import useSWR from 'swr';
+import { fetcher } from '../api/fetcher';
+import { 
+  format, addMonths, subMonths, startOfMonth, endOfMonth, 
+  startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, isToday 
+} from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import {
+  Wallet, CalendarClock, Activity, AlertCircle, Loader2, AlertTriangle, 
+  ChevronDown, ChevronLeft, ChevronRight, MapPin
+} from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+function formatRupiah(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
+function StatCard({ icon: Icon, label, value, subValue, gradient, iconBg }) {
+  return (
+    <div className="group relative flex h-full flex-col justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+      <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
+      <div className="relative flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
+            {subValue && <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{subValue}</span>}
+          </div>
+        </div>
+        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg ${iconBg}`}>
+          <Icon className="h-7 w-7 text-white"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const [activeChartTab, setActiveChartTab] = useState('Kas Umum');
+  const [timeRange, setTimeRange] = useState('6m');
+
+  // Calendar States
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const { data: stats, error: statsError, isLoading: statsLoading } = useSWR('/api/dashboard/statistics', fetcher);
+  const { data: agenda, error: agendaError, isLoading: agendaLoading } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
+
+  if (statsLoading || agendaLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Menyinkronkan data dasbor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (statsError || agendaError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-6 dark:bg-red-500/10">
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400"/>
+          <div className="text-center">
+            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
+            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Koneksi ke server terputus.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const personalDues = stats?.personal_dues;
+  const agendaPart = stats?.agenda_participation;
+  const financial = stats?.financial_health;
+
+  // Chart Logic
+  const chartKeys = financial?.chart_data ? Object.keys(financial.chart_data) : [];
+  const currentChartData = financial?.chart_data?.[activeChartTab] || [];
+  const displayChartData = timeRange === '3m' ? currentChartData.slice(-3) : currentChartData;
+
+  // Calendar Logic
+  const allAgendas = agenda?.upcoming_meetings || [];
+  const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
+
+  const renderCalendar = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Senin awal minggu
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    const rows = [];
+    let days = [];
+    let day = startDate;
+
+    while (day <= endDate) {
+      for (let i = 0; i < 7; i++) {
+        const cloneDay = day;
+        const dayAgendas = allAgendas.filter(m => isSameDay(new Date(m.start_date), cloneDay));
+        const hasAgenda = dayAgendas.length > 0;
+        
+        const isNotCurrentMonth = !isSameMonth(day, monthStart);
+        const isSelected = isSameDay(day, selectedDate);
+        const isTodayDate = isToday(day);
+
+        days.push(
+          <div
+            key={day.toISOString()}
+            onClick={() => setSelectedDate(cloneDay)}
+            className={`group flex h-16 sm:h-24 cursor-pointer flex-col overflow-hidden border-b border-r border-slate-100 p-1.5 transition-all dark:border-white/5 ${
+              isNotCurrentMonth ? "bg-slate-50/50 text-slate-300 dark:bg-slate-900/20 dark:text-slate-600" : 
+              isSelected ? "bg-primary-50 dark:bg-primary-900/20" : 
+              "hover:bg-slate-50 dark:hover:bg-white/5"
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                isSelected ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : 
+                isTodayDate ? "text-emerald-600 dark:text-emerald-400" : 
+                "text-slate-700 dark:text-slate-300"
+              }`}>
+                {format(day, 'd')}
+              </span>
+              {hasAgenda && !isSelected && (
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary-500 shadow-[0_0_4px_rgba(59,130,246,0.5)]"></span>
+              )}
+            </div>
+            
+            {/* Indikator Baris Acara (Maks 2) */}
+            <div className="mt-1 flex flex-col gap-1">
+              {dayAgendas.slice(0, 2).map((m, idx) => (
+                <div key={idx} className={`truncate rounded-sm px-1.5 py-0.5 text-[9px] font-semibold ${
+                  isSelected ? 'bg-primary-100 text-primary-700 dark:bg-primary-500/30 dark:text-primary-300' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 dark:bg-white/5 dark:text-slate-400'
+                }`}>
+                  {m.title}
+                </div>
+              ))}
+              {dayAgendas.length > 2 && (
+                <span className="pl-1 text-[8px] font-medium text-slate-400">+{dayAgendas.length - 2} lagi</span>
+              )}
+            </div>
+          </div>
+        );
+        day = addDays(day, 1);
+      }
+      rows.push(<div className="grid grid-cols-7" key={day.toISOString()}>{days}</div>);
+      days = [];
+    }
+
+    return (
+      <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        {/* Header Kalender */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            {format(currentMonth, 'MMMM yyyy', { locale: localeID })}
+          </h3>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
+              <ChevronLeft className="h-4 w-4"/>
+            </button>
+            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
+              <ChevronRight className="h-4 w-4"/>
+            </button>
+          </div>
+        </div>
+
+        {/* Hari (Header Grid) */}
+        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30">
+          {weekDays.map(dayName => (
+            <div key={dayName} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {dayName}
+            </div>
+          ))}
+        </div>
+
+        {/* Matriks Tanggal */}
+        <div className="flex flex-col border-l border-slate-100 dark:border-white/5">
+          {rows}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-slide-up-fade">
+      {/* 1. WARNING BANNER (KEDISIPLINAN KAS) */}
+      {personalDues?.unpaid_months > 0 && (
+        <div className="flex items-start gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
+            <AlertTriangle className="h-5 w-5"/>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-red-700 dark:text-red-400">Peringatan Tunggakan Kas!</h3>
+            <p className="mt-1 text-xs font-medium text-red-600/80 dark:text-red-400/80">
+              Kamu memiliki tunggakan kas pengurus selama <strong className="text-red-700 dark:text-red-300">{personalDues.unpaid_months} bulan</strong>. Segera lunasi kewajibanmu untuk mendukung operasional organisasi.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 2. STAT CARDS & LEADERBOARD */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <StatCard gradient="bg-emerald-500" icon={Wallet} iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700" label="Total Saldo Kas Umum" value={formatRupiah(financial?.total_balance)}/>
+
+        {/* Partisipasi Gamifikasi */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-10 blur-2xl transition-opacity duration-300 group-hover:opacity-20" />
+          <div className="relative mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-md">
+                <Activity className="h-4 w-4 text-white"/>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Leaderboard Partisipasi</h3>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Tingkat kehadiran 5 agenda terakhir</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative space-y-3.5">
+            {agendaPart && agendaPart.length > 0 ? (
+              agendaPart.map((item, idx) => (
+                <div key={idx}>
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <span className="truncate pr-4 font-semibold text-slate-700 dark:text-slate-300">{item.title}</span>
+                    <span className={`font-black tracking-tight ${item.rate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : item.rate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.rate}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] dark:bg-slate-800/80">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${item.rate >= 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : item.rate >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'}`} 
+                      style={{ width: `${item.rate}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex h-24 items-center justify-center text-xs font-medium text-slate-400">Belum ada riwayat absensi.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. TABBED DYNAMIC CHART */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Arus Kas Organisasi</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Visualisasi tren pemasukan & pengeluaran.</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+              {chartKeys.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveChartTab(key)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    activeChartTab === key
+                      ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-700 dark:text-primary-400'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <option value="6m">6 Bulan Terakhir</option>
+                <option value="3m">3 Bulan Terakhir</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-2 h-3.5 w-3.5 text-slate-400"/>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-72 w-full">
+          {displayChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={displayChartData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-200 dark:stroke-white/5" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                  tickFormatter={(value) =>
+                    `Rp${value >= 1000000 ? value / 1000000 + 'M' : value / 1000 + 'K'}`
+                  }
+                />
+                <Tooltip
+                  formatter={(value) => formatRupiah(value)}
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: 'none',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pemasukan"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorIncome)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pengeluaran"
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorExpense)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+              Belum ada data transaksi.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. CALENDAR & AGENDA DETAIL (THE MASTERPIECE) */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Native Calendar */}
+        <div className="lg:col-span-2">
+          {renderCalendar()}
+        </div>
+
+        {/* Selected Date Agendas */}
+        <div className="lg:col-span-1">
+          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+            <div className="border-b border-slate-200 bg-primary-600/5 px-6 py-4 dark:border-white/10 dark:bg-primary-900/10">
+              <h3 className="text-sm font-bold text-primary-700 dark:text-primary-400">
+                Agenda {format(selectedDate, 'd MMMM yyyy', { locale: localeID })}
+              </h3>
+              <p className="mt-1 text-[10px] font-medium text-primary-600/70 dark:text-primary-400/70">
+                {agendasSelectedDay.length} agenda dijadwalkan
+              </p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2">
+              {agendasSelectedDay.length > 0 ? (
+                <div className="space-y-2">
+                  {agendasSelectedDay.map(meeting => (
+                    <div key={meeting.id} className="group flex flex-col gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md dark:border-white/5 dark:bg-slate-800/50 dark:hover:border-primary-500/30">
+                      <div className="flex items-start justify-between">
+                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">{meeting.title}</h4>
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                          {format(new Date(meeting.start_date), 'HH:mm')}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                        {meeting.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-red-400"/>
+                            <span className="truncate max-w-[100px]">{meeting.location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Activity className="h-3 w-3 text-amber-500"/>
+                          <span>Status: {meeting.status || 'Terjadwal'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-48 flex-col items-center justify-center text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5">
+                    <CalendarClock className="h-6 w-6 text-slate-300 dark:text-slate-600"/>
+                  </div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Tidak ada agenda.</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Pilih tanggal lain di kalender.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -6899,7 +7263,8 @@ import {
   Database,
   Activity,
   CalendarClock,
-  Wallet,
+  Wallet, 
+  Calculator,
   FileText,
   User,
   AlertTriangle,
@@ -6915,7 +7280,7 @@ const navigation = [
   { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
   { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
   { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
-  { name: 'Kas', href: '/dashboard/finance', icon: Wallet, restrictedForMember: true },
+  { name: 'Keuangan', href: '/dashboard/finance', icon: Calculator, restrictedForMember: true },
   { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
   { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
   { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
@@ -7120,47 +7485,73 @@ export default function DashboardLayout() {
 
 ## File: src/App.jsx
 ```javascript
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { SWRConfig } from 'swr';
+import { Loader2 } from 'lucide-react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 import DashboardLayout from './layouts/DashboardLayout';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import EventManagement from './pages/EventManagement';
-import MasterData from './pages/MasterData';
-import Finance from './pages/Finance';
-import Agenda from './pages/Agenda';
-import Document from './pages/Document';
-import Warning from './pages/Warning';
-import Profile from './pages/Profile';
-import AuditTrail from './pages/AuditTrail';
-import MonthlyDue from './pages/MonthlyDue';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Lazy Loading Halaman (Diet Performa)
+const Login = lazy(() => import('./pages/Login'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const EventManagement = lazy(() => import('./pages/EventManagement'));
+const MasterData = lazy(() => import('./pages/MasterData'));
+const Finance = lazy(() => import('./pages/Finance'));
+const Agenda = lazy(() => import('./pages/Agenda'));
+const Document = lazy(() => import('./pages/Document'));
+const Warning = lazy(() => import('./pages/Warning'));
+const Profile = lazy(() => import('./pages/Profile'));
+const AuditTrail = lazy(() => import('./pages/AuditTrail'));
+const MonthlyDue = lazy(() => import('./pages/MonthlyDue'));
+
+// Fallback Spinner saat transisi halaman
+const PageLoader = () => (
+  <div className="flex h-[60vh] w-full flex-col items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+    <span className="mt-3 text-xs font-medium text-slate-400">Memuat modul...</span>
+  </div>
+);
 
 export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/events" element={<EventManagement />} />
-                <Route path="/dashboard/master-data" element={<MasterData />} />
-                <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
-                <Route path="/dashboard/finance" element={<Finance />} />
-                <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
-                <Route path="/dashboard/agendas" element={<Agenda />} />
-                <Route path="/dashboard/documents" element={<Document />} />
-                <Route path="/dashboard/profile" element={<Profile />} />
-                <Route path="/dashboard/warnings" element={<Warning />} />
-              </Route>
-            </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+          <SWRConfig
+            value={{
+              revalidateOnFocus: false,
+              revalidateIfStale: false,
+              shouldRetryOnError: false,
+            }}
+          >
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route element={<DashboardLayout />}>
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/dashboard/events" element={<EventManagement />} />
+                      <Route path="/dashboard/master-data" element={<MasterData />} />
+                      <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
+                      <Route path="/dashboard/finance" element={<Finance />} />
+                      <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
+                      <Route path="/dashboard/agendas" element={<Agenda />} />
+                      <Route path="/dashboard/documents" element={<Document />} />
+                      <Route path="/dashboard/profile" element={<Profile />} />
+                      <Route path="/dashboard/warnings" element={<Warning />} />
+                    </Route>
+                  </Route>
+                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
+          </SWRConfig>
           <Toaster
             position="top-right"
             toastOptions={{
@@ -7320,4 +7711,35 @@ export default function App() {
 ### Added
 - Mengimplementasikan antarmuka *Switch/Toggle Checkbox* `is_coordinator` pada `UserModal.jsx` untuk kontrol hierarkis (Master Data).
 - Merombak arsitektur `AttendanceModal.jsx` menjadi *Wizard Flow* 2-Langkah: (1) Konfigurasi Otorisasi Target (*Target Provisioning*) dan (2) Eksekusi Mutasi Kehadiran (*Attendance Logging*). Perombakan ini secara fungsional menghubungkan interaksi UI dengan algoritma *Client-Side Filtering* secara dinamis sebelum di-*submit* ke *Backend*.
+## [2026-08-25]
+### Fixed
+- Menambal celah *State Hydration Failure* pada `AttendanceModal` dengan mengimplementasikan state *lock* `isDataLoaded`. Ini mencegah mekanisme *background revalidation* bawaan SWR menimpa (*wipe*) *local state* formulir absensi pengguna secara paksa.
+- Merevisi penggunaan `fetcher` menjadi `paginatedFetcher` pada inisialisasi `attendanceData` untuk meluruskan asimetri *wrapper* respons JSON antara *Controller* API dan klien.
+## [2026-08-25]
+### Added
+- Mengimplementasikan modul *Data Export* mandiri pada `AttendanceModal` menggunakan kapabilitas *Client-Side Array-of-Arrays (AoA) Mapping* dari pustaka `xlsx`. Fitur ini merakit laporan *Buku Tamu Digital* berformat Excel secara lokal, meniadakan latensi komputasi *Backend* sekaligus memberikan struktur pelaporan LPJ *Out-of-the-Box* bagi administrator.
+## [2026-08-25]
+### Changed
+- Mengeksekusi *Dashboard Metric Cleanup* dengan memusnahkan kalkulasi *Vanity Metrics* (Event Aktif & Surat Keluar) dari `DashboardService` untuk mengurangi beban komputasi *time-series* SQL yang tidak relevan.
+- Merevisi *parser* waktu pada komponen `Dashboard.jsx` (Upcoming Meetings) untuk menggunakan atribut `start_date` secara eksplisit, menambal anomali referensi kolom usang (*nullish output*) akibat transisi arsitektur *Agendas*.
+## [2026-08-25]
+### Added
+- Mengimplementasikan *Executive Dashboard UI* pada `Dashboard.jsx`, merombak arsitektur presentasi menjadi 3 layer krusial: *Alert Banner* (Tunggakan Personal), *KPI Metrics* (Partisipasi Rapat), dan *Dynamic Visual Analytics*.
+- Membangun antarmuka *Tabbed Recharts* yang memungkinkan pengguna untuk melakukan *switching* visualisasi grafik arus kas secara instan antara entitas *General Ledger* (Kas Umum) dan *Event Ledger* tanpa beban kueri *Backend* tambahan.
+- Menambahkan fungsionalitas *Time-Scope Filter* (3 Bulan vs 6 Bulan) berbasis pemotongan lar
+## [2026-08-25]
+### Added
+- Mengimplementasikan antarmuka *Gamification Leaderboard* pada metrik Partisipasi Agenda di halaman *Dashboard*. Fitur ini memvisualisasikan data historis 5 agenda terakhir menggunakan *Progress Bar* reaktif (*color-coded thresholds*: Emerald > 80%, Amber > 50%, Rose < 50%) untuk menstimulasi transparansi performa dan intervensi organik antar-pengurus.
+- Merevisi komponen hierarki `StatCard` dengan *layout alignment* `flex-col justify-center` untu
+## [2026-08-25]
+### Added
+- Mengimplementasikan `Custom Native Calendar Engine` menggunakan arsitektur *CSS Grid* dan pustaka *Time-Manipulation* `date-fns`. Komponen ini menggantikan *list view* statis dengan *Interactive Month-View Calendar* berskala penuh.
+- Mengintegrasikan pola *Master-Detail Interaction* antara grid Kalender dan panel *Agenda Inspector*. *State Management React* kini merender jadwal spesifik secara asinkron berdasarkan klik *Node* tanggal kalender, mendestruksi friksi UX dalam manajemen waktu organisasi.
+## [2026-08-25]
+### Added
+- Mengimplementasikan `ErrorBoundary` global untuk memitigasi *White Screen of Death (WSOD)*, meredam kegagalan *render* komponen menjadi UI *Fallback* yang aman.
+- Menyuntikkan *Global Network Interceptor* pada klien Axios untuk menangkap anomali jaringan (*Offline State* & HTTP 500) dan mentranslasikannya menjadi *Toast Notification* secara presisi.
+### Changed
+- Mengeksekusi *Route-Level Code Splitting* menggunakan `React.lazy()` dan `<Suspense>`. Optimalisasi arsitektural ini memecah monolit *bundle size* JavaScript, mereduksi waktu *Cold Start* aplikasi secara signifikan.
+- Memoles *Global CSS* dengan injeksi *Webkit Scrollbar* kustom yang terintegrasi secara semantik dengan utilitas *Dark Mode* Tailwind, mendestruksi friksi visual *scroll* bawaan OS.
 ```
