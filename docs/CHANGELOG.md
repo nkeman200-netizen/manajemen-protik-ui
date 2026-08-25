@@ -141,3 +141,7 @@
 ## [2026-08-25]
 ### Added
 - Mengimplementasikan modul *Data Export* mandiri pada `AttendanceModal` menggunakan kapabilitas *Client-Side Array-of-Arrays (AoA) Mapping* dari pustaka `xlsx`. Fitur ini merakit laporan *Buku Tamu Digital* berformat Excel secara lokal, meniadakan latensi komputasi *Backend* sekaligus memberikan struktur pelaporan LPJ *Out-of-the-Box* bagi administrator.
+## [2026-08-25]
+### Changed
+- Mengeksekusi *Dashboard Metric Cleanup* dengan memusnahkan kalkulasi *Vanity Metrics* (Event Aktif & Surat Keluar) dari `DashboardService` untuk mengurangi beban komputasi *time-series* SQL yang tidak relevan.
+- Merevisi *parser* waktu pada komponen `Dashboard.jsx` (Upcoming Meetings) untuk menggunakan atribut `start_date` secara eksplisit, menambal anomali referensi kolom usang (*nullish output*) akibat transisi arsitektur *Agendas*.

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { SWRConfig } from 'swr';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -21,24 +22,33 @@ export default function App() {
     <ThemeProvider>
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/events" element={<EventManagement />} />
-                <Route path="/dashboard/master-data" element={<MasterData />} />
-                <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
-                <Route path="/dashboard/finance" element={<Finance />} />
-                <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
-                <Route path="/dashboard/agendas" element={<Agenda />} />
-                <Route path="/dashboard/documents" element={<Document />} />
-                <Route path="/dashboard/profile" element={<Profile />} />
-                <Route path="/dashboard/warnings" element={<Warning />} />
+          {/* FIX: Meredam agresivitas SWR untuk mencegah serangan DDoS mandiri ke Backend */}
+          <SWRConfig
+            value={{
+              revalidateOnFocus: false,
+              revalidateIfStale: false,
+              shouldRetryOnError: false,
+            }}
+          >
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route element={<ProtectedRoute />}>
+                <Route element={<DashboardLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard/events" element={<EventManagement />} />
+                  <Route path="/dashboard/master-data" element={<MasterData />} />
+                  <Route path="/dashboard/audit-trails" element={<AuditTrail />} />
+                  <Route path="/dashboard/finance" element={<Finance />} />
+                  <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
+                  <Route path="/dashboard/agendas" element={<Agenda />} />
+                  <Route path="/dashboard/documents" element={<Document />} />
+                  <Route path="/dashboard/profile" element={<Profile />} />
+                  <Route path="/dashboard/warnings" element={<Warning />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </SWRConfig>
           <Toaster
             position="top-right"
             toastOptions={{

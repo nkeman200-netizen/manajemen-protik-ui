@@ -2,10 +2,10 @@ import useSWR from 'swr';
 import { fetcher } from '../api/fetcher';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   Wallet,
   CalendarCheck,
-  FileOutput,
   CalendarClock,
   Users,
   TrendingUp,
@@ -25,6 +25,11 @@ function formatRupiah(value) {
 function formatTanggal(dateStr) {
   if (!dateStr) return '-';
   return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
+}
+
+function formatTanggalWaktu(dateStr) {
+  if (!dateStr) return '-';
+  return format(new Date(dateStr), 'd MMM yyyy, HH:mm', { locale: localeID });
 }
 
 // --- Stat Card ---
@@ -112,34 +117,96 @@ export default function Dashboard() {
   }
 
   const financial = stats?.financial_health;
-  const events = stats?.event_performance;
-  const activity = stats?.organizational_activity;
 
   return (
     <div className="space-y-6">
       {/* Stat Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-1">
         <StatCard
           icon={Wallet}
-          label="Total Saldo"
+          label="Total Saldo Kas Umum"
           value={formatRupiah(financial?.total_balance)}
           gradient="bg-emerald-500"
           iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700"
         />
-        <StatCard
-          icon={CalendarCheck}
-          label="Event Aktif"
-          value={events?.active_events ?? 0}
-          gradient="bg-primary-500"
-          iconBg="bg-gradient-to-br from-primary-500 to-primary-700"
-        />
-        <StatCard
-          icon={FileOutput}
-          label="Surat Keluar"
-          value={activity?.outgoing_letters ?? 0}
-          gradient="bg-violet-500"
-          iconBg="bg-gradient-to-br from-violet-500 to-violet-700"
-        />
+      </div>
+
+      {/* Financial Chart Section */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Arus Kas Organisasi</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Statistik pemasukan & pengeluaran 6 bulan terakhir.</p>
+          </div>
+        </div>
+
+        <div className="h-72 w-full">
+          {financial?.chart_data && financial.chart_data.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={financial.chart_data}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-200 dark:stroke-white/5" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                  tickFormatter={(value) =>
+                    `Rp${value >= 1000000 ? value / 1000000 + 'M' : value / 1000 + 'K'}`
+                  }
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: 'none',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  }}
+                  formatter={(value) => formatRupiah(value)}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pemasukan"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorIncome)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pengeluaran"
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorExpense)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+              Belum ada data keuangan untuk ditampilkan.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Agenda Sections */}
@@ -168,10 +235,10 @@ export default function Dashboard() {
 
         {/* Upcoming Meetings */}
         <AgendaSection
-          title="Jadwal Rapat Terdekat"
+          title="Jadwal Agenda Terdekat"
           icon={Users}
           items={agenda?.upcoming_meetings}
-          emptyText="Belum ada rapat mendatang."
+          emptyText="Belum ada agenda mendatang."
           renderItem={(meeting) => (
             <div
               key={meeting.id}
@@ -182,7 +249,7 @@ export default function Dashboard() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{meeting.title}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{formatTanggal(meeting.date)}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{formatTanggalWaktu(meeting.start_date)}</p>
               </div>
             </div>
           )}

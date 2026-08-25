@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import * as XLSX from 'xlsx';
 import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
@@ -31,18 +31,21 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
     paginatedFetcher
   );
 
-  // FIX: Ekstraksi agresif untuk menghindari jebakan Pagination (res.data.data vs res.data)
-  const getRawData = (res) => {
-    if (!res) return [];
-    if (Array.isArray(res)) return res;
-    if (res.data && Array.isArray(res.data)) return res.data;
-    if (res.data?.data && Array.isArray(res.data.data)) return res.data.data;
-    return [];
-  };
+  // FIX: Bungkus dengan useMemo agar React tidak menganggapnya sebagai array baru di setiap render (mencegah Infinite Loop)
+  const rawParticipants = useMemo(() => {
+    if (!participantData) return [];
+    return Array.isArray(participantData) ? participantData : (participantData?.data || []);
+  }, [participantData]);
 
-  const rawParticipants = getRawData(participantData);
-  const divisions = getRawData(divData);
-  const existingAttendances = getRawData(attendanceData);
+  const divisions = useMemo(() => {
+    if (!divData) return [];
+    return Array.isArray(divData) ? divData : (divData?.data || []);
+  }, [divData]);
+
+  const existingAttendances = useMemo(() => {
+    if (!attendanceData) return [];
+    return Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
+  }, [attendanceData]);
 
   // Kunci agar revalidasi SWR di background tidak mereset inputan user
   const [isDataLoaded, setIsDataLoaded] = useState(false);
