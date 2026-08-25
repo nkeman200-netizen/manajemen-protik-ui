@@ -30,18 +30,18 @@ function formatTanggalWaktu(dateStr) {
 
 function StatCard({ icon: Icon, label, value, subValue, gradient, iconBg }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
-      <div className={`absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
-      <div className="relative flex items-start justify-between">
+    <div className="group relative flex h-full flex-col justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+      <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
+      <div className="relative flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
           <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{value}</p>
+            <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
             {subValue && <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{subValue}</span>}
           </div>
         </div>
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${iconBg}`}>
-          <Icon className="h-6 w-6 text-white" />
+        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg ${iconBg}`}>
+          <Icon className="h-7 w-7 text-white" />
         </div>
       </div>
     </div>
@@ -128,8 +128,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 2. STAT CARDS (KESEHATAN ORGANISASI) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
+      {/* 2. STAT CARDS & LEADERBOARD (KESEHATAN ORGANISASI) */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Total Saldo */}
         <StatCard
           gradient="bg-emerald-500"
           icon={Wallet}
@@ -137,14 +138,61 @@ export default function Dashboard() {
           label="Total Saldo Kas Umum"
           value={formatRupiah(financial?.total_balance)}
         />
-        <StatCard
-          gradient="bg-blue-500"
-          icon={Activity}
-          iconBg="bg-gradient-to-br from-blue-500 to-indigo-700"
-          label="Partisipasi Rapat Terakhir"
-          value={`${agendaPart?.rate ?? 0}%`}
-          subValue={agendaPart?.last_agenda_title ? `(${agendaPart.last_agenda_title})` : '-'}
-        />
+
+        {/* Partisipasi Gamifikasi */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-10 blur-2xl transition-opacity duration-300 group-hover:opacity-20" />
+          <div className="relative mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-md">
+                <Activity className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Leaderboard Partisipasi</h3>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Tingkat kehadiran 5 agenda terakhir</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative space-y-3.5">
+            {agendaPart && agendaPart.length > 0 ? (
+              agendaPart.map((item, idx) => (
+                <div key={idx}>
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <span className="truncate pr-4 font-semibold text-slate-700 dark:text-slate-300">{item.title}</span>
+                    <span
+                      className={`font-black tracking-tight ${
+                        item.rate >= 80
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : item.rate >= 50
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-red-600 dark:text-red-400'
+                      }`}
+                    >
+                      {item.rate}%
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] dark:bg-slate-800/80">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                        item.rate >= 80
+                          ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                          : item.rate >= 50
+                          ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
+                          : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'
+                      }`}
+                      style={{ width: `${item.rate}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex h-24 items-center justify-center text-xs font-medium text-slate-400">
+                Belum ada riwayat absensi.
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 3. TABBED DYNAMIC CHART (ANALITIK KEUANGAN) */}
