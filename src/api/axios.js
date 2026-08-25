@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const axiosInstance = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
@@ -13,8 +14,12 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Jika error 401/419 dan user TIDAK sedang berada di halaman login
-        if ((error.response?.status === 401 || error.response?.status === 419) && window.location.pathname !== '/login') {
+        // Tangkap Network Error (Internet mati atau Server Down)
+        if (!error.response) {
+            toast.error('Koneksi terputus. Periksa jaringan internet Anda.');
+        } else if (error.response.status >= 500) {
+            toast.error('Terjadi kesalahan internal server (500).');
+        } else if ((error.response?.status === 401 || error.response?.status === 419) && window.location.pathname !== '/login') {
             window.location.href = '/login';
         }
         return Promise.reject(error);

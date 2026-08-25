@@ -158,3 +158,10 @@
 ### Added
 - Mengimplementasikan `Custom Native Calendar Engine` menggunakan arsitektur *CSS Grid* dan pustaka *Time-Manipulation* `date-fns`. Komponen ini menggantikan *list view* statis dengan *Interactive Month-View Calendar* berskala penuh.
 - Mengintegrasikan pola *Master-Detail Interaction* antara grid Kalender dan panel *Agenda Inspector*. *State Management React* kini merender jadwal spesifik secara asinkron berdasarkan klik *Node* tanggal kalender, mendestruksi friksi UX dalam manajemen waktu organisasi.
+## [2026-08-25]
+### Added
+- Mengimplementasikan `ErrorBoundary` global untuk memitigasi *White Screen of Death (WSOD)*, meredam kegagalan *render* komponen menjadi UI *Fallback* yang aman.
+- Menyuntikkan *Global Network Interceptor* pada klien Axios untuk menangkap anomali jaringan (*Offline State* & HTTP 500) dan mentranslasikannya menjadi *Toast Notification* secara presisi.
+### Changed
+- Mengeksekusi *Route-Level Code Splitting* menggunakan `React.lazy()` dan `<Suspense>`. Optimalisasi arsitektural ini memecah monolit *bundle size* JavaScript, mereduksi waktu *Cold Start* aplikasi secara signifikan.
+- Memoles *Global CSS* dengan injeksi *Webkit Scrollbar* kustom yang terintegrasi secara semantik dengan utilitas *Dark Mode* Tailwind, mendestruksi friksi visual *scroll* bawaan OS.
