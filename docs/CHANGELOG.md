@@ -145,3 +145,8 @@
 ### Changed
 - Mengeksekusi *Dashboard Metric Cleanup* dengan memusnahkan kalkulasi *Vanity Metrics* (Event Aktif & Surat Keluar) dari `DashboardService` untuk mengurangi beban komputasi *time-series* SQL yang tidak relevan.
 - Merevisi *parser* waktu pada komponen `Dashboard.jsx` (Upcoming Meetings) untuk menggunakan atribut `start_date` secara eksplisit, menambal anomali referensi kolom usang (*nullish output*) akibat transisi arsitektur *Agendas*.
+## [2026-08-25]
+### Added
+- Mengimplementasikan *Executive Dashboard UI* pada `Dashboard.jsx`, merombak arsitektur presentasi menjadi 3 layer krusial: *Alert Banner* (Tunggakan Personal), *KPI Metrics* (Partisipasi Rapat), dan *Dynamic Visual Analytics*.
+- Membangun antarmuka *Tabbed Recharts* yang memungkinkan pengguna untuk melakukan *switching* visualisasi grafik arus kas secara instan antara entitas *General Ledger* (Kas Umum) dan *Event Ledger* tanpa beban kueri *Backend* tambahan.
+- Menambahkan fungsionalitas *Time-Scope Filter* (3 Bulan vs 6 Bulan) berbasis pemotongan lar
