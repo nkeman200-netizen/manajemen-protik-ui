@@ -170,3 +170,6 @@
 - Mengimplementasikan teknik *Tree-Shaking* secara paksa melalui *Rollup Config* (`vite.config.js`) untuk memecah arsitektur *vendor chunking* (memisahkan `lucide-react`, `recharts`, dan utilitas *React* inti). Pendekatan ini berhasil menekan ukuran inisial *payload Main-Thread* secara drastis (Resolusi Lighthouse P99).
 - Menginjeksi *Memoization Cache Strategy* ( `useMemo` ) pada mesin perenderan Native Calendar (`renderedCalendar`) di halaman `Dashboard.jsx`. Modifikasi ini mengamankan siklus CPU dari gejala eksesif re-render (*Uncontrolled Rerendering*) saat pengguna memanipulasi *state* komponen lain.
 - Memperluas kebijakan *Client-Side Caching* pada konfigurasi provider `SWRConfig` (`App.jsx`) dengan menambahkan `dedupingInterval: 10000` dan `keepPreviousData: true`. Formasi ini secara efektif meredam *Fetch Flooding* pada server *Backend* ketika interaksi *user* memicu transisi antar-tab secara asinkron (Resolusi N+1 Frontend Polling).
+## [2026-08-25]
+### Changed
+- Menginjeksi atribut semantik HTML5 (`name` dan `autoComplete`) pada formulir komponen `Login.jsx`. Pembaruan ini memastikan kompatibilitas penuh dengan sistem *Credential Manager* dan *Autofill API* bawaan peramban (Browser's "Remember Me" functionality).
