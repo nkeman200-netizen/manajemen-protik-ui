@@ -154,3 +154,7 @@
 ### Added
 - Mengimplementasikan antarmuka *Gamification Leaderboard* pada metrik Partisipasi Agenda di halaman *Dashboard*. Fitur ini memvisualisasikan data historis 5 agenda terakhir menggunakan *Progress Bar* reaktif (*color-coded thresholds*: Emerald > 80%, Amber > 50%, Rose < 50%) untuk menstimulasi transparansi performa dan intervensi organik antar-pengurus.
 - Merevisi komponen hierarki `StatCard` dengan *layout alignment* `flex-col justify-center` untu
+## [2026-08-25]
+### Added
+- Mengimplementasikan `Custom Native Calendar Engine` menggunakan arsitektur *CSS Grid* dan pustaka *Time-Manipulation* `date-fns`. Komponen ini menggantikan *list view* statis dengan *Interactive Month-View Calendar* berskala penuh.
+- Mengintegrasikan pola *Master-Detail Interaction* antara grid Kalender dan panel *Agenda Inspector*. *State Management React* kini merender jadwal spesifik secara asinkron berdasarkan klik *Node* tanggal kalender, mendestruksi friksi UX dalam manajemen waktu organisasi.
