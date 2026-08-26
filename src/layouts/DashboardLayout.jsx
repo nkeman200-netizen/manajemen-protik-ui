@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -21,17 +21,37 @@ import {
   PanelLeftOpen
 } from 'lucide-react';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
-  { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
-  { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
-  { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
-  { name: 'Keuangan', href: '/dashboard/finance', icon: Calculator, restrictedForMember: true },
-  { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
-  { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
-  { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
-  { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
+// --- ARSITEKTUR NAVIGASI BERBASIS DOMAIN ---
+const navigationGroups = [
+  {
+    title: 'Utama',
+    items: [
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    ]
+  },
+  {
+    title: 'Operasional',
+    items: [
+      { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
+      { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
+      { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
+    ]
+  },
+  {
+    title: 'Finansial',
+    items: [
+      { name: 'Keuangan', href: '/dashboard/finance', icon: Calculator, restrictedForMember: true },
+      { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
+    ]
+  },
+  {
+    title: 'Sistem & HR',
+    items: [
+      { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
+      { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
+      { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
+    ]
+  },
 ];
 
 export default function DashboardLayout() {
@@ -41,6 +61,7 @@ export default function DashboardLayout() {
   
   const [sidebarOpen, setSidebarOpen] = useState(false); // Untuk Mobile
   const [isCollapsed, setIsCollapsed] = useState(false); // Untuk Desktop
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false); // Untuk Gemini-style Toggle
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
   const isMember = user?.roles?.[0]?.name === 'member';
@@ -70,60 +91,146 @@ export default function DashboardLayout() {
           ${isCollapsed ? 'lg:w-[4.5rem]' : 'lg:w-72'}
         `}
       >
-        {/* Logo area */}
-        <div className={`flex h-16 shrink-0 items-center border-b border-slate-200 dark:border-white/10 transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'}`}>
+        {/* Header Area (Logo & Toggle) */}
+        <div 
+          className={`relative flex h-16 shrink-0 items-center border-b border-slate-200 dark:border-white/10 transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'}`}
+          onMouseEnter={() => setIsHeaderHovered(true)}
+          onMouseLeave={() => setIsHeaderHovered(false)}
+        >
           
-          {!isCollapsed ? (
-            <>
-              {/* Logo Lengkap (Terbuka) */}
-              <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-                  <LayoutDashboard className="h-5 w-5 text-white"/>
+          {/* Logo Lengkap (Hanya tampil saat terbuka) */}
+          <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 absolute' : 'w-auto opacity-100'}`}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+              <LayoutDashboard className="h-5 w-5 text-white"/>
+            </div>
+            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Protik</span>
+          </div>
+
+          {/* Tombol Tutup Sidebar (Desktop Terbuka) */}
+          {!isCollapsed && (
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="hidden rounded-full p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:block shrink-0"
+              title="Tutup sidebar"
+            >
+              <PanelLeftClose className="h-5 w-5"/>
+            </button>
+          )}
+
+          {/* Container untuk Logo Kecil ATAU Tombol Buka (Saat Diciutkan) */}
+          {isCollapsed && (
+            <div className="relative flex h-10 w-10 items-center justify-center">
+              {/* Logo Kecil (Muncul saat TIDAK di-hover) */}
+              <div 
+                className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${isHeaderHovered ? 'opacity-0' : 'opacity-100'}`}
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
+                  <LayoutDashboard className="h-4 w-4 text-white"/>
                 </div>
-                <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Protik</span>
               </div>
 
-              {/* Tombol Ciutkan (Desktop) - Gaya Gemini */}
+              {/* Tombol Buka Sidebar (Muncul HANYA saat di-hover) */}
               <button
-                onClick={() => setIsCollapsed(true)}
-                className="hidden rounded-full p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:block shrink-0"
-                title="Tutup sidebar"
+                onClick={() => setIsCollapsed(false)}
+                className={`absolute inset-0 flex h-full w-full items-center justify-center rounded-full text-slate-500 transition-all duration-200 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:flex ${isHeaderHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                title="Buka sidebar"
               >
-                <PanelLeftClose className="h-5 w-5"/>
+                <PanelLeftOpen className="h-5 w-5"/>
               </button>
-            </>
-          ) : (
-            /* Tombol Buka (Desktop) - Menggantikan Logo ala Gemini */
-            <button
-              onClick={() => setIsCollapsed(false)}
-              className="hidden h-10 w-10 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:flex"
-              title="Buka sidebar"
-            >
-              <PanelLeftOpen className="h-5 w-5"/>
-            </button>
+            </div>
           )}
 
           {/* Tombol Tutup (Mobile) */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden shrink-0"
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden shrink-0 absolute right-4"
           >
             <X className="h-5 w-5"/>
           </button>
         </div>
 
-        {/* Navigasi */}
-        <nav className="flex-1 space-y-1.5 overflow-y-auto overflow-x-hidden px-3 py-4 custom-scrollbar">
-          {navigation.map((item) => {
-            if (item.adminOnly && !isAdmin) return null;
+        {/* Navigasi (Dengan Kategori) */}
+        <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-4 custom-scrollbar">
+          {navigationGroups.map((group, groupIndex) => {
+            // Filter item berdasarkan role (Hanya tampilkan grup jika ada item yang valid)
+            const validItems = group.items.filter(item => !(item.adminOnly && !isAdmin));
+            if (validItems.length === 0) return null;
 
             return (
+              <div key={group.title} className="space-y-1">
+                {/* SECTION HEADER */}
+                {!isCollapsed ? (
+                  <h3 className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {group.title}
+                  </h3>
+                ) : (
+                  // Pemisah Tipis saat Collapsed (kecuali grup pertama)
+                  groupIndex > 0 && <hr className="mx-4 my-2 border-slate-200 dark:border-white/10" />
+                )}
+
+                {/* MENU ITEMS */}
+                {validItems.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    end={item.href === '/dashboard'}
+                    onClick={() => setSidebarOpen(false)}
+                    title={isCollapsed ? item.name : undefined}
+                    className={({ isActive }) =>
+                      `group flex items-center rounded-xl text-sm font-medium transition-all duration-200 ${
+                        isCollapsed ? 'justify-center mx-1 p-2.5' : 'gap-3 px-3 py-2.5'
+                      } ${
+                        isActive
+                          ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-primary-500/10'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <item.icon
+                          className={`h-5 w-5 shrink-0 transition-colors ${
+                            isActive
+                              ? 'text-primary-600 dark:text-primary-400'
+                              : 'text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300'
+                          }`}
+                        />
+                        
+                        {!isCollapsed && (
+                          <div className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap">
+                            <span className="truncate">{item.name}</span>
+                            {isMember && item.restrictedForMember && (
+                              <span className="ml-2 shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                Read Only
+                              </span>
+                            )}
+                            {isActive && (
+                              <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400"/>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            );
+          })}
+
+          {/* Bagian Personal (Profil Saya) */}
+          <div className="space-y-1">
+             {!isCollapsed ? (
+                <h3 className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  Personal
+                </h3>
+              ) : (
+                <hr className="mx-4 my-2 border-slate-200 dark:border-white/10" />
+              )}
               <NavLink
-                key={item.name}
-                to={item.href}
-                end={item.href === '/dashboard'}
+                key="Profil Saya"
+                to="/dashboard/profile"
                 onClick={() => setSidebarOpen(false)}
-                title={isCollapsed ? item.name : undefined}
+                title={isCollapsed ? "Profil Saya" : undefined}
                 className={({ isActive }) =>
                   `group flex items-center rounded-xl text-sm font-medium transition-all duration-200 ${
                     isCollapsed ? 'justify-center mx-1 p-2.5' : 'gap-3 px-3 py-2.5'
@@ -136,7 +243,7 @@ export default function DashboardLayout() {
               >
                 {({ isActive }) => (
                   <>
-                    <item.icon
+                    <User
                       className={`h-5 w-5 shrink-0 transition-colors ${
                         isActive
                           ? 'text-primary-600 dark:text-primary-400'
@@ -146,12 +253,7 @@ export default function DashboardLayout() {
                     
                     {!isCollapsed && (
                       <div className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap">
-                        <span className="truncate">{item.name}</span>
-                        {isMember && item.restrictedForMember && (
-                          <span className="ml-2 shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                            Read Only
-                          </span>
-                        )}
+                        <span className="truncate">Profil Saya</span>
                         {isActive && (
                           <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400"/>
                         )}
@@ -160,18 +262,12 @@ export default function DashboardLayout() {
                   </>
                 )}
               </NavLink>
-            );
-          })}
+          </div>
+
         </nav>
 
-        {/* User Card */}
-        <Link
-          to="/dashboard/profile"
-          title={isCollapsed ? 'Profil Saya' : undefined}
-          className={`block shrink-0 border-t border-slate-200 transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5 ${
-            isCollapsed ? 'p-3' : 'px-4 py-4'
-          }`}
-        >
+        {/* User Card (Tetap di Bawah) */}
+        <div className={`block shrink-0 border-t border-slate-200 transition dark:border-white/10 ${isCollapsed ? 'p-3' : 'px-4 py-4'}`}>
           <div className={`flex items-center rounded-xl bg-slate-100 dark:bg-white/5 transition-all duration-300 ${
             isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2.5'
           }`}>
@@ -186,7 +282,7 @@ export default function DashboardLayout() {
               </div>
             )}
           </div>
-        </Link>
+        </div>
       </aside>
 
       {/* Main content */}

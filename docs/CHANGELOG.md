@@ -183,3 +183,26 @@
 ## [2026-08-26]
 ### Changed
 - Merefaktorisasi komponen sakelar (*Toggle*) pada *Collapsible Sidebar* (`DashboardLayout.jsx`) untuk meniru heuristik desain Google Gemini. Menggantikan ikon navigasi statis dengan *Lucide Icons* asimetris (`PanelLeftClose` dan `PanelLeftOpen`), serta mengimplementasikan pergeseran kondisional area logo, menghasilkan pengalaman interaksi spasial yang presisi dan memuaskan.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi `DashboardLayout.jsx` untuk mengadopsi standar arsitektur navigasi *Enterprise SaaS*. Mengimplementasikan pengelompokan menu berbasis domain (Utama, Operasional, Finansial, Sistem & HR, Personal) dengan *Section Headers* yang secara dinamis menyusut menjadi garis pemisah (`<hr>`) saat mode *Collapsed* aktif.
+- Memoles interaksi *Collapsible Sidebar* dengan mekanisme *Hover State Toggle* ("Gemini-style"). Mengeliminasi *button clutter* dengan menampilkan Logo Protik secara *default* saat sidebar diciutkan, di mana ikon `PanelLeftOpen` hanya akan di-render sebagai *overlay* interaktif secara eksklusif ketika kursor memindai area *Header Sidebar*, menciptakan antarmuka yang sangat bersih dan minimalis.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
