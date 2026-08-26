@@ -177,3 +177,6 @@
 ### Changed
 - Merefaktorisasi arsitektur `AttendanceModal.jsx` untuk menanggalkan belenggu isolasi *Event*. Mengimplementasikan strategi **Data Blending** yang mengekstraksi data `/api/users`, `/api/divisions`, dan `/api/event-committees` secara konkuren melalui *SWR Hooks*. Fitur *Target Provisioning* kini diizinkan untuk mengundang *BPH Inti* dan *Divisi Global* secara *seamless* di dalam ruang kerja kepanitiaan manapun.
 - Mengimplementasikan abstraksi ekstraksi posisi *Array Set* `[...new Set()]` pada relasi komite. Modifikasi ini menghasilkan pembuatan daftar tombol *Spesifik Jabatan Panitia* (seperti Divisi Acara, Perkap, dsb.) yang dirakit secara asinkron dari *metadata* string yang ada, mengeleminasi kebutuhan terhadap pemborosan normalisasi struktur tabel *database*.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi antarmuka `WarningModal.jsx` dengan menggantikan arsitektur input *User ID* statis menjadi *Smart Searchable Combobox*. Mengimplementasikan kapabilitas *Eager Fetching* (`/api/users?all=true`) terintegrasi algoritma *Two-Way Data Binding*, memfasilitasi pencarian mutasi *real-time* berbasis Nama dan NIM sambil memastikan injeksi *Primary Key* secara tertutup pada *payload HTTP Post*, mengeliminasi beban kognitif pada tingkat *User Experience* administratif.
