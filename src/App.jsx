@@ -22,6 +22,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const AuditTrail = lazy(() => import('./pages/AuditTrail'));
 const MonthlyDue = lazy(() => import('./pages/MonthlyDue'));
 const Archives = lazy(() => import('./pages/Archives'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 // Fallback Spinner saat transisi halaman
 const PageLoader = () => (
@@ -62,6 +63,7 @@ export default function App() {
                       <Route path="/dashboard/archives" element={<Archives />} />
                       <Route path="/dashboard/profile" element={<Profile />} />
                       <Route path="/dashboard/warnings" element={<Warning />} />
+                      <Route path="/dashboard/settings" element={<Settings />} />
                     </Route>
                   </Route>
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />

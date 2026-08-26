@@ -197,9 +197,19 @@
 - Mengimplementasikan `Archives.jsx` sebagai modul UI Gudang Dokumen (*Repository*) berarsitektur *Grid Card* bergaya *Google Drive*.
 - Menginjeksi fungsionalitas *Client-Side Array Grouping* berbasis `period_year` untuk mengeleminasi paginasi hierarkis, mendistribusikan ratusan *folder* virtual dalam segmentasi per-kepengurusan yang mudah dipindai secara visual.
 - Menerapkan *Role-Based Access Control* (RBAC) pada level elemen UI. Administrator diberikan akses *inline CRUD* (Menu Kebab Kustom), sementara visibilitas bagi *Member* dibatasi hanya pada kapabilitas *Click-to-Redirect* ke *Google Drive External Link*.
-
-
-
+## [2026-08-26]
+### Added
+- Mengimplementasikan halaman `Settings.jsx` sebagai pusat kontrol *Global Variables* organisasi (Nama dan Logo).
+- Menginjeksi *Batch Update Payload* untuk memfasilitasi modifikasi multi-kunci pada API `/api/settings/batch` secara atomik.
+- Menerapkan arsitektur *Global State Synchronization*. `DashboardLayout.jsx` kini bertindak sebagai *SWR Subscriber* yang secara dinamis me-*render* atribut *Branding* organisasi. Mutasi data dari halaman pengaturan akan memicu *hot-reload* asinkron pada komponen *Sidebar* tanpa interupsi *refresh* peramban.
+## [2026-08-26]
+### Changed
+- Mengeksekusi *Brand Identity Override* pada tingkat CSS Root (`index.css`). Menyelaraskan *Global Color Palette* aplikasi dengan warna primer logo organisasi (Hijau Emerald).
+- Memanfaatkan arsitektur *CSS Variables* dari Tailwind v4 (`--color-primary-*`) untuk melakukan mutasi warna massal secara aman tanpa menibulkan friksi pada struktur *class* komponen React yang sudah ada.
+## [2026-08-27]
+### Fixed
+- Menambal celah UI React *Crash* (Error Boundary) pada komponen `AttendanceModal.jsx`. 
+- Menyelaraskan alur render komponen dari perubahan struktur *Database* di *Backend* di mana atribut `position` dirender sebagai *Object*, bukan *String* secara langsung.
 
 
 

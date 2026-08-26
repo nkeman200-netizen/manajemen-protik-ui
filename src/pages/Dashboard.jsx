@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
-import { fetcher } from '../api/fetcher';
+import { fetcher, paginatedFetcher } from '../api/fetcher';
+import api from '../api/axios';
+import { Link } from 'react-router-dom';
 import { 
   format, addMonths, subMonths, startOfMonth, endOfMonth, 
   startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, isToday 
@@ -8,7 +10,7 @@ import {
 import { id as localeID } from 'date-fns/locale';
 import {
   Wallet, CalendarClock, Activity, AlertCircle, Loader2, AlertTriangle, 
-  ChevronDown, ChevronLeft, ChevronRight, MapPin
+  ChevronDown, ChevronLeft, ChevronRight, MapPin, ArrowRight
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -51,22 +53,34 @@ export default function Dashboard() {
 
   const { data: stats, error: statsError, isLoading: statsLoading } = useSWR('/api/dashboard/statistics', fetcher);
   const { data: agenda, error: agendaError, isLoading: agendaLoading } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
+  
+  // FETCH SURAT PERINGATAN (Dengan SWR Mutator)
+  const { data: warningsData, mutate: mutateWarnings } = useSWR('/api/warnings?page=1', paginatedFetcher);
 
-  // --- ATURAN HOOKS: Semua Hook (termasuk useMemo) WAJIB berada sebelum early return ---
   const personalDues = stats?.personal_dues;
   const agendaPart = stats?.agenda_participation;
   const financial = stats?.financial_health;
+  
+  // Ekstraksi & Filter Peringatan Aktif (Hanya yang belum dibaca)
+  const myWarnings = warningsData?.data?.data || (Array.isArray(warningsData?.data) ? warningsData.data : []) || [];
+  const activeWarnings = myWarnings.filter(w => !w.read_at);
 
-  // Chart Logic (Dievaluasi dengan aman meskipun data belum ada)
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.patch(`/api/warnings/${id}/read`);
+      mutateWarnings();
+    } catch (err) {
+      console.error('Gagal menandai peringatan:', err);
+    }
+  };
+
   const chartKeys = useMemo(() => (financial?.chart_data ? Object.keys(financial.chart_data) : []), [financial?.chart_data]);
   const currentChartData = useMemo(() => financial?.chart_data?.[activeChartTab] || [], [financial?.chart_data, activeChartTab]);
   const displayChartData = useMemo(() => (timeRange === '3m' ? currentChartData.slice(-3) : currentChartData), [currentChartData, timeRange]);
 
-  // Calendar Logic
   const allAgendas = agenda?.upcoming_meetings || [];
   const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
 
-  // --- EARLY RETURNS (Setelah semua Hooks dideklarasikan) ---
   if (statsLoading || agendaLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -95,7 +109,7 @@ export default function Dashboard() {
   const renderCalendar = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Senin awal minggu
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
     const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
@@ -126,7 +140,7 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
                 isSelected ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : 
-                isTodayDate ? "text-emerald-600 dark:text-emerald-400" : 
+                isTodayDate ? "text-primary-500 dark:text-primary-400" : 
                 "text-slate-700 dark:text-slate-300"
               }`}>
                 {format(day, 'd')}
@@ -136,7 +150,6 @@ export default function Dashboard() {
               )}
             </div>
             
-            {/* Indikator Baris Acara (Maks 2) */}
             <div className="mt-1 flex flex-col gap-1">
               {dayAgendas.slice(0, 2).map((m, idx) => (
                 <div key={idx} className={`truncate rounded-sm px-1.5 py-0.5 text-[9px] font-semibold ${
@@ -159,7 +172,6 @@ export default function Dashboard() {
 
     return (
       <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        {/* Header Kalender */}
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             {format(currentMonth, 'MMMM yyyy', { locale: localeID })}
@@ -173,8 +185,6 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-
-        {/* Hari (Header Grid) */}
         <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30">
           {weekDays.map(dayName => (
             <div key={dayName} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -182,8 +192,6 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-
-        {/* Matriks Tanggal */}
         <div className="flex flex-col border-l border-slate-100 dark:border-white/5">
           {rows}
         </div>
@@ -193,7 +201,46 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 animate-slide-up-fade">
-      {/* 1. WARNING BANNER (KEDISIPLINAN KAS) */}
+      
+      {/* 1. SMART AGGRESSIVE WARNING BANNER (Hanya tampil jika ada yang belum dibaca) */}
+      {activeWarnings.length > 0 && (
+        <div className="flex items-start gap-4 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 to-amber-500/5 p-5 shadow-sm dark:from-amber-500/10 dark:to-transparent">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 shadow-inner">
+            <AlertCircle className="h-6 w-6"/>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-amber-800 dark:text-amber-400">Surat Peringatan Baru!</h3>
+            <p className="mt-1 text-xs font-medium text-amber-700/90 dark:text-amber-400/80">
+              Kamu memiliki <strong className="text-amber-900 dark:text-amber-300">{activeWarnings.length} surat peringatan</strong> yang belum dibaca. Harap perhatikan peringatan ini demi kelancaran operasional organisasi.
+            </p>
+            <div className="mt-3 flex flex-col gap-2.5">
+              {activeWarnings.slice(0, 2).map((w) => (
+                <div key={w.id} className="relative overflow-hidden rounded-xl border border-amber-200/60 bg-white/60 p-3 pr-32 shadow-sm dark:border-amber-500/20 dark:bg-black/20">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500">
+                    Diberikan pada: {format(new Date(w.date), 'dd MMMM yyyy', { locale: localeID })}
+                  </span>
+                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 leading-relaxed">
+                    "{w.reason}"
+                  </p>
+                  
+                  {/* Tombol Aksi Mutasi Data */}
+                  <button 
+                    onClick={() => handleMarkAsRead(w.id)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-amber-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+                  >
+                    Tandai Dibaca
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Link className="mt-3.5 inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300" to="/dashboard/warnings">
+              Lihat Riwayat Peringatan <ArrowRight className="h-3.5 w-3.5"/>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* 2. WARNING BANNER (KEDISIPLINAN KAS) */}
       {personalDues?.unpaid_months > 0 && (
         <div className="flex items-start gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 shadow-sm">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
@@ -208,11 +255,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 2. STAT CARDS & LEADERBOARD */}
+      {/* 3. STAT CARDS & LEADERBOARD */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <StatCard gradient="bg-emerald-500" icon={Wallet} iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700" label="Total Saldo Kas Umum" value={formatRupiah(financial?.total_balance)}/>
+        <StatCard gradient="bg-primary-500" icon={Wallet} iconBg="bg-gradient-to-br from-primary-500 to-primary-700" label="Total Saldo Kas Umum" value={formatRupiah(financial?.total_balance)}/>
 
-        {/* Partisipasi Gamifikasi */}
         <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
           <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-10 blur-2xl transition-opacity duration-300 group-hover:opacity-20" />
           <div className="relative mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/10">
@@ -233,11 +279,11 @@ export default function Dashboard() {
                 <div key={idx}>
                   <div className="mb-1.5 flex items-center justify-between text-xs">
                     <span className="truncate pr-4 font-semibold text-slate-700 dark:text-slate-300">{item.title}</span>
-                    <span className={`font-black tracking-tight ${item.rate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : item.rate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.rate}%</span>
+                    <span className={`font-black tracking-tight ${item.rate >= 80 ? 'text-primary-600 dark:text-primary-400' : item.rate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.rate}%</span>
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] dark:bg-slate-800/80">
                     <div 
-                      className={`h-full rounded-full transition-all duration-1000 ease-out ${item.rate >= 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : item.rate >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'}`} 
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${item.rate >= 80 ? 'bg-primary-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : item.rate >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'}`} 
                       style={{ width: `${item.rate}%` }}
                     />
                   </div>
@@ -250,7 +296,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3. TABBED DYNAMIC CHART */}
+      {/* 4. TABBED DYNAMIC CHART */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-white/10">
           <div>
@@ -358,14 +404,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 4. CALENDAR & AGENDA DETAIL (THE MASTERPIECE) */}
+      {/* 5. CALENDAR & AGENDA DETAIL */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Native Calendar */}
         <div className="lg:col-span-2">
           {renderCalendar()}
         </div>
 
-        {/* Selected Date Agendas */}
         <div className="lg:col-span-1">
           <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
             <div className="border-b border-slate-200 bg-primary-600/5 px-6 py-4 dark:border-white/10 dark:bg-primary-900/10">

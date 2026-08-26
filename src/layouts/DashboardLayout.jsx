@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import useSWR from 'swr';
+import { fetcher } from '../api/fetcher';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -13,12 +15,15 @@ import {
   FileText,
   FolderArchive,
   AlertTriangle,
+  Settings,
   LogOut,
   Menu,
   X,
   ChevronRight,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const navigationGroups = [
@@ -50,6 +55,7 @@ const navigationGroups = [
       { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
       { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
       { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
+      { name: 'Pengaturan', href: '/dashboard/settings', icon: Settings, adminOnly: true },
     ]
   },
 ];
@@ -59,6 +65,10 @@ export default function DashboardLayout() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   
+  const { data: settingsData } = useSWR('/api/settings', fetcher);
+  const orgName = settingsData?.org_name || 'Protik';
+  const orgLogo = settingsData?.org_logo || '';
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
@@ -72,7 +82,7 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-primary-950 transition-colors duration-300">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       
       {sidebarOpen && (
         <div
@@ -96,10 +106,14 @@ export default function DashboardLayout() {
           onMouseLeave={() => setIsHeaderHovered(false)}
         >
           <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 absolute' : 'w-auto opacity-100'}`}>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-              <LayoutDashboard className="h-5 w-5 text-white"/>
-            </div>
-            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Protik</span>
+            {orgLogo ? (
+              <img src={orgLogo} alt="Logo" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-sm bg-white/50" />
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+                <LayoutDashboard className="h-5 w-5 text-white"/>
+              </div>
+            )}
+            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">{orgName}</span>
           </div>
 
           {!isCollapsed && (
@@ -115,9 +129,13 @@ export default function DashboardLayout() {
           {isCollapsed && (
             <div className="relative flex h-10 w-10 items-center justify-center">
               <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${isHeaderHovered ? 'opacity-0' : 'opacity-100'}`}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
-                  <LayoutDashboard className="h-4 w-4 text-white"/>
-                </div>
+                {orgLogo ? (
+                  <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded-xl object-contain shadow-sm bg-white/50" />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
+                    <LayoutDashboard className="h-4 w-4 text-white"/>
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setIsCollapsed(false)}
@@ -269,13 +287,9 @@ export default function DashboardLayout() {
               className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
             >
               {theme === 'dark' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-amber-400">
-                  <circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-                </svg>
+                <Sun className="h-4 w-4 text-amber-400"/>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-600">
-                  <path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z" />
-                </svg>
+                <Moon className="h-4 w-4 text-slate-600"/>
               )}
             </button>
 

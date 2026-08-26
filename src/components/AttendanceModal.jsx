@@ -28,10 +28,10 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
   const committees = useMemo(() => Array.isArray(committeeData) ? committeeData : (committeeData?.data || []), [committeeData]);
   const existingAttendances = useMemo(() => Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []), [attendanceData]);
 
-  // EKSTRAK JABATAN PANITIA UNIK (Tanpa Query Database Tambahan)
+  // FIX 1: EKSTRAK JABATAN PANITIA UNIK (Pastikan mengekstrak string .name dari Object)
   const eventPositions = useMemo(() => {
     if (!activeEventId) return [];
-    return [...new Set(committees.map(c => c.position))].filter(Boolean);
+    return [...new Set(committees.map(c => c.position?.name))].filter(Boolean);
   }, [committees, activeEventId]);
 
   useEffect(() => {
@@ -60,9 +60,10 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
         if (t.type === 'coordinator') return user.is_coordinator;
         if (t.type === 'division') return String(user.division_id) === String(t.value);
         if (t.type === 'user') return String(user.id) === String(t.value);
+        // FIX 2: Akses properti .name dari Object position saat filter
         if (t.type === 'position' && activeEventId) {
           const userCommittee = committees.find(c => c.user_id === user.id);
-          return userCommittee?.position?.toLowerCase() === String(t.value).toLowerCase();
+          return userCommittee?.position?.name?.toLowerCase() === String(t.value).toLowerCase();
         }
         return false;
       });
@@ -84,7 +85,6 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
 
   if (!isOpen || !agenda) return null;
 
-  // --- Handlers ---
   const toggleTarget = (type, value = null) => {
     setSelectedTargets((prev) => {
       if (type === 'all') return [{ type: 'all', value: null }];
@@ -130,10 +130,11 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
     finally { setSubmitting(false); }
   };
 
+  // FIX 3: Pastikan getPositionString mengekstrak nama dari Object
   const getPositionString = (user) => {
     if (activeEventId) {
       const c = committees.find(com => com.user_id === user.id);
-      return c ? c.position : (user.division?.name ? `${user.division.name} (Eksternal Event)` : 'BPH (Eksternal Event)');
+      return c?.position?.name ? c.position.name : (user.division?.name ? `${user.division.name} (Eksternal Event)` : 'BPH (Eksternal Event)');
     }
     return user.division?.name || 'BPH Pusat';
   };
