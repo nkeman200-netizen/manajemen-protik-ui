@@ -187,6 +187,85 @@
 ### Changed
 - Merefaktorisasi `DashboardLayout.jsx` untuk mengadopsi standar arsitektur navigasi *Enterprise SaaS*. Mengimplementasikan pengelompokan menu berbasis domain (Utama, Operasional, Finansial, Sistem & HR, Personal) dengan *Section Headers* yang secara dinamis menyusut menjadi garis pemisah (`<hr>`) saat mode *Collapsed* aktif.
 - Memoles interaksi *Collapsible Sidebar* dengan mekanisme *Hover State Toggle* ("Gemini-style"). Mengeliminasi *button clutter* dengan menampilkan Logo Protik secara *default* saat sidebar diciutkan, di mana ikon `PanelLeftOpen` hanya akan di-render sebagai *overlay* interaktif secara eksklusif ketika kursor memindai area *Header Sidebar*, menciptakan antarmuka yang sangat bersih dan minimalis.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi `CommitteeModal.jsx` untuk tersinkronisasi penuh dengan struktur *Normalisasi Database* pada entitas `EventCommittee`. Mengganti elemen *Datalist* *string* statis menjadi komponen *Select Dropdown* dinamis yang dimuat secara asinkron via SWR dari `/api/committee-positions`.
+- Mengimplementasikan sistem *Auto-Mapper* pada fitur Impor Massal Excel. Algoritma kini memindai kolom string "Jabatan" pada lembar kerja dan mentranslasikannya menjadi *Foreign Key* (`position_id`) secara mutlak, meniadakan anomali *Missing Record*.
+- Merevisi *engine* pewarnaan *Badge UI* (*Role Tagging*) agar menyoroti (*highlight*) jabatan berdasarkan hak otorisasi absolut (`is_bph` *flag*) dari objek relasi *Eloquent*, menghasilkan representasi visual hierarki keamanan yang akurat.
+## [2026-08-26]
+### Added
+- Mengimplementasikan `Archives.jsx` sebagai modul UI Gudang Dokumen (*Repository*) berarsitektur *Grid Card* bergaya *Google Drive*.
+- Menginjeksi fungsionalitas *Client-Side Array Grouping* berbasis `period_year` untuk mengeleminasi paginasi hierarkis, mendistribusikan ratusan *folder* virtual dalam segmentasi per-kepengurusan yang mudah dipindai secara visual.
+- Menerapkan *Role-Based Access Control* (RBAC) pada level elemen UI. Administrator diberikan akses *inline CRUD* (Menu Kebab Kustom), sementara visibilitas bagi *Member* dibatasi hanya pada kapabilitas *Click-to-Redirect* ke *Google Drive External Link*.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

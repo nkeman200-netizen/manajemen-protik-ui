@@ -1177,127 +1177,6 @@ export default function EventManagement() {
 }
 ```
 
-## File: src/pages/Login.jsx
-```javascript
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
-
-export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await login(email, password);
-      navigate('/dashboard', { replace: true });
-    } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        error.response?.data?.errors?.email?.[0] ||
-        'Login gagal. Periksa kembali kredensial Anda.';
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-primary-950 px-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 shadow-lg shadow-primary-500/25">
-            <LogIn className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Selamat Datang Kembali
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Masuk ke akun Anda untuk melanjutkan
-          </p>
-        </div>
-
-        {/* Card */}
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
-        >
-          {/* Email */}
-          <div className="mb-5">
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-300">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@email.com"
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="mb-6">
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-300">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
-              />
-            </div>
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition hover:bg-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Memproses...
-              </>
-            ) : (
-              <>
-                <LogIn className="h-4 w-4" />
-                Masuk
-              </>
-            )}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-xs text-slate-500">
-          &copy; {new Date().getFullYear()} Manajemen Protik. All rights reserved.
-        </p>
-      </div>
-    </div>
-  );
-}
-```
-
 ## File: src/pages/MasterData.jsx
 ```javascript
 import { useState } from 'react';
@@ -1321,6 +1200,8 @@ import {
   AlertCircle,
   ShieldAlert,
   Building2,
+  Shield,
+  X,
 } from 'lucide-react';
 
 export default function MasterData() {
@@ -1328,12 +1209,19 @@ export default function MasterData() {
   const [activeTab, setActiveTab] = useState('users');
   const [userPage, setUserPage] = useState(1);
   const [divPage, setDivPage] = useState(1);
+  const [posPage, setPosPage] = useState(1);
 
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   const [divisionModalOpen, setDivisionModalOpen] = useState(false);
   const [selectedDivision, setSelectedDivision] = useState(null);
+
+  const [positionModalOpen, setPositionModalOpen] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [positionForm, setPositionForm] = useState({ name: '', is_bph: false });
+  const [positionErrors, setPositionErrors] = useState({});
+  const [positionSubmitting, setPositionSubmitting] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
 
@@ -1351,16 +1239,18 @@ export default function MasterData() {
     error: divisionsError,
     isLoading: divisionsLoading,
     mutate: mutateDivisions,
-  } = useSWR(
-    isAdmin ? `/api/divisions?page=${divPage}` : null,
-    paginatedFetcher
-  );
+  } = useSWR(isAdmin ? `/api/divisions?page=${divPage}` : null, paginatedFetcher);
+
+  // Fetch Committee Positions (paginated for Tab 3)
+  const {
+    data: positionsData,
+    error: positionsError,
+    isLoading: positionsLoading,
+    mutate: mutatePositions,
+  } = useSWR(isAdmin ? `/api/committee-positions?page=${posPage}` : null, paginatedFetcher);
 
   // Fetch all divisions for UserModal dropdown
-  const { data: allDivisionsData } = useSWR(
-    isAdmin ? '/api/divisions' : null,
-    paginatedFetcher
-  );
+  const { data: allDivisionsData } = useSWR(isAdmin ? '/api/divisions' : null, paginatedFetcher);
 
   // RBAC Access Guard
   if (!isAdmin) {
@@ -1392,6 +1282,14 @@ export default function MasterData() {
     divisionsData?.meta ||
     (divisionsData?.data && !Array.isArray(divisionsData?.data) ? divisionsData.data : null);
 
+  const positionsList =
+    positionsData?.data?.data ||
+    (Array.isArray(positionsData?.data) ? positionsData.data : (Array.isArray(positionsData) ? positionsData : [])) ||
+    [];
+  const posMeta =
+    positionsData?.meta ||
+    (positionsData?.data && !Array.isArray(positionsData?.data) ? positionsData.data : null);
+
   const dropdownDivisions =
     allDivisionsData?.data?.data ||
     (Array.isArray(allDivisionsData?.data) ? allDivisionsData.data : []) ||
@@ -1407,6 +1305,58 @@ export default function MasterData() {
       } catch (err) {
         toast.error(err.response?.data?.message || 'Gagal menghapus divisi.');
       }
+    }
+  };
+
+  // Delete Position Handler
+  const handleDeletePosition = async (id) => {
+    if (window.confirm('Yakin ingin menghapus jabatan kepanitiaan ini?')) {
+      try {
+        await api.delete(`/api/committee-positions/${id}`);
+        toast.success('Jabatan kepanitiaan berhasil dihapus.');
+        mutatePositions();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Gagal menghapus jabatan.');
+      }
+    }
+  };
+
+  const closePositionModal = () => {
+    setPositionModalOpen(false);
+    setSelectedPosition(null);
+    setPositionForm({ name: '', is_bph: false });
+    setPositionErrors({});
+  };
+
+  const handlePositionSubmit = async (e) => {
+    e.preventDefault();
+    setPositionSubmitting(true);
+    setPositionErrors({});
+
+    try {
+      if (selectedPosition) {
+        await api.put(`/api/committee-positions/${selectedPosition.id}`, {
+          name: positionForm.name,
+          is_bph: Boolean(positionForm.is_bph),
+        });
+        toast.success('Jabatan kepanitiaan berhasil diperbarui.');
+      } else {
+        await api.post('/api/committee-positions', {
+          name: positionForm.name,
+          is_bph: Boolean(positionForm.is_bph),
+        });
+        toast.success('Jabatan kepanitiaan berhasil ditambahkan.');
+      }
+      mutatePositions();
+      closePositionModal();
+    } catch (err) {
+      if (err.response?.status === 422 && err.response?.data?.errors) {
+        setPositionErrors(err.response.data.errors);
+      } else {
+        toast.error(err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data.');
+      }
+    } finally {
+      setPositionSubmitting(false);
     }
   };
 
@@ -1434,7 +1384,7 @@ export default function MasterData() {
               Master Data Organisasi
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Kelola data seluruh anggota, struktur divisi, dan hak akses sistem.
+              Kelola data seluruh anggota, struktur divisi, dan jabatan kepanitiaan.
             </p>
           </div>
         </div>
@@ -1469,6 +1419,21 @@ export default function MasterData() {
           <span>Struktur Divisi</span>
           <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
             {divMeta?.total ?? divisionsList.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('positions')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+            activeTab === 'positions'
+              ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
+          }`}
+        >
+          <Shield className="h-4 w-4" />
+          <span>Jabatan Panitia</span>
+          <span className="ml-1 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-white/10 dark:text-slate-300">
+            {posMeta?.total ?? positionsList.length}
           </span>
         </button>
       </div>
@@ -1761,6 +1726,155 @@ export default function MasterData() {
         </div>
       )}
 
+      {/* ========================================= */}
+      {/* TAB 3: JABATAN KEPANITIAAN                */}
+      {/* ========================================= */}
+      {activeTab === 'positions' && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                setSelectedPosition(null);
+                setPositionForm({ name: '', is_bph: false });
+                setPositionErrors({});
+                setPositionModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary-500/25 transition hover:shadow-lg hover:shadow-primary-500/30"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Jabatan
+            </button>
+          </div>
+
+          {positionsLoading ? (
+            <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+            </div>
+          ) : positionsError ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="flex flex-col items-center gap-2 rounded-2xl border border-red-500/20 bg-red-50 p-6 dark:bg-red-500/10">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                  Gagal memuat data jabatan kepanitiaan.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Nama Jabatan
+                      </th>
+                      <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Hak Akses Event (BPH)
+                      </th>
+                      <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Aksi
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {positionsList.length > 0 ? (
+                      positionsList.map((item) => (
+                        <tr
+                          key={item.id}
+                          className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
+                        >
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                                <Shield className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                {item.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            {item.is_bph ? (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-primary-500/20 bg-primary-500/15 px-2.5 py-0.5 text-xs font-semibold text-primary-600 dark:text-primary-400">
+                                <Shield className="h-3.5 w-3.5" />
+                                Akses BPH Event
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                                Anggota Biasa
+                              </span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedPosition(item);
+                                  setPositionForm({ name: item.name, is_bph: Boolean(item.is_bph) });
+                                  setPositionErrors({});
+                                  setPositionModalOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeletePosition(item.id)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Hapus
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
+                        >
+                          Tidak ada data jabatan kepanitiaan.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Position Pagination */}
+              {posMeta && posMeta.last_page > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4 dark:border-white/10">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Halaman {posMeta.current_page} dari {posMeta.last_page}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPosPage((p) => Math.max(1, p - 1))}
+                      disabled={posPage === 1}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Prev
+                    </button>
+                    <button
+                      onClick={() => setPosPage((p) => p + 1)}
+                      disabled={posPage >= posMeta.last_page || !positionsData?.links?.next}
+                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* User Edit Modal */}
       <UserModal
         isOpen={userModalOpen}
@@ -1783,146 +1897,82 @@ export default function MasterData() {
         onSuccess={() => mutateDivisions()}
         initialData={selectedDivision}
       />
-    </div>
-  );
-}
-```
 
-## File: src/pages/MonthlyDue.jsx
-```javascript
-import { useState } from 'react';
-import useSWR from 'swr';
-import api from '../api/axios';
-import { toast } from 'react-hot-toast';
-import { Loader2, RefreshCw, CheckCircle2, XCircle, Wallet } from 'lucide-react';
+      {/* MODAL TAMBAH/EDIT JABATAN KEPANITIAAN */}
+      {positionModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closePositionModal} />
+          
+          <div className="relative z-10 mx-4 w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-white/10 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                {selectedPosition ? 'Edit Jabatan' : 'Tambah Jabatan'}
+              </h2>
+              <button onClick={closePositionModal} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                <X className="h-5 w-5"/>
+              </button>
+            </div>
 
-export default function MonthlyDue() {
-  // Menggunakan inline fetcher murni untuk menghindari pemotongan data (res.data.data) oleh fetcher global
-  const { data, error, isLoading, mutate } = useSWR(
-    '/api/monthly-dues',
-    async (url) => {
-      const res = await api.get(url);
-      return res.data; // Mengambil langsung object {users: [], dues: []}
-    }
-  );
+            <form onSubmit={handlePositionSubmit} className="p-6 space-y-6">
+              {/* Nama Jabatan */}
+              <div>
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Nama Jabatan <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={positionForm.name}
+                  onChange={(e) => setPositionForm({ ...positionForm, name: e.target.value })}
+                  placeholder="Contoh: Ketua Pelaksana"
+                  className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:ring-2 dark:bg-slate-800 dark:text-white ${
+                    positionErrors.name ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20' : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+                  }`}
+                  required
+                />
+                {positionErrors.name && <p className="mt-1.5 text-xs text-rose-500">{positionErrors.name[0]}</p>}
+              </div>
 
-  const [isSyncing, setIsSyncing] = useState(false);
+              {/* Toggle Hak Akses BPH */}
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/5 dark:bg-slate-800/50">
+                <div className="flex items-start gap-3">
+                  <Shield className={`h-5 w-5 mt-0.5 shrink-0 ${positionForm.is_bph ? 'text-primary-500' : 'text-slate-400'}`} />
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">Hak Akses Event (BPH)</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Izinkan jabatan ini memanipulasi data Agenda, Keuangan, dan Dokumen di dalam Event.</p>
+                  </div>
+                </div>
+                
+                {/* Custom Toggle Switch */}
+                <button
+                  type="button"
+                  onClick={() => setPositionForm({ ...positionForm, is_bph: !positionForm.is_bph })}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${
+                    positionForm.is_bph ? 'bg-primary-500' : 'bg-slate-300 dark:bg-slate-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      positionForm.is_bph ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+              {positionErrors.is_bph && <p className="mt-1 text-xs text-rose-500">{positionErrors.is_bph[0]}</p>}
 
-  const handleSync = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await api.post('/api/monthly-dues/sync');
-      toast.success(res.data.message);
-      mutate();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal sinkronisasi');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center text-red-500">
-        Gagal memuat data kas.
-      </div>
-    );
-  }
-
-  // Fallback standar (Kembalikan kode ini ke bentuk semula)
-  const users = data?.users || [];
-  const dues = data?.dues || [];
-
-  // Definisi Bulan sesuai urutan kepengurusan Protik (Okt -> Sep)
-  const monthList = [
-    { num: 10, name: 'Okt' },
-    { num: 11, name: 'Nov' },
-    { num: 12, name: 'Des' },
-    { num: 1, name: 'Jan' },
-    { num: 2, name: 'Feb' },
-    { num: 3, name: 'Mar' },
-    { num: 4, name: 'Apr' },
-    { num: 5, name: 'Mei' },
-    { num: 6, name: 'Jun' },
-  ];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg">
-            <Wallet className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Kas Pengurus</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Pemantauan kepatuhan iuran (Single Source of Truth dari Spreadsheet).
-            </p>
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onClick={closePositionModal} className="rounded-xl px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5 transition-colors">
+                  Batal
+                </button>
+                <button type="submit" disabled={positionSubmitting} className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-primary-500 disabled:opacity-50 transition-all">
+                  {positionSubmitting && <Loader2 className="h-4 w-4 animate-spin"/>}
+                  {positionSubmitting ? 'Menyimpan...' : 'Simpan Data'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-
-        <button
-          onClick={handleSync}
-          disabled={isSyncing}
-          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
-        >
-          <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
-        </button>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-600 dark:border-white/10 dark:bg-transparent dark:text-slate-400">
-              <tr>
-                <th className="px-6 py-3.5">Nama Pengurus</th>
-                {monthList.map((m) => (
-                  <th key={m.num} className="px-3 py-3.5 text-center">
-                    {m.name}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                  <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900 dark:text-white">
-                    {user.name}
-                  </td>
-                  {monthList.map((m) => {
-                    const isPaid = dues.find((d) => d.user_id === user.id && d.month === m.num);
-                    return (
-                      <td key={m.num} className="px-3 py-4 text-center">
-                        <div className="flex justify-center">
-                          {isPaid ? (
-                            <div className="group relative">
-                              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                              <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
-                                Rp {Number(isPaid.amount).toLocaleString('id-ID')}
-                              </span>
-                            </div>
-                          ) : (
-                            <XCircle className="h-5 w-5 text-rose-200 dark:text-rose-500/30" />
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -2465,17 +2515,6 @@ export default {
   },
   plugins: [],
 }
-```
-
-## File: vite.config.js
-```javascript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-
-export default defineConfig({
-  plugins: [react(), tailwindcss()],
-})
 ```
 
 ## File: src/api/axios.js
@@ -3041,7 +3080,7 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
                               item.position
                             )}`}
                           >
-                            {item.position}
+                            {item.position?.name}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right">
@@ -3081,294 +3120,6 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
             Tutup
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-```
-
-## File: src/components/EventModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-const initialForm = {
-  name: '',
-  description: '',
-  budget_approved: '',
-  drive_folder_url: '',
-  start_date: '',
-  end_date: '',
-  document_sync_url: '',
-  finance_sync_url: '',
-};
-
-export default function EventModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialData = null,
-}) {
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialData) {
-      setForm({
-        name: initialData.name || '',
-        description: initialData.description || '',
-        budget_approved: initialData.budget_approved ?? '',
-        drive_folder_url: initialData.drive_folder_url || '',
-        start_date: initialData.start_date ? initialData.start_date.substring(0, 10) : '',
-        end_date: initialData.end_date ? initialData.end_date.substring(0, 10) : '',
-        document_sync_url: initialData.document_sync_url || '',
-        finance_sync_url: initialData.finance_sync_url || '',
-      });
-    } else {
-      setForm(initialForm);
-    }
-    setErrors({});
-  }, [initialData, isOpen]);
-
-  if (!isOpen) return null;
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrors({});
-
-    try {
-      const payload = {
-        name: form.name,
-        description: form.description || null,
-        budget_approved: form.budget_approved !== '' ? Number(form.budget_approved) : 0,
-        drive_folder_url: form.drive_folder_url || null,
-        start_date: form.start_date,
-        end_date: form.end_date || null,
-        document_sync_url: form.document_sync_url || null,
-        finance_sync_url: form.finance_sync_url || null,
-      };
-
-      if (initialData?.id) {
-        await api.put(`/api/events/${initialData.id}`, payload);
-        toast.success('Event berhasil diperbarui.');
-      } else {
-        await api.post('/api/events', payload);
-        toast.success('Event berhasil ditambahkan.');
-      }
-
-      setForm(initialForm);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) {
-          toast.error(data.message);
-        }
-        if (data.errors) {
-          setErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError && !data.message) {
-            toast.error(firstError);
-          }
-        }
-      } else {
-        toast.error(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const modalTitle = initialData?.id ? 'Edit Event' : 'Tambah Event';
-
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Name */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Nama Event <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              placeholder="Contoh: Workshop Web Development 2026"
-              className={inputClass('name')}
-            />
-            {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name[0]}</p>}
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Deskripsi Event
-            </label>
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              placeholder="Jelaskan gambaran umum atau tujuan event..."
-              rows={3}
-              className={inputClass('description') + ' resize-none'}
-            />
-            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
-          </div>
-
-          {/* Budget Approved */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Anggaran Disetujui (Rp)
-            </label>
-            <input
-              type="number"
-              name="budget_approved"
-              value={form.budget_approved}
-              onChange={handleChange}
-              placeholder="0"
-              min="0"
-              className={inputClass('budget_approved')}
-            />
-            {errors.budget_approved && <p className="mt-1 text-xs text-red-400">{errors.budget_approved[0]}</p>}
-          </div>
-
-          {/* Dates (Start & End) */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tanggal Mulai <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="start_date"
-                value={form.start_date}
-                onChange={handleChange}
-                className={inputClass('start_date')}
-              />
-              {errors.start_date && <p className="mt-1 text-xs text-red-400">{errors.start_date[0]}</p>}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Tanggal Selesai
-              </label>
-              <input
-                type="date"
-                name="end_date"
-                value={form.end_date}
-                onChange={handleChange}
-                className={inputClass('end_date')}
-              />
-              {errors.end_date && <p className="mt-1 text-xs text-red-400">{errors.end_date[0]}</p>}
-            </div>
-          </div>
-
-          {/* Drive Folder URL */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tautan Folder Drive (Opsional)
-            </label>
-            <input
-              type="url"
-              name="drive_folder_url"
-              value={form.drive_folder_url}
-              onChange={handleChange}
-              placeholder="https://drive.google.com/drive/folders/..."
-              className={inputClass('drive_folder_url')}
-            />
-            {errors.drive_folder_url && <p className="mt-1 text-xs text-red-400">{errors.drive_folder_url[0]}</p>}
-          </div>
-
-          {/* Sync URLs */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                URL Sinkronisasi Dokumen
-              </label>
-              <input
-                type="url"
-                name="document_sync_url"
-                value={form.document_sync_url || ''}
-                onChange={handleChange}
-                placeholder="https://docs.google.com/spreadsheets/..."
-                className={inputClass('document_sync_url')}
-              />
-              {errors.document_sync_url && <p className="mt-1 text-xs text-red-400">{errors.document_sync_url[0]}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                URL Sinkronisasi Keuangan
-              </label>
-              <input
-                type="url"
-                name="finance_sync_url"
-                value={form.finance_sync_url || ''}
-                onChange={handleChange}
-                placeholder="https://docs.google.com/spreadsheets/..."
-                className={inputClass('finance_sync_url')}
-              />
-              {errors.finance_sync_url && <p className="mt-1 text-xs text-red-400">{errors.finance_sync_url[0]}</p>}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan'}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
@@ -3625,174 +3376,6 @@ export default function UserModal({
 }
 ```
 
-## File: src/components/WarningModal.jsx
-```javascript
-import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-const initialForm = {
-  user_id: '',
-  reason: '',
-  date: '',
-};
-
-export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId }) {
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrors({});
-
-    try {
-      const payload = {
-        admin_id: currentUserId,
-        user_id: Number(form.user_id),
-        reason: form.reason,
-        date: form.date,
-      };
-
-      await api.post('/api/warnings', payload);
-      toast.success('Surat peringatan berhasil ditambahkan.');
-      setForm(initialForm);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) {
-          toast.error(data.message);
-        }
-        if (data.errors) {
-          setErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError && !data.message) {
-            toast.error(firstError);
-          }
-        }
-      } else {
-        toast.error('Terjadi kesalahan. Silakan coba lagi.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Tambah Surat Peringatan</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* User ID */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              ID Anggota
-            </label>
-            <input
-              type="number"
-              name="user_id"
-              value={form.user_id}
-              onChange={handleChange}
-              placeholder="Masukkan ID anggota"
-              min="1"
-              className={inputClass('user_id')}
-            />
-            {errors.user_id && <p className="mt-1 text-xs text-red-400">{errors.user_id[0]}</p>}
-          </div>
-
-          {/* Reason */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Alasan Peringatan
-            </label>
-            <textarea
-              name="reason"
-              value={form.reason}
-              onChange={handleChange}
-              placeholder="Tuliskan alasan surat peringatan..."
-              rows={4}
-              className={inputClass('reason') + ' resize-none'}
-            />
-            {errors.reason && <p className="mt-1 text-xs text-red-400">{errors.reason[0]}</p>}
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Tanggal
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              className={inputClass('date')}
-            />
-            {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
-          </div>
-
-          {/* Submit */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-```
-
 ## File: src/contexts/AuthContext.jsx
 ```javascript
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -3845,6 +3428,726 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+}
+```
+
+## File: src/pages/Login.jsx
+```javascript
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
+
+export default function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await login(email, password);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.email?.[0] ||
+        'Login gagal. Periksa kembali kredensial Anda.';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-primary-950 px-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 shadow-lg shadow-primary-500/25">
+            <LogIn className="h-7 w-7 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Selamat Datang Kembali
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Masuk ke akun Anda untuk melanjutkan
+          </p>
+        </div>
+
+        {/* Card */}
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
+        >
+          {/* Email */}
+          <div className="mb-5">
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-300">
+              Email
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@email.com"
+                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="mb-6">
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-300">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
+              />
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition hover:bg-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              <>
+                <LogIn className="h-4 w-4" />
+                Masuk
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          &copy; {new Date().getFullYear()} Manajemen Protik. All rights reserved.
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+## File: src/pages/MonthlyDue.jsx
+```javascript
+import { useState, useMemo, useEffect } from 'react';
+import useSWR from 'swr';
+import api from '../api/axios';
+import { toast } from 'react-hot-toast';
+import { Loader2, RefreshCw, CheckCircle2, XCircle, Wallet, Search, Filter, ArrowUpDown, Building2, Minus } from 'lucide-react';
+
+// --- MESIN WAKTU PROTIK (PERBAIKAN LOGIKA) ---
+const getMonthIndex = (m) => {
+  if (m >= 7 && m <= 9) return 0;       // Jul, Ags, Sep -> Pre-periode (Indeks 0)
+  if (m >= 10 && m <= 12) return m - 9; // Okt(1), Nov(2), Des(3)
+  if (m >= 1 && m <= 6) return m + 3;   // Jan(4) ... Jun(9)
+  return 99; 
+};
+
+const currentMonthNum = new Date().getMonth() + 1;
+const currentIdx = getMonthIndex(currentMonthNum);
+
+const isFutureMonth = (targetMonth) => {
+  return getMonthIndex(targetMonth) > currentIdx;
+};
+
+export default function MonthlyDue() {
+  const { data, error, isLoading, mutate } = useSWR(
+    '/api/monthly-dues',
+    async (url) => {
+      const res = await api.get(url);
+      return res.data;
+    }
+  );
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [divisionFilter, setDivisionFilter] = useState('');
+  const [sortBy, setSortBy] = useState('name_asc');
+  
+  // State untuk UI Mobile Responsif
+  const [showFilter, setShowFilter] = useState(true);
+
+  // Auto-collapse filter di layar HP saat pertama dimuat
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setShowFilter(false);
+    }
+  }, []);
+
+  const rawUsers = Array.isArray(data?.users) ? data.users : [];
+  const dues = Array.isArray(data?.dues) ? data.dues : [];
+
+  const monthList = useMemo(() => [
+    { num: 10, name: 'Okt' }, { num: 11, name: 'Nov' }, { num: 12, name: 'Des' },
+    { num: 1, name: 'Jan' }, { num: 2, name: 'Feb' }, { num: 3, name: 'Mar' },
+    { num: 4, name: 'Apr' }, { num: 5, name: 'Mei' }, { num: 6, name: 'Jun' },
+  ], []);
+
+  const divisions = useMemo(() => {
+    return [...new Set(rawUsers.map(u => u?.division?.name).filter(Boolean))];
+  }, [rawUsers]);
+
+  const processedUsers = useMemo(() => {
+    let filtered = rawUsers.map(user => {
+      let paidCount = 0;
+      let overdueCount = 0;
+
+      monthList.forEach(m => {
+        const isPaid = dues.some(d => d?.user_id === user?.id && Number(d?.month) === m.num);
+        const isFuture = isFutureMonth(m.num);
+
+        if (isPaid) paidCount++;
+        else if (!isPaid && !isFuture) overdueCount++;
+      });
+
+      return { ...user, stats: { paidCount, overdueCount } };
+    });
+
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(u => {
+        const nameStr = u?.name ? String(u.name).toLowerCase() : '';
+        const nimStr = u?.nim ? String(u.nim).toLowerCase() : '';
+        return nameStr.includes(q) || nimStr.includes(q);
+      });
+    }
+
+    if (divisionFilter) {
+      filtered = filtered.filter(u => u?.division?.name === divisionFilter);
+    }
+
+    filtered.sort((a, b) => {
+      if (sortBy === 'name_asc') return String(a?.name || '').localeCompare(String(b?.name || ''));
+      if (sortBy === 'name_desc') return String(b?.name || '').localeCompare(String(a?.name || ''));
+      if (sortBy === 'most_active') return (b?.stats?.paidCount || 0) - (a?.stats?.paidCount || 0);
+      if (sortBy === 'most_overdue') return (b?.stats?.overdueCount || 0) - (a?.stats?.overdueCount || 0);
+      return 0;
+    });
+
+    return filtered;
+  }, [rawUsers, dues, search, divisionFilter, sortBy, monthList]);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await api.post('/api/monthly-dues/sync');
+      toast.success(res.data?.message || 'Sinkronisasi berhasil.');
+      mutate();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal sinkronisasi');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-emerald-500"/></div>;
+  if (error) return <div className="text-center text-red-500 py-16 font-semibold">Gagal memuat data kas.</div>;
+
+  return (
+    <div className="space-y-6 animate-slide-up-fade">
+      {/* HEADER */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-lg">
+            <Wallet className="h-5 w-5 text-white"/>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Kas Pengurus</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Pemantauan kepatuhan iuran terintegrasi Spreadsheet.</p>
+          </div>
+        </div>
+
+        <button onClick={handleSync} disabled={isSyncing} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
+          <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
+        </button>
+      </div>
+
+      {/* FILTER CARD (Diseragamkan dengan Keuangan) */}
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-white/5 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/5">
+          <div className="flex items-center gap-2 text-sm font-bold tracking-wider text-slate-700 dark:text-slate-300">
+            <Filter className="h-4 w-4 text-emerald-500"/>
+            PENCARIAN & FILTER
+          </div>
+          <button
+            onClick={() => setShowFilter(!showFilter)}
+            className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 md:hidden"
+          >
+            <Filter className="h-3 w-3"/>
+            {showFilter ? 'Tutup Filter' : 'Buka Filter'}
+          </button>
+        </div>
+
+        {showFilter && (
+          <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cari Pengurus</label>
+              <div className="relative">
+                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Ketik nama atau NIM..." className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Filter Divisi</label>
+              <div className="relative">
+                <select value={divisionFilter} onChange={(e) => setDivisionFilter(e.target.value)} className="appearance-none w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white">
+                  <option value="">Semua Divisi / BPH Inti</option>
+                  {divisions.map(div => <option key={div} value={div}>{div}</option>)}
+                </select>
+                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Urutkan Berdasarkan</label>
+              <div className="relative">
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white">
+                  <option value="name_asc">Nama (A - Z)</option>
+                  <option value="name_desc">Nama (Z - A)</option>
+                  <option value="most_active">Paling Rajin Bayar</option>
+                  <option value="most_overdue">Tunggakan Terbanyak</option>
+                </select>
+                <ArrowUpDown className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DATA GRID TABLE */}
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+        <div className="overflow-x-auto pb-4">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-white/10 dark:text-slate-400">
+              <tr>
+                <th className="min-w-[250px] px-6 py-4">Nama Pengurus</th>
+                {monthList.map((m) => <th key={m.num} className="px-3 py-4 text-center">{m.name}</th>)}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {processedUsers.length > 0 ? processedUsers.map((user) => (
+                <tr key={user.id} className="transition hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <div className="font-bold text-slate-900 dark:text-white">{user?.name || 'Tanpa Nama'}</div>
+                    <div className="mt-1 flex items-center gap-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                      {user?.nim && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 dark:bg-white/10">{user.nim}</span>}
+                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3 text-emerald-500"/> {user?.division?.name || 'BPH Pusat'}</span>
+                    </div>
+                  </td>
+                  {monthList.map((m) => {
+                    const isPaidObj = dues.find((d) => d?.user_id === user?.id && Number(d?.month) === m.num);
+                    const isFuture = isFutureMonth(m.num);
+
+                    return (
+                      <td key={m.num} className="px-3 py-4 text-center">
+                        <div className="flex justify-center">
+                          {isPaidObj ? (
+                            <div className="group relative">
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500 drop-shadow-sm"/>
+                              <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
+                                Rp {Number(isPaidObj?.amount || 0).toLocaleString('id-ID')}
+                              </span>
+                            </div>
+                          ) : isFuture ? (
+                            <div className="group relative">
+                              <Minus className="h-5 w-5 text-slate-300 dark:text-slate-600"/>
+                              <span className="absolute bottom-full left-1/2 mb-2 hidden w-max -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
+                                Belum Waktunya
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="group relative">
+                              <XCircle className="h-5 w-5 text-rose-500 drop-shadow-sm"/>
+                              <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-rose-600 px-2 py-1 text-[10px] text-white group-hover:block shadow-lg shadow-rose-500/20">
+                                Menunggak
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={10} className="px-6 py-12 text-center text-sm font-semibold text-slate-400">
+                    Tidak ada pengurus yang cocok dengan kriteria filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+## File: vite.config.js
+```javascript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('recharts') || id.includes('date-fns') || id.includes('xlsx')) {
+              return 'vendor-utils';
+            }
+            return 'vendor'; // Sisa library lainnya
+          }
+        }
+      }
+    }
+  }
+})
+```
+
+## File: src/components/EventModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2 } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+const initialForm = {
+  name: '',
+  description: '',
+  budget_approved: '',
+  drive_folder_url: '',
+  start_date: '',
+  end_date: '',
+  agenda_sync_url: '',
+  document_sync_url: '',
+  finance_sync_url: '',
+};
+
+export default function EventModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData = null,
+}) {
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        budget_approved: initialData.budget_approved ?? '',
+        drive_folder_url: initialData.drive_folder_url || '',
+        start_date: initialData.start_date ? initialData.start_date.substring(0, 10) : '',
+        end_date: initialData.end_date ? initialData.end_date.substring(0, 10) : '',
+        agenda_sync_url: initialData.agenda_sync_url || '',
+        document_sync_url: initialData.document_sync_url || '',
+        finance_sync_url: initialData.finance_sync_url || '',
+      });
+    } else {
+      setForm(initialForm);
+    }
+    setErrors({});
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const payload = {
+        name: form.name,
+        description: form.description || null,
+        budget_approved: form.budget_approved !== '' ? Number(form.budget_approved) : 0,
+        drive_folder_url: form.drive_folder_url || null,
+        start_date: form.start_date,
+        end_date: form.end_date || null,
+        agenda_sync_url: form.agenda_sync_url || null,
+        document_sync_url: form.document_sync_url || null,
+        finance_sync_url: form.finance_sync_url || null,
+      };
+
+      if (initialData?.id) {
+        await api.put(`/api/events/${initialData.id}`, payload);
+        toast.success('Event berhasil diperbarui.');
+      } else {
+        await api.post('/api/events', payload);
+        toast.success('Event berhasil ditambahkan.');
+      }
+
+      setForm(initialForm);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) {
+          toast.error(data.message);
+        }
+        if (data.errors) {
+          setErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError && !data.message) {
+            toast.error(firstError);
+          }
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const modalTitle = initialData?.id ? 'Edit Event' : 'Tambah Event';
+
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{modalTitle}</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Name */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Nama Event <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              placeholder="Contoh: Workshop Web Development 2026"
+              className={inputClass('name')}
+            />
+            {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name[0]}</p>}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Deskripsi Event
+            </label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Jelaskan gambaran umum atau tujuan event..."
+              rows={3}
+              className={inputClass('description') + ' resize-none'}
+            />
+            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description[0]}</p>}
+          </div>
+
+          {/* Budget Approved */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Anggaran Disetujui (Rp)
+            </label>
+            <input
+              type="number"
+              name="budget_approved"
+              value={form.budget_approved}
+              onChange={handleChange}
+              placeholder="0"
+              min="0"
+              className={inputClass('budget_approved')}
+            />
+            {errors.budget_approved && <p className="mt-1 text-xs text-red-400">{errors.budget_approved[0]}</p>}
+          </div>
+
+          {/* Dates (Start & End) */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tanggal Mulai <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="start_date"
+                value={form.start_date}
+                onChange={handleChange}
+                className={inputClass('start_date')}
+              />
+              {errors.start_date && <p className="mt-1 text-xs text-red-400">{errors.start_date[0]}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Tanggal Selesai
+              </label>
+              <input
+                type="date"
+                name="end_date"
+                value={form.end_date}
+                onChange={handleChange}
+                className={inputClass('end_date')}
+              />
+              {errors.end_date && <p className="mt-1 text-xs text-red-400">{errors.end_date[0]}</p>}
+            </div>
+          </div>
+
+          {/* Drive Folder URL */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Tautan Folder Drive (Opsional)
+            </label>
+            <input
+              type="url"
+              name="drive_folder_url"
+              value={form.drive_folder_url}
+              onChange={handleChange}
+              placeholder="https://drive.google.com/drive/folders/..."
+              className={inputClass('drive_folder_url')}
+            />
+            {errors.drive_folder_url && <p className="mt-1 text-xs text-red-400">{errors.drive_folder_url[0]}</p>}
+          </div>
+
+          {/* Sync URLs */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sync Agenda
+              </label>
+              <input
+                type="url"
+                name="agenda_sync_url"
+                value={form.agenda_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/..."
+                className={inputClass('agenda_sync_url')}
+              />
+              {errors.agenda_sync_url && <p className="mt-1 text-xs text-red-400">{errors.agenda_sync_url[0]}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sync Dokumen
+              </label>
+              <input
+                type="url"
+                name="document_sync_url"
+                value={form.document_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/..."
+                className={inputClass('document_sync_url')}
+              />
+              {errors.document_sync_url && <p className="mt-1 text-xs text-red-400">{errors.document_sync_url[0]}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sync Keuangan
+              </label>
+              <input
+                type="url"
+                name="finance_sync_url"
+                value={form.finance_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/..."
+                className={inputClass('finance_sync_url')}
+              />
+              {errors.finance_sync_url && <p className="mt-1 text-xs text-red-400">{errors.finance_sync_url[0]}</p>}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }
 ```
 
@@ -4384,531 +4687,245 @@ export default function DocumentModal({
 }
 ```
 
-## File: src/components/AttendanceModal.jsx
+## File: src/components/WarningModal.jsx
 ```javascript
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import useSWR from 'swr';
-import * as XLSX from 'xlsx';
-import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
+import { X, Loader2, Search, CheckCircle2 } from 'lucide-react';
 import api from '../api/axios';
-import { fetcher, paginatedFetcher } from '../api/fetcher';
+import { fetcher } from '../api/fetcher';
 import toast from 'react-hot-toast';
 
-export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
-  const [activeTab, setActiveTab] = useState('targets'); // 'targets' | 'attendance'
-  const [localData, setLocalData] = useState({});
+const initialForm = {
+  user_id: '',
+  reason: '',
+  date: '',
+};
+
+export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId }) {
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  // --- State for Targets ---
-  const [selectedTargets, setSelectedTargets] = useState([]);
-  const [searchUser, setSearchUser] = useState('');
+  // --- SMART COMBOBOX STATE ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
-  // Fetch Partisipan & Divisions
-  const participantUrl = isOpen
-    ? activeEventId
-      ? `/api/event-committees?event_id=${activeEventId}`
-      : `/api/users?all=true`
-    : null;
-  const { data: participantData, isLoading: participantLoading } = useSWR(participantUrl, fetcher);
-  const { data: divData } = useSWR(isOpen && !activeEventId ? '/api/divisions' : null, fetcher); // Hanya ditarik jika BPH Pusat
+  // --- ALL HOOKS MUST BE DECLARED HERE (BEFORE EARLY RETURN) ---
+  const { data: usersData, isLoading: usersLoading } = useSWR(isOpen ? '/api/users?all=true' : null, fetcher);
+  const allUsers = useMemo(() => (Array.isArray(usersData) ? usersData : (usersData?.data || [])), [usersData]);
 
-  // Fetch Absensi Existing (Gunakan paginatedFetcher karena controller me-return array langsung tanpa wrapper data ganda)
-  const attendanceUrl = isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null;
-  const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
-    attendanceUrl,
-    paginatedFetcher
-  );
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return allUsers;
+    const q = searchQuery.toLowerCase();
+    return allUsers.filter((u) => u.name?.toLowerCase().includes(q) || String(u.nim || '').includes(q));
+  }, [allUsers, searchQuery]);
 
-  // FIX: Bungkus dengan useMemo agar React tidak menganggapnya sebagai array baru di setiap render (mencegah Infinite Loop)
-  const rawParticipants = useMemo(() => {
-    if (!participantData) return [];
-    return Array.isArray(participantData) ? participantData : (participantData?.data || []);
-  }, [participantData]);
-
-  const divisions = useMemo(() => {
-    if (!divData) return [];
-    return Array.isArray(divData) ? divData : (divData?.data || []);
-  }, [divData]);
-
-  const existingAttendances = useMemo(() => {
-    if (!attendanceData) return [];
-    return Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
-  }, [attendanceData]);
-
-  // Kunci agar revalidasi SWR di background tidak mereset inputan user
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-
-  // Reset & Load Initial Targets
   useEffect(() => {
-    if (isOpen && agenda) {
-      setIsDataLoaded(false); // Reset kunci setiap buka modal
-      if (agenda.targets && agenda.targets.length > 0) {
-        setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
-        setActiveTab('attendance');
-      } else {
-        setSelectedTargets([]);
-        setActiveTab('targets');
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
       }
-    } else {
-      setActiveTab('targets');
-    }
-  }, [isOpen, agenda]);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  // Filtering Peserta berdasarkan Selected Targets
-  const isAllInvited = selectedTargets.length === 0 || selectedTargets.some((t) => t.type === 'all');
+  // --- EARLY RETURN ---
+  if (!isOpen) return null;
 
-  const participants = rawParticipants.filter((p) => {
-    if (isAllInvited) return true;
-    const user = activeEventId ? p.user : p;
-    if (!user) return false;
-
-    return selectedTargets.some((t) => {
-      if (t.type === 'bph') return user.roles?.[0]?.name === 'admin';
-      if (t.type === 'coordinator') return user.is_coordinator;
-      if (t.type === 'division' && !activeEventId) return String(user.division_id) === String(t.value);
-      if (t.type === 'position' && activeEventId)
-        return p.position?.toLowerCase() === String(t.value).toLowerCase();
-      if (t.type === 'user') return String(user.id) === String(t.value);
-      return false;
-    });
-  });
-
-  // Sinkronisasi State Lokal Absensi
-  useEffect(() => {
-    // FIX: Hanya eksekusi jika data selesai diload dan BELUM pernah diset (isDataLoaded = false)
-    if (isOpen && activeTab === 'attendance' && participants.length > 0 && !attendanceLoading && !isDataLoaded) {
-      const initialState = {};
-      participants.forEach((p) => {
-        const user = activeEventId ? p.user : p;
-        if (!user) return;
-        const existing = existingAttendances.find((a) => a.user_id === user.id);
-        initialState[user.id] = {
-          status: existing?.status || 'uninvited', // default kosong
-          proof_url: existing?.proof_url || '',
-        };
-      });
-      setLocalData(initialState);
-      setIsDataLoaded(true); // Kunci state agar tidak tertimpa re-render SWR
-    }
-  }, [isOpen, activeTab, participants.length, attendanceLoading, isDataLoaded, existingAttendances]);
-
-  if (!isOpen || !agenda) return null;
-
-  // --- Handlers ---
-  const toggleTarget = (type, value = null) => {
-    setSelectedTargets((prev) => {
-      // Jika "all", hapus yang lain
-      if (type === 'all') return [{ type: 'all', value: null }];
-
-      let newTargets = prev.filter((t) => t.type !== 'all'); // Hapus 'all' jika milih spesifik
-      const exists = newTargets.some((t) => t.type === type && t.value === value);
-      if (exists) {
-        return newTargets.filter((t) => !(t.type === type && t.value === value));
-      } else {
-        return [...newTargets, { type, value }];
-      }
-    });
+  // --- HANDLERS ---
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  const handleSaveTargetsAndProceed = async () => {
-    if (selectedTargets.length === 0) {
-      toast.error('Pilih minimal satu target (misal: Semua Peserta).');
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setShowDropdown(true);
+    setForm(prev => ({ ...prev, user_id: '' }));
+    setErrors(prev => ({ ...prev, user_id: undefined }));
+  };
+
+  const selectUser = (user) => {
+    setSearchQuery(user.name);
+    setForm(prev => ({ ...prev, user_id: user.id }));
+    setShowDropdown(false);
+    setErrors(prev => ({ ...prev, user_id: undefined }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!form.user_id) {
+      setErrors((prev) => ({ ...prev, user_id: ['Pilih anggota dari daftar pencarian.'] }));
       return;
     }
+
     setSubmitting(true);
+    setErrors({});
+
     try {
-      await api.post(`/api/agendas/${agenda.id}/targets`, { targets: selectedTargets });
-      toast.success('Target peserta diperbarui.');
-      setActiveTab('attendance');
-    } catch (err) {
-      toast.error('Gagal menyimpan target.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      const payload = {
+        admin_id: currentUserId,
+        user_id: Number(form.user_id),
+        reason: form.reason,
+        date: form.date,
+      };
 
-  const handleChange = (userId, field, value) => {
-    setLocalData((prev) => ({ ...prev, [userId]: { ...prev[userId], [field]: value } }));
-  };
+      await api.post('/api/warnings', payload);
+      toast.success('Surat peringatan berhasil ditambahkan.');
 
-  const handleMarkAllPresent = () => {
-    const newState = { ...localData };
-    Object.keys(newState).forEach((key) => {
-      newState[key].status = 'present';
-    });
-    setLocalData(newState);
-  };
+      setForm(initialForm);
+      setSearchQuery('');
 
-  const handleSubmitAttendance = async () => {
-    setSubmitting(true);
-    try {
-      // Hanya kirim yang statusnya disetel (bukan 'uninvited')
-      const payload = Object.entries(localData)
-        .filter(([_, data]) => data.status && data.status !== 'uninvited')
-        .map(([userId, data]) => ({
-          user_id: Number(userId),
-          status: data.status,
-          proof_url: data.proof_url || null,
-        }));
-
-      await api.post('/api/agenda-attendances/bulk', { agenda_id: agenda.id, attendances: payload });
-      toast.success('Data absensi berhasil disimpan.');
-      mutateAttendance();
+      onSuccess();
       onClose();
     } catch (err) {
-      toast.error('Gagal menyimpan absensi massal.');
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) toast.error(data.message);
+        if (data.errors) {
+          setErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError && !data.message) toast.error(firstError);
+        }
+      } else {
+        toast.error('Terjadi kesalahan. Silakan coba lagi.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleExportExcel = () => {
-    const wsData = [];
-    wsData.push(['DAFTAR HADIR KEGIATAN PROTIK', '']);
-    wsData.push(['Nama Agenda', ':', agenda.title]);
-    wsData.push(['Waktu Pelaksanaan', ':', agenda.start_date ? new Date(agenda.start_date).toLocaleString('id-ID') : '-']);
-    wsData.push(['Tempat / Lokasi', ':', agenda.location || '-']);
-    wsData.push([]);
-    wsData.push(['No', 'Nama Anggota', 'Divisi / Jabatan', 'Status Kehadiran', 'Bukti / Keterangan']);
-
-    participants.forEach((p, index) => {
-      const user = activeEventId ? p.user : p;
-      if (!user) return;
-      
-      const savedAtt = existingAttendances.find((a) => a.user_id === user.id);
-      let statusText = 'Belum Diabsen';
-      if (savedAtt?.status === 'present') statusText = 'Hadir';
-      if (savedAtt?.status === 'permit') statusText = 'Izin';
-      if (savedAtt?.status === 'sick') statusText = 'Sakit';
-      if (savedAtt?.status === 'absent') statusText = 'Alpha';
-
-      const position = activeEventId ? p.position : (user.division?.name || 'BPH');
-      
-      wsData.push([
-        index + 1,
-        user.name,
-        position,
-        statusText,
-        savedAtt?.proof_url || ''
-      ]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    // Optimasi Lebar Kolom Excel
-    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 20 }, { wch: 18 }, { wch: 45 }];
-    
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Hadir');
-    
-    const safeTitle = agenda.title.replace(/[^a-zA-Z0-9]/g, '_');
-    XLSX.writeFile(wb, `Absensi_${safeTitle}.xlsx`);
-    toast.success('Daftar hadir berhasil diunduh!');
-  };
-
-  // --- RENDERERS ---
-  const renderTargetsTab = () => (
-    <div className="p-6 space-y-6 animate-slide-up-fade">
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800/50">
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-          Grup Utama
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => toggleTarget('all')}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
-              selectedTargets.some((t) => t.type === 'all')
-                ? 'bg-primary-500 text-white border-primary-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-            }`}
-          >
-            Semua Peserta / Umum
-          </button>
-          {!activeEventId && (
-            <>
-              <button
-                type="button"
-                onClick={() => toggleTarget('bph')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
-                  selectedTargets.some((t) => t.type === 'bph')
-                    ? 'bg-violet-500 text-white border-violet-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-                }`}
-              >
-                BPH Inti (Admin)
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleTarget('coordinator')}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold border transition ${
-                  selectedTargets.some((t) => t.type === 'coordinator')
-                    ? 'bg-amber-500 text-white border-amber-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-                }`}
-              >
-                Koordinator Divisi
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {!activeEventId && divisions.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-            Spesifik Divisi
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {divisions.map((div) => (
-              <button
-                type="button"
-                key={div.id}
-                onClick={() => toggleTarget('division', String(div.id))}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                  selectedTargets.some((t) => t.type === 'division' && t.value === String(div.id))
-                    ? 'bg-indigo-500 text-white border-indigo-600'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'
-                }`}
-              >
-                {div.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Target Lepas (Search User) */}
-      <div>
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-          Undang Personal (Target Lepas)
-        </h3>
-        <div className="relative">
-          <input
-            type="text"
-            value={searchUser}
-            onChange={(e) => setSearchUser(e.target.value)}
-            placeholder="Cari nama anggota untuk diundang khusus..."
-            className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white"
-          />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-        </div>
-        {searchUser && (
-          <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800">
-            {rawParticipants
-              .filter((p) => {
-                const u = activeEventId ? p.user : p;
-                return u?.name?.toLowerCase().includes(searchUser.toLowerCase());
-              })
-              .map((p) => {
-                const u = activeEventId ? p.user : p;
-                const isSelected = selectedTargets.some((t) => t.type === 'user' && t.value === String(u.id));
-                return (
-                  <div
-                    key={u.id}
-                    className="flex items-center justify-between px-3 py-2 border-b last:border-0 border-slate-100 dark:border-white/5"
-                  >
-                    <span className="text-xs text-slate-700 dark:text-slate-300">{u.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleTarget('user', String(u.id))}
-                      className={`px-2 py-1 rounded text-[10px] font-bold ${
-                        isSelected ? 'bg-red-100 text-red-600' : 'bg-primary-100 text-primary-600'
-                      }`}
-                    >
-                      {isSelected ? 'Batal' : 'Undang'}
-                    </button>
-                  </div>
-                );
-              })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderAttendanceTab = () => (
-    <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-semibold text-slate-500">
-          Menampilkan {participants.length} peserta tertarget.
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleExportExcel}
-            className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400"
-          >
-            <FileSpreadsheet className="h-4 w-4"/> Ekspor Excel
-          </button>
-          <button
-            type="button"
-            onClick={handleMarkAllPresent}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"
-          >
-            <CheckCircle2 className="h-4 w-4"/> Hadirkan Semua
-          </button>
-        </div>
-      </div>
-
-      {participantLoading || attendanceLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
-        </div>
-      ) : participants.length === 0 ? (
-        <div className="text-center text-sm text-slate-500">Tidak ada peserta yang cocok dengan target.</div>
-      ) : (
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
-            <tr>
-              <th className="pb-3 pr-4">Nama Anggota</th>
-              <th className="pb-3 px-4">Status Absensi</th>
-              <th className="pb-3 pl-4">URL Bukti Izin (Opsional)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-            {participants.map((p) => {
-              const user = activeEventId ? p.user : p;
-              if (!user) return null;
-              const rowData = localData[user.id] || { status: 'uninvited', proof_url: '' };
-
-              return (
-                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                  <td className="py-3 pr-4">
-                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                    <p className="text-[10px] text-slate-500">
-                      {activeEventId ? p.position : user.division?.name || 'BPH'}
-                    </p>
-                  </td>
-                  <td className="py-3 px-4">
-                    <select
-                      value={rowData.status}
-                      onChange={(e) => handleChange(user.id, 'status', e.target.value)}
-                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${
-                        rowData.status === 'present'
-                          ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10'
-                          : rowData.status === 'absent'
-                          ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10'
-                          : rowData.status === 'uninvited'
-                          ? 'border-slate-300 text-slate-400 bg-slate-50 dark:bg-white/5 dark:border-white/10'
-                          : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'
-                      }`}
-                    >
-                      <option value="uninvited">- Belum Diabsen -</option>
-                      <option value="present">Hadir</option>
-                      <option value="permit">Izin</option>
-                      <option value="sick">Sakit</option>
-                      <option value="absent">Alpha</option>
-                    </select>
-                  </td>
-                  <td className="py-3 pl-4">
-                    <input
-                      type="url"
-                      placeholder="https://..."
-                      value={rowData.proof_url}
-                      disabled={rowData.status === 'present' || rowData.status === 'uninvited'}
-                      onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none disabled:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-white"
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header (Tabs) */}
-        <div className="flex flex-col border-b border-slate-200 bg-white px-6 pt-4 dark:border-white/10 dark:bg-slate-900">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
-                <UserCheck className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">Buku Tamu Absensi</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{agenda.title}</p>
-              </div>
+
+      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Tambah Surat Peringatan</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5"/>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5 overflow-visible">
+          <div className="relative" ref={dropdownRef}>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Pilih Anggota
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onFocus={() => setShowDropdown(true)}
+                placeholder={usersLoading ? 'Memuat data anggota...' : 'Ketik nama atau NIM...'}
+                disabled={usersLoading}
+                className={`pl-10 ${inputClass('user_id')}`}
+              />
+              {usersLoading ? (
+                <Loader2 className="absolute left-3 top-3 h-4 w-4 animate-spin text-primary-500"/>
+              ) : (
+                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400"/>
+              )}
             </div>
+            {errors.user_id && <p className="mt-1 text-xs text-red-400">{errors.user_id[0]}</p>}
+
+            {showDropdown && !usersLoading && (
+              <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-white/10 dark:bg-slate-800">
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => selectUser(user)}
+                      className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition hover:bg-slate-50 dark:hover:bg-white/5 ${
+                        form.user_id === user.id ? 'bg-primary-50 dark:bg-primary-500/10' : ''
+                      }`}
+                    >
+                      <div>
+                        <p
+                          className={`font-medium ${
+                            form.user_id === user.id
+                              ? 'text-primary-600 dark:text-primary-400'
+                              : 'text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          {user.name}
+                        </p>
+                        {user.nim && <p className="text-[10px] text-slate-500">{user.nim}</p>}
+                      </div>
+                      {form.user_id === user.id && <CheckCircle2 className="h-4 w-4 text-primary-500"/>}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-3 text-center text-sm text-slate-500">Anggota tidak ditemukan.</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Alasan Peringatan
+            </label>
+            <textarea
+              name="reason"
+              value={form.reason}
+              onChange={handleChange}
+              placeholder="Tuliskan alasan surat peringatan..."
+              rows={4}
+              className={inputClass('reason') + ' resize-none'}
+            />
+            {errors.reason && <p className="mt-1 text-xs text-red-400">{errors.reason[0]}</p>}
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Tanggal
+            </label>
+            <input
+              type="date"
+              name="date"
+              value={form.date}
+              onChange={handleChange}
+              className={inputClass('date')}
+            />
+            {errors.date && <p className="mt-1 text-xs text-red-400">{errors.date[0]}</p>}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
             >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
-          <div className="flex gap-6">
-            <button
-              type="button"
-              onClick={() => setActiveTab('targets')}
-              className={`pb-3 text-sm font-semibold border-b-2 transition ${
-                activeTab === 'targets'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Target className="h-4 w-4" /> 1. Tentukan Target
-              </span>
+              Batal
             </button>
             <button
-              type="button"
-              onClick={() => setActiveTab('attendance')}
-              className={`pb-3 text-sm font-semibold border-b-2 transition ${
-                activeTab === 'attendance'
-                  ? 'border-emerald-500 text-emerald-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" /> 2. Catat Kehadiran
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        {activeTab === 'targets' ? renderTargetsTab() : renderAttendanceTab()}
-
-        {/* Footer Actions */}
-        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300"
-          >
-            Batal
-          </button>
-
-          {activeTab === 'targets' ? (
-            <button
-              type="button"
-              onClick={handleSaveTargetsAndProceed}
+              type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan & Lanjut Absen'}
+              {submitting && <Loader2 className="h-4 w-4 animate-spin"/>}
+              {submitting ? 'Menyimpan...' : 'Simpan'}
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSubmitAttendance}
-              disabled={submitting || participantLoading}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Simpan
-              Rekap Kehadiran
-            </button>
-          )}
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -5437,422 +5454,314 @@ export default function FinanceModal({
 }
 ```
 
-## File: src/pages/Dashboard.jsx
+## File: src/components/AttendanceModal.jsx
 ```javascript
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
-import { fetcher } from '../api/fetcher';
-import { 
-  format, addMonths, subMonths, startOfMonth, endOfMonth, 
-  startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, isToday 
-} from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
-import {
-  Wallet, CalendarClock, Activity, AlertCircle, Loader2, AlertTriangle, 
-  ChevronDown, ChevronLeft, ChevronRight, MapPin
-} from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import * as XLSX from 'xlsx';
+import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
+import api from '../api/axios';
+import { fetcher, paginatedFetcher } from '../api/fetcher';
+import toast from 'react-hot-toast';
 
-function formatRupiah(value) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-}
+export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
+  const [activeTab, setActiveTab] = useState('targets');
+  const [localData, setLocalData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedTargets, setSelectedTargets] = useState([]);
+  const [searchUser, setSearchUser] = useState('');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-function StatCard({ icon: Icon, label, value, subValue, gradient, iconBg }) {
-  return (
-    <div className="group relative flex h-full flex-col justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
-      <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
-      <div className="relative flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
-            {subValue && <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{subValue}</span>}
-          </div>
-        </div>
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg ${iconBg}`}>
-          <Icon className="h-7 w-7 text-white"/>
-        </div>
-      </div>
-    </div>
+  // FETCH SEMUA DATA SEKALIGUS (Data Blending)
+  const { data: usersData, isLoading: usersLoading } = useSWR(isOpen ? '/api/users?all=true' : null, fetcher);
+  const { data: divData } = useSWR(isOpen ? '/api/divisions' : null, fetcher);
+  const { data: committeeData } = useSWR(isOpen && activeEventId ? `/api/event-committees?event_id=${activeEventId}` : null, fetcher);
+  const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
+    isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null,
+    paginatedFetcher
   );
-}
 
-export default function Dashboard() {
-  const [activeChartTab, setActiveChartTab] = useState('Kas Umum');
-  const [timeRange, setTimeRange] = useState('6m');
+  const allUsers = useMemo(() => Array.isArray(usersData) ? usersData : (usersData?.data || []), [usersData]);
+  const divisions = useMemo(() => Array.isArray(divData) ? divData : (divData?.data || []), [divData]);
+  const committees = useMemo(() => Array.isArray(committeeData) ? committeeData : (committeeData?.data || []), [committeeData]);
+  const existingAttendances = useMemo(() => Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []), [attendanceData]);
 
-  // Calendar States
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // EKSTRAK JABATAN PANITIA UNIK (Tanpa Query Database Tambahan)
+  const eventPositions = useMemo(() => {
+    if (!activeEventId) return [];
+    return [...new Set(committees.map(c => c.position))].filter(Boolean);
+  }, [committees, activeEventId]);
 
-  const { data: stats, error: statsError, isLoading: statsLoading } = useSWR('/api/dashboard/statistics', fetcher);
-  const { data: agenda, error: agendaError, isLoading: agendaLoading } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
-
-  if (statsLoading || agendaLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Menyinkronkan data dasbor...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (statsError || agendaError) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-6 dark:bg-red-500/10">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400"/>
-          <div className="text-center">
-            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
-            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Koneksi ke server terputus.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const personalDues = stats?.personal_dues;
-  const agendaPart = stats?.agenda_participation;
-  const financial = stats?.financial_health;
-
-  // Chart Logic
-  const chartKeys = financial?.chart_data ? Object.keys(financial.chart_data) : [];
-  const currentChartData = financial?.chart_data?.[activeChartTab] || [];
-  const displayChartData = timeRange === '3m' ? currentChartData.slice(-3) : currentChartData;
-
-  // Calendar Logic
-  const allAgendas = agenda?.upcoming_meetings || [];
-  const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
-
-  const renderCalendar = () => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Senin awal minggu
-    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-
-    const rows = [];
-    let days = [];
-    let day = startDate;
-
-    while (day <= endDate) {
-      for (let i = 0; i < 7; i++) {
-        const cloneDay = day;
-        const dayAgendas = allAgendas.filter(m => isSameDay(new Date(m.start_date), cloneDay));
-        const hasAgenda = dayAgendas.length > 0;
-        
-        const isNotCurrentMonth = !isSameMonth(day, monthStart);
-        const isSelected = isSameDay(day, selectedDate);
-        const isTodayDate = isToday(day);
-
-        days.push(
-          <div
-            key={day.toISOString()}
-            onClick={() => setSelectedDate(cloneDay)}
-            className={`group flex h-16 sm:h-24 cursor-pointer flex-col overflow-hidden border-b border-r border-slate-100 p-1.5 transition-all dark:border-white/5 ${
-              isNotCurrentMonth ? "bg-slate-50/50 text-slate-300 dark:bg-slate-900/20 dark:text-slate-600" : 
-              isSelected ? "bg-primary-50 dark:bg-primary-900/20" : 
-              "hover:bg-slate-50 dark:hover:bg-white/5"
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                isSelected ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : 
-                isTodayDate ? "text-emerald-600 dark:text-emerald-400" : 
-                "text-slate-700 dark:text-slate-300"
-              }`}>
-                {format(day, 'd')}
-              </span>
-              {hasAgenda && !isSelected && (
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary-500 shadow-[0_0_4px_rgba(59,130,246,0.5)]"></span>
-              )}
-            </div>
-            
-            {/* Indikator Baris Acara (Maks 2) */}
-            <div className="mt-1 flex flex-col gap-1">
-              {dayAgendas.slice(0, 2).map((m, idx) => (
-                <div key={idx} className={`truncate rounded-sm px-1.5 py-0.5 text-[9px] font-semibold ${
-                  isSelected ? 'bg-primary-100 text-primary-700 dark:bg-primary-500/30 dark:text-primary-300' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 dark:bg-white/5 dark:text-slate-400'
-                }`}>
-                  {m.title}
-                </div>
-              ))}
-              {dayAgendas.length > 2 && (
-                <span className="pl-1 text-[8px] font-medium text-slate-400">+{dayAgendas.length - 2} lagi</span>
-              )}
-            </div>
-          </div>
-        );
-        day = addDays(day, 1);
+  useEffect(() => {
+    if (isOpen && agenda) {
+      setIsDataLoaded(false);
+      if (agenda.targets && agenda.targets.length > 0) {
+        setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
+        setActiveTab('attendance');
+      } else {
+        setSelectedTargets([]);
+        setActiveTab('targets');
       }
-      rows.push(<div className="grid grid-cols-7" key={day.toISOString()}>{days}</div>);
-      days = [];
+    } else {
+      setActiveTab('targets');
     }
+  }, [isOpen, agenda]);
 
-    return (
-      <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        {/* Header Kalender */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-            {format(currentMonth, 'MMMM yyyy', { locale: localeID })}
-          </h3>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
-              <ChevronLeft className="h-4 w-4"/>
-            </button>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
-              <ChevronRight className="h-4 w-4"/>
-            </button>
-          </div>
-        </div>
+  // MESIN FILTER PINTAR
+  const isAllInvited = selectedTargets.length === 0 || selectedTargets.some((t) => t.type === 'all');
+  const targetedUsers = useMemo(() => {
+    return allUsers.filter((user) => {
+      if (isAllInvited) return activeEventId ? committees.some(c => c.user_id === user.id) : true;
 
-        {/* Hari (Header Grid) */}
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30">
-          {weekDays.map(dayName => (
-            <div key={dayName} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              {dayName}
-            </div>
-          ))}
-        </div>
+      return selectedTargets.some((t) => {
+        if (t.type === 'bph') return user.roles?.[0]?.name === 'admin';
+        if (t.type === 'coordinator') return user.is_coordinator;
+        if (t.type === 'division') return String(user.division_id) === String(t.value);
+        if (t.type === 'user') return String(user.id) === String(t.value);
+        if (t.type === 'position' && activeEventId) {
+          const userCommittee = committees.find(c => c.user_id === user.id);
+          return userCommittee?.position?.toLowerCase() === String(t.value).toLowerCase();
+        }
+        return false;
+      });
+    });
+  }, [allUsers, selectedTargets, isAllInvited, activeEventId, committees]);
 
-        {/* Matriks Tanggal */}
-        <div className="flex flex-col border-l border-slate-100 dark:border-white/5">
-          {rows}
-        </div>
-      </div>
-    );
+  // HIDRASI STATE LOKAL
+  useEffect(() => {
+    if (isOpen && activeTab === 'attendance' && targetedUsers.length > 0 && !attendanceLoading && !isDataLoaded) {
+      const initialState = {};
+      targetedUsers.forEach((user) => {
+        const existing = existingAttendances.find((a) => a.user_id === user.id);
+        initialState[user.id] = { status: existing?.status || 'uninvited', proof_url: existing?.proof_url || '' };
+      });
+      setLocalData(initialState);
+      setIsDataLoaded(true);
+    }
+  }, [isOpen, activeTab, targetedUsers.length, attendanceLoading, isDataLoaded, existingAttendances]);
+
+  if (!isOpen || !agenda) return null;
+
+  // --- Handlers ---
+  const toggleTarget = (type, value = null) => {
+    setSelectedTargets((prev) => {
+      if (type === 'all') return [{ type: 'all', value: null }];
+      let newTargets = prev.filter((t) => t.type !== 'all');
+      const exists = newTargets.some((t) => t.type === type && t.value === value);
+      return exists ? newTargets.filter((t) => !(t.type === type && t.value === value)) : [...newTargets, { type, value }];
+    });
   };
 
-  return (
-    <div className="space-y-6 animate-slide-up-fade">
-      {/* 1. WARNING BANNER (KEDISIPLINAN KAS) */}
-      {personalDues?.unpaid_months > 0 && (
-        <div className="flex items-start gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 shadow-sm">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
-            <AlertTriangle className="h-5 w-5"/>
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-red-700 dark:text-red-400">Peringatan Tunggakan Kas!</h3>
-            <p className="mt-1 text-xs font-medium text-red-600/80 dark:text-red-400/80">
-              Kamu memiliki tunggakan kas pengurus selama <strong className="text-red-700 dark:text-red-300">{personalDues.unpaid_months} bulan</strong>. Segera lunasi kewajibanmu untuk mendukung operasional organisasi.
-            </p>
+  const handleSaveTargetsAndProceed = async () => {
+    if (selectedTargets.length === 0) { toast.error('Pilih minimal satu target.'); return; }
+    setSubmitting(true);
+    try {
+      await api.post(`/api/agendas/${agenda.id}/targets`, { targets: selectedTargets });
+      toast.success('Target peserta diperbarui.');
+      setActiveTab('attendance');
+    } catch (err) { toast.error('Gagal menyimpan target.'); } 
+    finally { setSubmitting(false); }
+  };
+
+  const handleChange = (userId, field, value) => {
+    setLocalData((prev) => ({ ...prev, [userId]: { ...prev[userId], [field]: value } }));
+  };
+
+  const handleMarkAllPresent = () => {
+    const newState = { ...localData };
+    Object.keys(newState).forEach((key) => { newState[key].status = 'present'; });
+    setLocalData(newState);
+  };
+
+  const handleSubmitAttendance = async () => {
+    setSubmitting(true);
+    try {
+      const payload = Object.entries(localData)
+        .filter(([_, data]) => data.status && data.status !== 'uninvited')
+        .map(([userId, data]) => ({ user_id: Number(userId), status: data.status, proof_url: data.proof_url || null }));
+
+      await api.post('/api/agenda-attendances/bulk', { agenda_id: agenda.id, attendances: payload });
+      toast.success('Data absensi berhasil disimpan.');
+      mutateAttendance();
+      onClose();
+    } catch (err) { toast.error('Gagal menyimpan absensi massal.'); } 
+    finally { setSubmitting(false); }
+  };
+
+  const getPositionString = (user) => {
+    if (activeEventId) {
+      const c = committees.find(com => com.user_id === user.id);
+      return c ? c.position : (user.division?.name ? `${user.division.name} (Eksternal Event)` : 'BPH (Eksternal Event)');
+    }
+    return user.division?.name || 'BPH Pusat';
+  };
+
+  const handleExportExcel = () => {
+    const wsData = [
+      ['DAFTAR HADIR KEGIATAN PROTIK', ''],
+      ['Nama Agenda', ':', agenda.title],
+      ['Waktu Pelaksanaan', ':', agenda.start_date ? new Date(agenda.start_date).toLocaleString('id-ID') : '-'],
+      ['Tempat / Lokasi', ':', agenda.location || '-'],
+      [],
+      ['No', 'Nama Anggota', 'Divisi / Jabatan', 'Status Kehadiran', 'Bukti / Keterangan']
+    ];
+
+    targetedUsers.forEach((user, index) => {
+      const savedAtt = existingAttendances.find((a) => a.user_id === user.id);
+      const statusMap = { present: 'Hadir', permit: 'Izin', sick: 'Sakit', absent: 'Alpha' };
+      wsData.push([index + 1, user.name, getPositionString(user), statusMap[savedAtt?.status] || 'Belum Diabsen', savedAtt?.proof_url || '']);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 25 }, { wch: 18 }, { wch: 45 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Hadir');
+    XLSX.writeFile(wb, `Absensi_${agenda.title.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+    toast.success('Daftar hadir berhasil diunduh!');
+  };
+
+  const buttonClass = (isSelected, activeColor) => `px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${isSelected ? activeColor : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'}`;
+
+  const renderTargetsTab = () => (
+    <div className="p-6 space-y-6 animate-slide-up-fade">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800/50">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Grup Utama</h3>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => toggleTarget('all')} className={buttonClass(selectedTargets.some(t => t.type === 'all'), 'bg-primary-500 text-white border-primary-600')}>
+            {activeEventId ? 'Semua Panitia Event' : 'Semua Peserta / Umum'}
+          </button>
+          <button type="button" onClick={() => toggleTarget('bph')} className={buttonClass(selectedTargets.some(t => t.type === 'bph'), 'bg-violet-500 text-white border-violet-600')}>
+            BPH Inti (Admin)
+          </button>
+          <button type="button" onClick={() => toggleTarget('coordinator')} className={buttonClass(selectedTargets.some(t => t.type === 'coordinator'), 'bg-amber-500 text-white border-amber-600')}>
+            Koordinator Divisi
+          </button>
+        </div>
+      </div>
+
+      {activeEventId && eventPositions.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Spesifik Jabatan Panitia</h3>
+          <div className="flex flex-wrap gap-2">
+            {eventPositions.map((pos) => (
+              <button type="button" key={pos} onClick={() => toggleTarget('position', pos)} className={buttonClass(selectedTargets.some(t => t.type === 'position' && t.value === pos), 'bg-emerald-500 text-white border-emerald-600')}>
+                {pos}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 2. STAT CARDS & LEADERBOARD */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <StatCard gradient="bg-emerald-500" icon={Wallet} iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700" label="Total Saldo Kas Umum" value={formatRupiah(financial?.total_balance)}/>
+      {divisions.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Spesifik Divisi (Global)</h3>
+          <div className="flex flex-wrap gap-2">
+            {divisions.map((div) => (
+              <button type="button" key={div.id} onClick={() => toggleTarget('division', String(div.id))} className={buttonClass(selectedTargets.some(t => t.type === 'division' && t.value === String(div.id)), 'bg-indigo-500 text-white border-indigo-600')}>
+                {div.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {/* Partisipasi Gamifikasi */}
-        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-10 blur-2xl transition-opacity duration-300 group-hover:opacity-20" />
-          <div className="relative mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/10">
+      <div>
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Undang Personal (Target Lepas)</h3>
+        <div className="relative">
+          <input type="text" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} placeholder="Cari nama anggota untuk diundang khusus..." className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+        </div>
+        {searchUser && (
+          <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800">
+            {allUsers.filter(u => u.name?.toLowerCase().includes(searchUser.toLowerCase())).map(u => {
+              const isSelected = selectedTargets.some(t => t.type === 'user' && t.value === String(u.id));
+              return (
+                <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0 border-slate-100 dark:border-white/5">
+                  <span className="text-xs text-slate-700 dark:text-slate-300">{u.name}</span>
+                  <button type="button" onClick={() => toggleTarget('user', String(u.id))} className={`px-2 py-1 rounded text-[10px] font-bold ${isSelected ? 'bg-red-100 text-red-600' : 'bg-primary-100 text-primary-600'}`}>
+                    {isSelected ? 'Batal' : 'Undang'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderAttendanceTab = () => (
+    <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-slate-500">Menampilkan {targetedUsers.length} peserta tertarget.</p>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={handleExportExcel} className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400"><FileSpreadsheet className="h-4 w-4"/> Ekspor Excel</button>
+          <button type="button" onClick={handleMarkAllPresent} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"><CheckCircle2 className="h-4 w-4"/> Hadirkan Semua</button>
+        </div>
+      </div>
+
+      {usersLoading || attendanceLoading ? (
+        <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-emerald-500"/></div>
+      ) : targetedUsers.length === 0 ? (
+        <div className="text-center text-sm text-slate-500">Tidak ada peserta yang cocok dengan target.</div>
+      ) : (
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
+            <tr><th className="pb-3 pr-4">Nama Anggota</th><th className="pb-3 px-4">Status Absensi</th><th className="pb-3 pl-4">URL Bukti Izin</th></tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+            {targetedUsers.map((user) => {
+              const rowData = localData[user.id] || { status: 'uninvited', proof_url: '' };
+              return (
+                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="py-3 pr-4">
+                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
+                    <p className="text-[10px] text-slate-500">{getPositionString(user)}</p>
+                  </td>
+                  <td className="py-3 px-4">
+                    <select value={rowData.status} onChange={(e) => handleChange(user.id, 'status', e.target.value)} className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${rowData.status === 'present' ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' : rowData.status === 'absent' ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10' : rowData.status === 'uninvited' ? 'border-slate-300 text-slate-400 bg-slate-50 dark:bg-white/5 dark:border-white/10' : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'}`}>
+                      <option value="uninvited">- Belum Diabsen -</option><option value="present">Hadir</option><option value="permit">Izin</option><option value="sick">Sakit</option><option value="absent">Alpha</option>
+                    </select>
+                  </td>
+                  <td className="py-3 pl-4">
+                    <input type="url" placeholder="https://..." value={rowData.proof_url} disabled={rowData.status === 'present' || rowData.status === 'uninvited'} onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none disabled:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        <div className="flex flex-col border-b border-slate-200 bg-white px-6 pt-4 dark:border-white/10 dark:bg-slate-900">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-md">
-                <Activity className="h-4 w-4 text-white"/>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
+                <UserCheck className="h-5 w-5 text-white"/>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Leaderboard Partisipasi</h3>
-                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Tingkat kehadiran 5 agenda terakhir</p>
-              </div>
+              <div><h2 className="text-base font-bold text-slate-900 dark:text-white">Buku Tamu Absensi</h2><p className="text-xs text-slate-500 dark:text-slate-400">{agenda.title}</p></div>
             </div>
+            <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"><X className="h-5 w-5"/></button>
           </div>
-
-          <div className="relative space-y-3.5">
-            {agendaPart && agendaPart.length > 0 ? (
-              agendaPart.map((item, idx) => (
-                <div key={idx}>
-                  <div className="mb-1.5 flex items-center justify-between text-xs">
-                    <span className="truncate pr-4 font-semibold text-slate-700 dark:text-slate-300">{item.title}</span>
-                    <span className={`font-black tracking-tight ${item.rate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : item.rate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.rate}%</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] dark:bg-slate-800/80">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ease-out ${item.rate >= 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : item.rate >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'}`} 
-                      style={{ width: `${item.rate}%` }}
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex h-24 items-center justify-center text-xs font-medium text-slate-400">Belum ada riwayat absensi.</div>
-            )}
+          <div className="flex gap-6">
+            <button type="button" onClick={() => setActiveTab('targets')} className={`pb-3 text-sm font-semibold border-b-2 transition ${activeTab === 'targets' ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><span className="flex items-center gap-2"><Target className="h-4 w-4"/> 1. Tentukan Target</span></button>
+            <button type="button" onClick={() => setActiveTab('attendance')} className={`pb-3 text-sm font-semibold border-b-2 transition ${activeTab === 'attendance' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><span className="flex items-center gap-2"><Users className="h-4 w-4"/> 2. Catat Kehadiran</span></button>
           </div>
         </div>
-      </div>
-
-      {/* 3. TABBED DYNAMIC CHART */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-white/10">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Arus Kas Organisasi</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Visualisasi tren pemasukan & pengeluaran.</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-              {chartKeys.map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveChartTab(key)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-                    activeChartTab === key
-                      ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-700 dark:text-primary-400'
-                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {key}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative">
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-              >
-                <option value="6m">6 Bulan Terakhir</option>
-                <option value="3m">3 Bulan Terakhir</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-2 h-3.5 w-3.5 text-slate-400"/>
-            </div>
-          </div>
-        </div>
-
-        <div className="h-72 w-full">
-          {displayChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={displayChartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-200 dark:stroke-white/5" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  dy={10}
-                  tick={{ fontSize: 11 }}
-                  className="fill-slate-500"
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11 }}
-                  className="fill-slate-500"
-                  tickFormatter={(value) =>
-                    `Rp${value >= 1000000 ? value / 1000000 + 'M' : value / 1000 + 'K'}`
-                  }
-                />
-                <Tooltip
-                  formatter={(value) => formatRupiah(value)}
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Pemasukan"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorIncome)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Pengeluaran"
-                  stroke="#f43f5e"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorExpense)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+        {activeTab === 'targets' ? renderTargetsTab() : renderAttendanceTab()}
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300">Batal</button>
+          {activeTab === 'targets' ? (
+            <button type="button" onClick={handleSaveTargetsAndProceed} disabled={submitting} className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50">{submitting && <Loader2 className="h-4 w-4 animate-spin"/>} {submitting ? 'Menyimpan...' : 'Simpan & Lanjut Absen'}</button>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
-              Belum ada data transaksi.
-            </div>
+            <button type="button" onClick={handleSubmitAttendance} disabled={submitting || usersLoading} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50">{submitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>} Simpan Rekap Kehadiran</button>
           )}
-        </div>
-      </div>
-
-      {/* 4. CALENDAR & AGENDA DETAIL (THE MASTERPIECE) */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Native Calendar */}
-        <div className="lg:col-span-2">
-          {renderCalendar()}
-        </div>
-
-        {/* Selected Date Agendas */}
-        <div className="lg:col-span-1">
-          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-            <div className="border-b border-slate-200 bg-primary-600/5 px-6 py-4 dark:border-white/10 dark:bg-primary-900/10">
-              <h3 className="text-sm font-bold text-primary-700 dark:text-primary-400">
-                Agenda {format(selectedDate, 'd MMMM yyyy', { locale: localeID })}
-              </h3>
-              <p className="mt-1 text-[10px] font-medium text-primary-600/70 dark:text-primary-400/70">
-                {agendasSelectedDay.length} agenda dijadwalkan
-              </p>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-2">
-              {agendasSelectedDay.length > 0 ? (
-                <div className="space-y-2">
-                  {agendasSelectedDay.map(meeting => (
-                    <div key={meeting.id} className="group flex flex-col gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md dark:border-white/5 dark:bg-slate-800/50 dark:hover:border-primary-500/30">
-                      <div className="flex items-start justify-between">
-                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">{meeting.title}</h4>
-                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                          {format(new Date(meeting.start_date), 'HH:mm')}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                        {meeting.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-red-400"/>
-                            <span className="truncate max-w-[100px]">{meeting.location}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Activity className="h-3 w-3 text-amber-500"/>
-                          <span>Status: {meeting.status || 'Terjadwal'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex h-48 flex-col items-center justify-center text-center">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5">
-                    <CalendarClock className="h-6 w-6 text-slate-300 dark:text-slate-600"/>
-                  </div>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Tidak ada agenda.</p>
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Pilih tanggal lain di kalender.</p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -6456,6 +6365,431 @@ export default function Document() {
         isReadOnly={isReadOnlyModal}
         activeEventId={activeWorkspace?.id}
       />
+    </div>
+  );
+}
+```
+
+## File: src/pages/Dashboard.jsx
+```javascript
+import { useState, useMemo } from 'react';
+import useSWR from 'swr';
+import { fetcher } from '../api/fetcher';
+import { 
+  format, addMonths, subMonths, startOfMonth, endOfMonth, 
+  startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, isToday 
+} from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import {
+  Wallet, CalendarClock, Activity, AlertCircle, Loader2, AlertTriangle, 
+  ChevronDown, ChevronLeft, ChevronRight, MapPin
+} from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+function formatRupiah(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
+function StatCard({ icon: Icon, label, value, subValue, gradient, iconBg }) {
+  return (
+    <div className="group relative flex h-full flex-col justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+      <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
+      <div className="relative flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
+            {subValue && <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{subValue}</span>}
+          </div>
+        </div>
+        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg ${iconBg}`}>
+          <Icon className="h-7 w-7 text-white"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const [activeChartTab, setActiveChartTab] = useState('Kas Umum');
+  const [timeRange, setTimeRange] = useState('6m');
+
+  // Calendar States
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const { data: stats, error: statsError, isLoading: statsLoading } = useSWR('/api/dashboard/statistics', fetcher);
+  const { data: agenda, error: agendaError, isLoading: agendaLoading } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
+
+  // --- ATURAN HOOKS: Semua Hook (termasuk useMemo) WAJIB berada sebelum early return ---
+  const personalDues = stats?.personal_dues;
+  const agendaPart = stats?.agenda_participation;
+  const financial = stats?.financial_health;
+
+  // Chart Logic (Dievaluasi dengan aman meskipun data belum ada)
+  const chartKeys = useMemo(() => (financial?.chart_data ? Object.keys(financial.chart_data) : []), [financial?.chart_data]);
+  const currentChartData = useMemo(() => financial?.chart_data?.[activeChartTab] || [], [financial?.chart_data, activeChartTab]);
+  const displayChartData = useMemo(() => (timeRange === '3m' ? currentChartData.slice(-3) : currentChartData), [currentChartData, timeRange]);
+
+  // Calendar Logic
+  const allAgendas = agenda?.upcoming_meetings || [];
+  const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
+
+  // --- EARLY RETURNS (Setelah semua Hooks dideklarasikan) ---
+  if (statsLoading || agendaLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Menyinkronkan data dasbor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (statsError || agendaError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-6 dark:bg-red-500/10">
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400"/>
+          <div className="text-center">
+            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
+            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Koneksi ke server terputus.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const renderCalendar = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Senin awal minggu
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    const rows = [];
+    let days = [];
+    let day = startDate;
+
+    while (day <= endDate) {
+      for (let i = 0; i < 7; i++) {
+        const cloneDay = day;
+        const dayAgendas = allAgendas.filter(m => isSameDay(new Date(m.start_date), cloneDay));
+        const hasAgenda = dayAgendas.length > 0;
+        
+        const isNotCurrentMonth = !isSameMonth(day, monthStart);
+        const isSelected = isSameDay(day, selectedDate);
+        const isTodayDate = isToday(day);
+
+        days.push(
+          <div
+            key={day.toISOString()}
+            onClick={() => setSelectedDate(cloneDay)}
+            className={`group flex h-16 sm:h-24 cursor-pointer flex-col overflow-hidden border-b border-r border-slate-100 p-1.5 transition-all dark:border-white/5 ${
+              isNotCurrentMonth ? "bg-slate-50/50 text-slate-300 dark:bg-slate-900/20 dark:text-slate-600" : 
+              isSelected ? "bg-primary-50 dark:bg-primary-900/20" : 
+              "hover:bg-slate-50 dark:hover:bg-white/5"
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                isSelected ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : 
+                isTodayDate ? "text-emerald-600 dark:text-emerald-400" : 
+                "text-slate-700 dark:text-slate-300"
+              }`}>
+                {format(day, 'd')}
+              </span>
+              {hasAgenda && !isSelected && (
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary-500 shadow-[0_0_4px_rgba(59,130,246,0.5)]"></span>
+              )}
+            </div>
+            
+            {/* Indikator Baris Acara (Maks 2) */}
+            <div className="mt-1 flex flex-col gap-1">
+              {dayAgendas.slice(0, 2).map((m, idx) => (
+                <div key={idx} className={`truncate rounded-sm px-1.5 py-0.5 text-[9px] font-semibold ${
+                  isSelected ? 'bg-primary-100 text-primary-700 dark:bg-primary-500/30 dark:text-primary-300' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 dark:bg-white/5 dark:text-slate-400'
+                }`}>
+                  {m.title}
+                </div>
+              ))}
+              {dayAgendas.length > 2 && (
+                <span className="pl-1 text-[8px] font-medium text-slate-400">+{dayAgendas.length - 2} lagi</span>
+              )}
+            </div>
+          </div>
+        );
+        day = addDays(day, 1);
+      }
+      rows.push(<div className="grid grid-cols-7" key={day.toISOString()}>{days}</div>);
+      days = [];
+    }
+
+    return (
+      <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        {/* Header Kalender */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            {format(currentMonth, 'MMMM yyyy', { locale: localeID })}
+          </h3>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
+              <ChevronLeft className="h-4 w-4"/>
+            </button>
+            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
+              <ChevronRight className="h-4 w-4"/>
+            </button>
+          </div>
+        </div>
+
+        {/* Hari (Header Grid) */}
+        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30">
+          {weekDays.map(dayName => (
+            <div key={dayName} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {dayName}
+            </div>
+          ))}
+        </div>
+
+        {/* Matriks Tanggal */}
+        <div className="flex flex-col border-l border-slate-100 dark:border-white/5">
+          {rows}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-slide-up-fade">
+      {/* 1. WARNING BANNER (KEDISIPLINAN KAS) */}
+      {personalDues?.unpaid_months > 0 && (
+        <div className="flex items-start gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
+            <AlertTriangle className="h-5 w-5"/>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-red-700 dark:text-red-400">Peringatan Tunggakan Kas!</h3>
+            <p className="mt-1 text-xs font-medium text-red-600/80 dark:text-red-400/80">
+              Kamu memiliki tunggakan kas pengurus selama <strong className="text-red-700 dark:text-red-300">{personalDues.unpaid_months} bulan</strong>. Segera lunasi kewajibanmu untuk mendukung operasional organisasi.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 2. STAT CARDS & LEADERBOARD */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <StatCard gradient="bg-emerald-500" icon={Wallet} iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700" label="Total Saldo Kas Umum" value={formatRupiah(financial?.total_balance)}/>
+
+        {/* Partisipasi Gamifikasi */}
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-10 blur-2xl transition-opacity duration-300 group-hover:opacity-20" />
+          <div className="relative mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-md">
+                <Activity className="h-4 w-4 text-white"/>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Leaderboard Partisipasi</h3>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Tingkat kehadiran 5 agenda terakhir</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative space-y-3.5">
+            {agendaPart && agendaPart.length > 0 ? (
+              agendaPart.map((item, idx) => (
+                <div key={idx}>
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <span className="truncate pr-4 font-semibold text-slate-700 dark:text-slate-300">{item.title}</span>
+                    <span className={`font-black tracking-tight ${item.rate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : item.rate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.rate}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] dark:bg-slate-800/80">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${item.rate >= 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : item.rate >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'}`} 
+                      style={{ width: `${item.rate}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex h-24 items-center justify-center text-xs font-medium text-slate-400">Belum ada riwayat absensi.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. TABBED DYNAMIC CHART */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Arus Kas Organisasi</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Visualisasi tren pemasukan & pengeluaran.</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+              {chartKeys.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveChartTab(key)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    activeChartTab === key
+                      ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-700 dark:text-primary-400'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <option value="6m">6 Bulan Terakhir</option>
+                <option value="3m">3 Bulan Terakhir</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-2 h-3.5 w-3.5 text-slate-400"/>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-72 w-full">
+          {displayChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={displayChartData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-200 dark:stroke-white/5" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                  tickFormatter={(value) =>
+                    `Rp${value >= 1000000 ? value / 1000000 + 'M' : value / 1000 + 'K'}`
+                  }
+                />
+                <Tooltip
+                  formatter={(value) => formatRupiah(value)}
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: 'none',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pemasukan"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorIncome)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pengeluaran"
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorExpense)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+              Belum ada data transaksi.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. CALENDAR & AGENDA DETAIL (THE MASTERPIECE) */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Native Calendar */}
+        <div className="lg:col-span-2">
+          {renderCalendar()}
+        </div>
+
+        {/* Selected Date Agendas */}
+        <div className="lg:col-span-1">
+          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+            <div className="border-b border-slate-200 bg-primary-600/5 px-6 py-4 dark:border-white/10 dark:bg-primary-900/10">
+              <h3 className="text-sm font-bold text-primary-700 dark:text-primary-400">
+                Agenda {format(selectedDate, 'd MMMM yyyy', { locale: localeID })}
+              </h3>
+              <p className="mt-1 text-[10px] font-medium text-primary-600/70 dark:text-primary-400/70">
+                {agendasSelectedDay.length} agenda dijadwalkan
+              </p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2">
+              {agendasSelectedDay.length > 0 ? (
+                <div className="space-y-2">
+                  {agendasSelectedDay.map(meeting => (
+                    <div key={meeting.id} className="group flex flex-col gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md dark:border-white/5 dark:bg-slate-800/50 dark:hover:border-primary-500/30">
+                      <div className="flex items-start justify-between">
+                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">{meeting.title}</h4>
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                          {format(new Date(meeting.start_date), 'HH:mm')}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                        {meeting.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-red-400"/>
+                            <span className="truncate max-w-[100px]">{meeting.location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Activity className="h-3 w-3 text-amber-500"/>
+                          <span>Status: {meeting.status || 'Terjadwal'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-48 flex-col items-center justify-center text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5">
+                    <CalendarClock className="h-6 w-6 text-slate-300 dark:text-slate-600"/>
+                  </div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Tidak ada agenda.</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Pilih tanggal lain di kalender.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -7254,7 +7588,7 @@ export default function Finance() {
 ## File: src/layouts/DashboardLayout.jsx
 ```javascript
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -7266,32 +7600,55 @@ import {
   Wallet, 
   Calculator,
   FileText,
-  User,
   AlertTriangle,
   LogOut,
   Menu,
   X,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
-  { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
-  { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
-  { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
-  { name: 'Keuangan', href: '/dashboard/finance', icon: Calculator, restrictedForMember: true },
-  { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
-  { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
-  { name: 'Profil Saya', href: '/dashboard/profile', icon: User },
-  { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
+const navigationGroups = [
+  {
+    title: 'Utama',
+    items: [
+      { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    ]
+  },
+  {
+    title: 'Operasional',
+    items: [
+      { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
+      { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
+      { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
+    ]
+  },
+  {
+    title: 'Finansial',
+    items: [
+      { name: 'Keuangan', href: '/dashboard/finance', icon: Calculator, restrictedForMember: true },
+      { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
+    ]
+  },
+  {
+    title: 'Sistem & HR',
+    items: [
+      { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
+      { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
+      { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
+    ]
+  },
 ];
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
   const isMember = user?.roles?.[0]?.name === 'member';
@@ -7303,101 +7660,177 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-primary-950 transition-colors duration-300">
-      {/* Mobile overlay */}
+      
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white/80 dark:border-white/10 dark:bg-slate-950/80 backdrop-blur-2xl transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white/80 dark:border-white/10 dark:bg-slate-950/80 backdrop-blur-2xl transition-all duration-300 ease-in-out
           lg:static lg:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'}
+          ${isCollapsed ? 'lg:w-[4.5rem]' : 'lg:w-72'}
         `}
       >
-        {/* Logo area */}
-        <div className="flex h-16 items-center justify-between border-b border-slate-200 dark:border-white/10 px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-              <LayoutDashboard className="h-5 w-5 text-white" />
+        {/* Header Area */}
+        <div 
+          className={`relative flex h-16 shrink-0 items-center border-b border-slate-200 dark:border-white/10 transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'}`}
+          onMouseEnter={() => setIsHeaderHovered(true)}
+          onMouseLeave={() => setIsHeaderHovered(false)}
+        >
+          <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 absolute' : 'w-auto opacity-100'}`}>
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+              <LayoutDashboard className="h-5 w-5 text-white"/>
             </div>
             <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Protik</span>
           </div>
+
+          {!isCollapsed && (
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="hidden rounded-full p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:block shrink-0"
+              title="Tutup sidebar"
+            >
+              <PanelLeftClose className="h-5 w-5"/>
+            </button>
+          )}
+
+          {isCollapsed && (
+            <div className="relative flex h-10 w-10 items-center justify-center">
+              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${isHeaderHovered ? 'opacity-0' : 'opacity-100'}`}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
+                  <LayoutDashboard className="h-4 w-4 text-white"/>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCollapsed(false)}
+                className={`absolute inset-0 flex h-full w-full items-center justify-center rounded-full text-slate-500 transition-all duration-200 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:flex ${isHeaderHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                title="Buka sidebar"
+              >
+                <PanelLeftOpen className="h-5 w-5"/>
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden shrink-0 absolute right-4"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5"/>
           </button>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navigation.map((item) => {
-            if (item.adminOnly && !isAdmin) return null;
+        {/* Navigasi (Menu Personal Telah Dihapus) */}
+        <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-4 custom-scrollbar">
+          {navigationGroups.map((group, groupIndex) => {
+            const validItems = group.items.filter(item => !(item.adminOnly && !isAdmin));
+            if (validItems.length === 0) return null;
 
             return (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                end={item.href === '/dashboard'}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-primary-500/10'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon
-                      className={`h-5 w-5 shrink-0 transition-colors ${
-                        isActive
-                          ? 'text-primary-600 dark:text-primary-400'
-                          : 'text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300'
-                      }`}
-                    />
-                    <span className="flex-1">{item.name}</span>
-                    {isMember && item.restrictedForMember && (
-                      <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                        Read Only
-                      </span>
-                    )}
-                    {isActive && (
-                      <ChevronRight className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-                    )}
-                  </>
+              <div key={group.title} className="space-y-1">
+                {!isCollapsed ? (
+                  <h3 className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {group.title}
+                  </h3>
+                ) : (
+                  groupIndex > 0 && <hr className="mx-4 my-2 border-slate-200 dark:border-white/10" />
                 )}
-              </NavLink>
+
+                {validItems.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    end={item.href === '/dashboard'}
+                    onClick={() => setSidebarOpen(false)}
+                    title={isCollapsed ? item.name : undefined}
+                    className={({ isActive }) =>
+                      `group flex items-center rounded-xl text-sm font-medium transition-all duration-200 ${
+                        isCollapsed ? 'justify-center mx-1 p-2.5' : 'gap-3 px-3 py-2.5'
+                      } ${
+                        isActive
+                          ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-primary-500/10'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <item.icon
+                          className={`h-5 w-5 shrink-0 transition-colors ${
+                            isActive
+                              ? 'text-primary-600 dark:text-primary-400'
+                              : 'text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300'
+                          }`}
+                        />
+                        
+                        {!isCollapsed && (
+                          <div className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap">
+                            <span className="truncate">{item.name}</span>
+                            {isMember && item.restrictedForMember && (
+                              <span className="ml-2 shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                Read Only
+                              </span>
+                            )}
+                            {isActive && (
+                              <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400"/>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
             );
           })}
         </nav>
 
-        {/* User card */}
-        <Link
+        {/* User Card (Merangkap Tombol Profil Saya) */}
+        <NavLink
           to="/dashboard/profile"
-          className="block border-t border-slate-200 px-4 py-4 transition hover:bg-slate-50 dark:border-white/10 dark:hover:bg-white/5"
+          onClick={() => setSidebarOpen(false)}
+          title={isCollapsed ? 'Profil Saya' : undefined}
+          className={({ isActive }) => 
+            `block shrink-0 border-t border-slate-200 transition dark:border-white/10 ${isCollapsed ? 'p-3' : 'px-4 py-4'} ${isActive ? 'bg-primary-50/50 dark:bg-primary-900/10' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`
+          }
         >
-          <div className="flex items-center gap-3 rounded-xl bg-slate-100 dark:bg-white/5 px-3 py-2.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white">
-              {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+          {({ isActive }) => (
+            <div className={`flex items-center rounded-xl transition-all duration-300 ${
+              isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2.5'
+            } ${
+              isActive 
+                ? 'bg-primary-100 dark:bg-primary-500/20 ring-1 ring-primary-500/30 shadow-inner' 
+                : 'bg-slate-100 dark:bg-white/5'
+            }`}>
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-md transition-all ${
+                isActive 
+                  ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white ring-2 ring-primary-100 dark:ring-primary-900' 
+                  : 'bg-gradient-to-br from-primary-400 to-primary-600 text-white'
+              }`}>
+                {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
+              </div>
+              
+              {!isCollapsed && (
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className={`truncate text-sm font-bold transition-colors ${isActive ? 'text-primary-700 dark:text-primary-400' : 'text-slate-900 dark:text-white'}`}>
+                    {user?.name ?? 'Pengguna'}
+                  </p>
+                  <p className={`truncate text-[10px] font-semibold uppercase tracking-wider transition-colors ${isActive ? 'text-primary-600/80 dark:text-primary-400/80' : 'text-slate-500 dark:text-slate-400'}`}>
+                    {user?.roles?.[0]?.name ?? 'user'}
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{user?.name ?? 'Pengguna'}</p>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user?.roles?.[0]?.name ?? 'user'}</p>
-            </div>
-          </div>
-        </Link>
+          )}
+        </NavLink>
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         {/* Header */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 dark:border-white/10 dark:bg-white/5 px-4 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-4">
@@ -7405,77 +7838,48 @@ export default function DashboardLayout() {
               onClick={() => setSidebarOpen(true)}
               className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5"/>
             </button>
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+            <div className="min-w-0 overflow-hidden">
+              <h2 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                 Halo, {user?.name ?? 'Pengguna'} 👋
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Selamat datang kembali di panel manajemen.</p>
+              <p className="hidden truncate text-xs text-slate-500 dark:text-slate-400 sm:block">Selamat datang kembali di panel manajemen.</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle Button */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
-              aria-label="Toggle Theme"
-              className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-600 transition-colors duration-200 hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+              className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
             >
               {theme === 'dark' ? (
-                /* Sun Icon */
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4 text-amber-400"
-                >
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2" />
-                  <path d="M12 20v2" />
-                  <path d="m4.93 4.93 1.41 1.41" />
-                  <path d="m17.66 17.66 1.41 1.41" />
-                  <path d="M2 12h2" />
-                  <path d="M20 12h2" />
-                  <path d="m6.34 17.66-1.41 1.41" />
-                  <path d="m19.07 4.93-1.41 1.41" />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-amber-400">
+                  <circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
                 </svg>
               ) : (
-                /* Moon Icon */
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4 text-slate-600"
-                >
-                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-600">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z" />
                 </svg>
               )}
             </button>
 
-            {/* Logout Button */}
+            {/* Logout */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition-all duration-200 hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 sm:px-4 text-sm font-medium text-slate-700 transition hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
             >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Keluar</span>
+              <LogOut className="h-4 w-4 shrink-0"/>
+              <span className="hidden sm:block">Keluar</span>
             </button>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+          <Outlet/>
         </main>
       </div>
     </div>
@@ -7527,6 +7931,8 @@ export default function App() {
               revalidateOnFocus: false,
               revalidateIfStale: false,
               shouldRetryOnError: false,
+              dedupingInterval: 10000, // Mencegah duplikat request dalam 10 detik
+              keepPreviousData: true, // Pertahankan data lama saat memuat halaman/filter baru (Cegah UI Berkedip)
             }}
           >
             <ErrorBoundary>
@@ -7742,4 +8148,26 @@ export default function App() {
 ### Changed
 - Mengeksekusi *Route-Level Code Splitting* menggunakan `React.lazy()` dan `<Suspense>`. Optimalisasi arsitektural ini memecah monolit *bundle size* JavaScript, mereduksi waktu *Cold Start* aplikasi secara signifikan.
 - Memoles *Global CSS* dengan injeksi *Webkit Scrollbar* kustom yang terintegrasi secara semantik dengan utilitas *Dark Mode* Tailwind, mendestruksi friksi visual *scroll* bawaan OS.
+## [2026-08-25]
+### Changed
+- Mengimplementasikan teknik *Tree-Shaking* secara paksa melalui *Rollup Config* (`vite.config.js`) untuk memecah arsitektur *vendor chunking* (memisahkan `lucide-react`, `recharts`, dan utilitas *React* inti). Pendekatan ini berhasil menekan ukuran inisial *payload Main-Thread* secara drastis (Resolusi Lighthouse P99).
+- Menginjeksi *Memoization Cache Strategy* ( `useMemo` ) pada mesin perenderan Native Calendar (`renderedCalendar`) di halaman `Dashboard.jsx`. Modifikasi ini mengamankan siklus CPU dari gejala eksesif re-render (*Uncontrolled Rerendering*) saat pengguna memanipulasi *state* komponen lain.
+- Memperluas kebijakan *Client-Side Caching* pada konfigurasi provider `SWRConfig` (`App.jsx`) dengan menambahkan `dedupingInterval: 10000` dan `keepPreviousData: true`. Formasi ini secara efektif meredam *Fetch Flooding* pada server *Backend* ketika interaksi *user* memicu transisi antar-tab secara asinkron (Resolusi N+1 Frontend Polling).
+## [2026-08-25]
+### Changed
+- Menginjeksi atribut semantik HTML5 (`name` dan `autoComplete`) pada formulir komponen `Login.jsx`. Pembaruan ini memastikan kompatibilitas penuh dengan sistem *Credential Manager* dan *Autofill API* bawaan peramban (Browser's "Remember Me" functionality).
+## [2026-08-26]
+### Changed
+- Merefaktorisasi arsitektur `AttendanceModal.jsx` untuk menanggalkan belenggu isolasi *Event*. Mengimplementasikan strategi **Data Blending** yang mengekstraksi data `/api/users`, `/api/divisions`, dan `/api/event-committees` secara konkuren melalui *SWR Hooks*. Fitur *Target Provisioning* kini diizinkan untuk mengundang *BPH Inti* dan *Divisi Global* secara *seamless* di dalam ruang kerja kepanitiaan manapun.
+- Mengimplementasikan abstraksi ekstraksi posisi *Array Set* `[...new Set()]` pada relasi komite. Modifikasi ini menghasilkan pembuatan daftar tombol *Spesifik Jabatan Panitia* (seperti Divisi Acara, Perkap, dsb.) yang dirakit secara asinkron dari *metadata* string yang ada, mengeleminasi kebutuhan terhadap pemborosan normalisasi struktur tabel *database*.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi antarmuka `WarningModal.jsx` dengan menggantikan arsitektur input *User ID* statis menjadi *Smart Searchable Combobox*. Mengimplementasikan kapabilitas *Eager Fetching* (`/api/users?all=true`) terintegrasi algoritma *Two-Way Data Binding*, memfasilitasi pencarian mutasi *real-time* berbasis Nama dan NIM sambil memastikan injeksi *Primary Key* secara tertutup pada *payload HTTP Post*, mengeliminasi beban kognitif pada tingkat *User Experience* administratif.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi komponen sakelar (*Toggle*) pada *Collapsible Sidebar* (`DashboardLayout.jsx`) untuk meniru heuristik desain Google Gemini. Menggantikan ikon navigasi statis dengan *Lucide Icons* asimetris (`PanelLeftClose` dan `PanelLeftOpen`), serta mengimplementasikan pergeseran kondisional area logo, menghasilkan pengalaman interaksi spasial yang presisi dan memuaskan.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi `DashboardLayout.jsx` untuk mengadopsi standar arsitektur navigasi *Enterprise SaaS*. Mengimplementasikan pengelompokan menu berbasis domain (Utama, Operasional, Finansial, Sistem & HR, Personal) dengan *Section Headers* yang secara dinamis menyusut menjadi garis pemisah (`<hr>`) saat mode *Collapsed* aktif.
+- Memoles interaksi *Collapsible Sidebar* dengan mekanisme *Hover State Toggle* ("Gemini-style"). Mengeliminasi *button clutter* dengan menampilkan Logo Protik secara *default* saat sidebar diciutkan, di mana ikon `PanelLeftOpen` hanya akan di-render sebagai *overlay* interaktif secara eksklusif ketika kursor memindai area *Header Sidebar*, menciptakan antarmuka yang sangat bersih dan minimalis.
 ```
