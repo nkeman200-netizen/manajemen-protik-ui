@@ -180,3 +180,6 @@
 ## [2026-08-26]
 ### Changed
 - Merefaktorisasi antarmuka `WarningModal.jsx` dengan menggantikan arsitektur input *User ID* statis menjadi *Smart Searchable Combobox*. Mengimplementasikan kapabilitas *Eager Fetching* (`/api/users?all=true`) terintegrasi algoritma *Two-Way Data Binding*, memfasilitasi pencarian mutasi *real-time* berbasis Nama dan NIM sambil memastikan injeksi *Primary Key* secara tertutup pada *payload HTTP Post*, mengeliminasi beban kognitif pada tingkat *User Experience* administratif.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi komponen sakelar (*Toggle*) pada *Collapsible Sidebar* (`DashboardLayout.jsx`) untuk meniru heuristik desain Google Gemini. Menggantikan ikon navigasi statis dengan *Lucide Icons* asimetris (`PanelLeftClose` dan `PanelLeftOpen`), serta mengimplementasikan pergeseran kondisional area logo, menghasilkan pengalaman interaksi spasial yang presisi dan memuaskan.

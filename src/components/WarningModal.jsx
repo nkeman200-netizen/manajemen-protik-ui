@@ -21,11 +21,16 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Eager fetching data users
+  // --- ALL HOOKS MUST BE DECLARED HERE (BEFORE EARLY RETURN) ---
   const { data: usersData, isLoading: usersLoading } = useSWR(isOpen ? '/api/users?all=true' : null, fetcher);
   const allUsers = useMemo(() => (Array.isArray(usersData) ? usersData : (usersData?.data || [])), [usersData]);
 
-  // Handle klik di luar dropdown untuk menutupnya
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return allUsers;
+    const q = searchQuery.toLowerCase();
+    return allUsers.filter((u) => u.name?.toLowerCase().includes(q) || String(u.nim || '').includes(q));
+  }, [allUsers, searchQuery]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -36,39 +41,33 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // --- EARLY RETURN ---
   if (!isOpen) return null;
 
+  // --- HANDLERS ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  // --- COMBOBOX LOGIC ---
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
     setShowDropdown(true);
-    setForm((prev) => ({ ...prev, user_id: '' })); // Reset ID jika user mengetik ulang
-    setErrors((prev) => ({ ...prev, user_id: undefined }));
+    setForm(prev => ({ ...prev, user_id: '' }));
+    setErrors(prev => ({ ...prev, user_id: undefined }));
   };
 
   const selectUser = (user) => {
     setSearchQuery(user.name);
-    setForm((prev) => ({ ...prev, user_id: user.id }));
+    setForm(prev => ({ ...prev, user_id: user.id }));
     setShowDropdown(false);
-    setErrors((prev) => ({ ...prev, user_id: undefined }));
+    setErrors(prev => ({ ...prev, user_id: undefined }));
   };
-
-  const filteredUsers = useMemo(() => {
-    if (!searchQuery) return allUsers;
-    const q = searchQuery.toLowerCase();
-    return allUsers.filter((u) => u.name?.toLowerCase().includes(q) || String(u.nim || '').includes(q));
-  }, [allUsers, searchQuery]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validasi manual Combobox
     if (!form.user_id) {
       setErrors((prev) => ({ ...prev, user_id: ['Pilih anggota dari daftar pencarian.'] }));
       return;
@@ -88,7 +87,6 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
       await api.post('/api/warnings', payload);
       toast.success('Surat peringatan berhasil ditambahkan.');
 
-      // Reset State
       setForm(initialForm);
       setSearchQuery('');
 
@@ -129,12 +127,11 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5"/>
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5 overflow-visible">
-          {/* COMBOBOX: Cari Pengurus */}
           <div className="relative" ref={dropdownRef}>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Pilih Anggota
@@ -150,14 +147,13 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
                 className={`pl-10 ${inputClass('user_id')}`}
               />
               {usersLoading ? (
-                <Loader2 className="absolute left-3 top-3 h-4 w-4 animate-spin text-primary-500" />
+                <Loader2 className="absolute left-3 top-3 h-4 w-4 animate-spin text-primary-500"/>
               ) : (
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400"/>
               )}
             </div>
             {errors.user_id && <p className="mt-1 text-xs text-red-400">{errors.user_id[0]}</p>}
 
-            {/* Dropdown List */}
             {showDropdown && !usersLoading && (
               <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-white/10 dark:bg-slate-800">
                 {filteredUsers.length > 0 ? (
@@ -182,7 +178,7 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
                         </p>
                         {user.nim && <p className="text-[10px] text-slate-500">{user.nim}</p>}
                       </div>
-                      {form.user_id === user.id && <CheckCircle2 className="h-4 w-4 text-primary-500" />}
+                      {form.user_id === user.id && <CheckCircle2 className="h-4 w-4 text-primary-500"/>}
                     </button>
                   ))
                 ) : (
@@ -234,7 +230,7 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
               disabled={submitting}
               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting && <Loader2 className="h-4 w-4 animate-spin"/>}
               {submitting ? 'Menyimpan...' : 'Simpan'}
             </button>
           </div>
