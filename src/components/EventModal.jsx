@@ -10,6 +10,7 @@ const initialForm = {
   drive_folder_url: '',
   start_date: '',
   end_date: '',
+  agenda_sync_url: '',
   document_sync_url: '',
   finance_sync_url: '',
 };
@@ -33,6 +34,7 @@ export default function EventModal({
         drive_folder_url: initialData.drive_folder_url || '',
         start_date: initialData.start_date ? initialData.start_date.substring(0, 10) : '',
         end_date: initialData.end_date ? initialData.end_date.substring(0, 10) : '',
+        agenda_sync_url: initialData.agenda_sync_url || '',
         document_sync_url: initialData.document_sync_url || '',
         finance_sync_url: initialData.finance_sync_url || '',
       });
@@ -63,6 +65,7 @@ export default function EventModal({
         drive_folder_url: form.drive_folder_url || null,
         start_date: form.start_date,
         end_date: form.end_date || null,
+        agenda_sync_url: form.agenda_sync_url || null,
         document_sync_url: form.document_sync_url || null,
         finance_sync_url: form.finance_sync_url || null,
       };
@@ -228,31 +231,45 @@ export default function EventModal({
           </div>
 
           {/* Sync URLs */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                URL Sinkronisasi Dokumen
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sync Agenda
+              </label>
+              <input
+                type="url"
+                name="agenda_sync_url"
+                value={form.agenda_sync_url || ''}
+                onChange={handleChange}
+                placeholder="https://docs.google.com/..."
+                className={inputClass('agenda_sync_url')}
+              />
+              {errors.agenda_sync_url && <p className="mt-1 text-xs text-red-400">{errors.agenda_sync_url[0]}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sync Dokumen
               </label>
               <input
                 type="url"
                 name="document_sync_url"
                 value={form.document_sync_url || ''}
                 onChange={handleChange}
-                placeholder="https://docs.google.com/spreadsheets/..."
+                placeholder="https://docs.google.com/..."
                 className={inputClass('document_sync_url')}
               />
               {errors.document_sync_url && <p className="mt-1 text-xs text-red-400">{errors.document_sync_url[0]}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                URL Sinkronisasi Keuangan
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                URL Sync Keuangan
               </label>
               <input
                 type="url"
                 name="finance_sync_url"
                 value={form.finance_sync_url || ''}
                 onChange={handleChange}
-                placeholder="https://docs.google.com/spreadsheets/..."
+                placeholder="https://docs.google.com/..."
                 className={inputClass('finance_sync_url')}
               />
               {errors.finance_sync_url && <p className="mt-1 text-xs text-red-400">{errors.finance_sync_url[0]}</p>}

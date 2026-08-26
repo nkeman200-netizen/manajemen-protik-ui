@@ -173,3 +173,7 @@
 ## [2026-08-25]
 ### Changed
 - Menginjeksi atribut semantik HTML5 (`name` dan `autoComplete`) pada formulir komponen `Login.jsx`. Pembaruan ini memastikan kompatibilitas penuh dengan sistem *Credential Manager* dan *Autofill API* bawaan peramban (Browser's "Remember Me" functionality).
+## [2026-08-26]
+### Changed
+- Merefaktorisasi arsitektur `AttendanceModal.jsx` untuk menanggalkan belenggu isolasi *Event*. Mengimplementasikan strategi **Data Blending** yang mengekstraksi data `/api/users`, `/api/divisions`, dan `/api/event-committees` secara konkuren melalui *SWR Hooks*. Fitur *Target Provisioning* kini diizinkan untuk mengundang *BPH Inti* dan *Divisi Global* secara *seamless* di dalam ruang kerja kepanitiaan manapun.
+- Mengimplementasikan abstraksi ekstraksi posisi *Array Set* `[...new Set()]` pada relasi komite. Modifikasi ini menghasilkan pembuatan daftar tombol *Spesifik Jabatan Panitia* (seperti Divisi Acara, Perkap, dsb.) yang dirakit secara asinkron dari *metadata* string yang ada, mengeleminasi kebutuhan terhadap pemborosan normalisasi struktur tabel *database*.

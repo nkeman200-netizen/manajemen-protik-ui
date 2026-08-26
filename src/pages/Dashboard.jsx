@@ -52,6 +52,21 @@ export default function Dashboard() {
   const { data: stats, error: statsError, isLoading: statsLoading } = useSWR('/api/dashboard/statistics', fetcher);
   const { data: agenda, error: agendaError, isLoading: agendaLoading } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
 
+  // --- ATURAN HOOKS: Semua Hook (termasuk useMemo) WAJIB berada sebelum early return ---
+  const personalDues = stats?.personal_dues;
+  const agendaPart = stats?.agenda_participation;
+  const financial = stats?.financial_health;
+
+  // Chart Logic (Dievaluasi dengan aman meskipun data belum ada)
+  const chartKeys = useMemo(() => (financial?.chart_data ? Object.keys(financial.chart_data) : []), [financial?.chart_data]);
+  const currentChartData = useMemo(() => financial?.chart_data?.[activeChartTab] || [], [financial?.chart_data, activeChartTab]);
+  const displayChartData = useMemo(() => (timeRange === '3m' ? currentChartData.slice(-3) : currentChartData), [currentChartData, timeRange]);
+
+  // Calendar Logic
+  const allAgendas = agenda?.upcoming_meetings || [];
+  const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
+
+  // --- EARLY RETURNS (Setelah semua Hooks dideklarasikan) ---
   if (statsLoading || agendaLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -77,23 +92,10 @@ export default function Dashboard() {
     );
   }
 
-  const personalDues = stats?.personal_dues;
-  const agendaPart = stats?.agenda_participation;
-  const financial = stats?.financial_health;
-
-  // Chart Logic
-  const chartKeys = useMemo(() => (financial?.chart_data ? Object.keys(financial.chart_data) : []), [financial?.chart_data]);
-  const currentChartData = useMemo(() => financial?.chart_data?.[activeChartTab] || [], [financial?.chart_data, activeChartTab]);
-  const displayChartData = useMemo(() => (timeRange === '3m' ? currentChartData.slice(-3) : currentChartData), [currentChartData, timeRange]);
-
-  // Calendar Logic
-  const allAgendas = agenda?.upcoming_meetings || [];
-  const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
-
-  const renderedCalendar = useMemo(() => {
+  const renderCalendar = () => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Senin awal minggu
     const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
     const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
@@ -187,7 +189,7 @@ export default function Dashboard() {
         </div>
       </div>
     );
-  }, [currentMonth, selectedDate, allAgendas]);
+  };
 
   return (
     <div className="space-y-6 animate-slide-up-fade">
@@ -360,7 +362,7 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Native Calendar */}
         <div className="lg:col-span-2">
-          {renderedCalendar}
+          {renderCalendar()}
         </div>
 
         {/* Selected Date Agendas */}
