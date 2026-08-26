@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import EventModal from '../components/EventModal';
 import CommitteeModal from '../components/CommitteeModal';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   CalendarRange,
   Plus,
@@ -48,6 +49,8 @@ export default function EventManagement() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [committeeModalOpen, setCommitteeModalOpen] = useState(false);
   const [committeeTargetEvent, setCommitteeTargetEvent] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
 
@@ -112,15 +115,18 @@ export default function EventManagement() {
     eventsData?.meta ||
     (eventsData?.data && !Array.isArray(eventsData?.data) ? eventsData.data : null);
 
-  const handleDeleteEvent = async (id) => {
-    if (window.confirm('Yakin ingin menghapus event ini beserta data terkaitnya?')) {
-      try {
-        await api.delete(`/api/events/${id}`);
-        toast.success('Event berhasil dihapus.');
-        mutateEvents();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus event.');
-      }
+  const executeDeleteEvent = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/events/${deleteTarget.id}`);
+      toast.success('Event berhasil dihapus.');
+      mutateEvents();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menghapus event.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -253,7 +259,7 @@ export default function EventManagement() {
 
                           {/* Delete Button */}
                           <button
-                            onClick={() => handleDeleteEvent(item.id)}
+                            onClick={() => setDeleteTarget(item)}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -325,6 +331,18 @@ export default function EventManagement() {
           setCommitteeTargetEvent(null);
         }}
         event={committeeTargetEvent}
+      />
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDeleteEvent}
+        title="Hapus Event"
+        message={`Yakin ingin menghapus event "${deleteTarget?.name}" beserta data terkaitnya?`}
+        confirmText="Hapus Permanen"
+        isLoading={isDeleting}
+        isDanger={true}
       />
     </div>
   );

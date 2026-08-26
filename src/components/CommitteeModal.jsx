@@ -7,6 +7,7 @@ import {
 import { paginatedFetcher, fetcher } from '../api/fetcher';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import ConfirmModal from './ConfirmModal';
 
 export default function CommitteeModal({ isOpen, onClose, event }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +20,7 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
   const [isUploading, setIsUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -206,18 +208,18 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
   };
 
   // Delete Committee
-  const handleDeleteCommittee = async (id) => {
-    if (window.confirm('Yakin ingin menghapus panitia ini?')) {
-      setDeletingId(id);
-      try {
-        await api.delete(`/api/event-committees/${id}`);
-        toast.success('Panitia berhasil dihapus.');
-        mutateCommittees();
-      } catch (err) {
-        toast.error('Gagal menghapus panitia.');
-      } finally {
-        setDeletingId(null);
-      }
+  const executeDelete = async () => {
+    if (!deletingId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/event-committees/${deletingId}`);
+      toast.success('Panitia berhasil dihapus.');
+      mutateCommittees();
+    } catch (err) {
+      toast.error('Gagal menghapus panitia.');
+    } finally {
+      setIsDeleting(false);
+      setDeletingId(null);
     }
   };
 
@@ -345,8 +347,8 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
                           {renderPositionBadge(item.position)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-right">
-                          <button onClick={() => handleDeleteCommittee(item.id)} disabled={deletingId === item.id} className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 p-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-40 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
-                            {deletingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Trash2 className="h-3.5 w-3.5"/>}
+                          <button onClick={() => setDeletingId(item.id)} className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 p-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                            <Trash2 className="h-3.5 w-3.5"/>
                           </button>
                         </td>
                       </tr>
@@ -362,6 +364,18 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
           <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">Tutup</button>
         </div>
       </div>
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={executeDelete}
+        title="Hapus Panitia"
+        message="Yakin ingin menghapus panitia ini dari event?"
+        confirmText="Hapus Panitia"
+        isLoading={isDeleting}
+        isDanger={true}
+      />
     </div>
   );
 }

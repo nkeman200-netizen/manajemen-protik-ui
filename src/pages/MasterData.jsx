@@ -6,6 +6,7 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import UserModal from '../components/UserModal';
 import DivisionModal from '../components/DivisionModal';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   Database,
   Users,
@@ -41,6 +42,10 @@ export default function MasterData() {
   const [positionForm, setPositionForm] = useState({ name: '', is_bph: false });
   const [positionErrors, setPositionErrors] = useState({});
   const [positionSubmitting, setPositionSubmitting] = useState(false);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteType, setDeleteType] = useState(''); // 'division' or 'position'
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
 
@@ -114,29 +119,24 @@ export default function MasterData() {
     (Array.isArray(allDivisionsData?.data) ? allDivisionsData.data : []) ||
     divisionsList;
 
-  // Delete Division Handler
-  const handleDeleteDivision = async (id) => {
-    if (window.confirm('Yakin ingin menghapus divisi ini?')) {
-      try {
-        await api.delete(`/api/divisions/${id}`);
-        toast.success('Divisi berhasil dihapus.');
+  // Single Combined Delete Handler
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      if (deleteType === 'division') {
+        await api.delete(`/api/divisions/${deleteTarget.id}`);
         mutateDivisions();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus divisi.');
-      }
-    }
-  };
-
-  // Delete Position Handler
-  const handleDeletePosition = async (id) => {
-    if (window.confirm('Yakin ingin menghapus jabatan kepanitiaan ini?')) {
-      try {
-        await api.delete(`/api/committee-positions/${id}`);
-        toast.success('Jabatan kepanitiaan berhasil dihapus.');
+      } else {
+        await api.delete(`/api/committee-positions/${deleteTarget.id}`);
         mutatePositions();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus jabatan.');
       }
+      toast.success('Data berhasil dihapus.');
+    } catch (err) {
+      toast.error('Gagal menghapus data.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -490,7 +490,7 @@ export default function MasterData() {
                                 Edit
                               </button>
                               <button
-                                onClick={() => handleDeleteDivision(item.id)}
+                                onClick={() => { setDeleteTarget(item); setDeleteType('division'); }}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -639,7 +639,7 @@ export default function MasterData() {
                                 Edit
                               </button>
                               <button
-                                onClick={() => handleDeletePosition(item.id)}
+                                onClick={() => { setDeleteTarget(item); setDeleteType('position'); }}
                                 className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -792,6 +792,18 @@ export default function MasterData() {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDelete}
+        title="Hapus Data Master"
+        message={`Yakin ingin menghapus "${deleteTarget?.name}"?`}
+        confirmText="Hapus Permanen"
+        isLoading={isDeleting}
+        isDanger={true}
+      />
     </div>
   );
 }

@@ -13,12 +13,23 @@ import {
   AlertCircle,
   AlertTriangle,
   Search,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
   if (!dateStr) return '-';
   try {
     return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatWaktu(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return format(new Date(dateStr), 'd MMM yyyy, HH:mm', { locale: localeID });
   } catch {
     return dateStr;
   }
@@ -51,24 +62,22 @@ export default function Warning() {
     paginatedFetcher
   );
 
-  // --- Loading ---
   if (isLoading && !data) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
           <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data peringatan...</p>
         </div>
       </div>
     );
   }
 
-  // --- Error ---
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400"/>
           <div className="text-center">
             <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
             <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data peringatan.</p>
@@ -82,12 +91,12 @@ export default function Warning() {
   const meta = data?.meta || (data?.data && !Array.isArray(data?.data) ? data.data : null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up-fade">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg shadow-amber-500/25">
-            <AlertTriangle className="h-5 w-5 text-white" />
+            <AlertTriangle className="h-5 w-5 text-white"/>
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Surat Peringatan</h1>
@@ -101,7 +110,7 @@ export default function Warning() {
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4"/>
             Tambah Peringatan
           </button>
         )}
@@ -120,12 +129,12 @@ export default function Warning() {
             placeholder="Cari nama anggota atau alasan..."
             className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
           />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -141,6 +150,9 @@ export default function Warning() {
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Dikeluarkan Oleh
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Status Baca
                 </th>
               </tr>
             </thead>
@@ -161,15 +173,29 @@ export default function Warning() {
                       {item.reason}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                      <span className="rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
                         {item.admin?.name ?? '-'}
                       </span>
+                    </td>
+                    {/* Status Baca (Read Receipt Indicator) */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {item.read_at ? (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="h-4 w-4"/>
+                          <span>{formatWaktu(item.read_at)}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-500 dark:text-amber-400">
+                          <Clock className="h-4 w-4"/>
+                          <span>Belum Dibaca</span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                     Belum ada data peringatan.
                   </td>
                 </tr>
@@ -190,7 +216,7 @@ export default function Warning() {
                 disabled={page === 1}
                 className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4"/>
                 Prev
               </button>
               <button
@@ -199,7 +225,7 @@ export default function Warning() {
                 className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4"/>
               </button>
             </div>
           </div>

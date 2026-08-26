@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import FinanceModal from '../components/FinanceModal';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   Plus,
   ChevronLeft,
@@ -64,6 +65,8 @@ export default function Finance() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedFinance, setSelectedFinance] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Debounce search input (500ms)
   useEffect(() => {
@@ -217,15 +220,18 @@ export default function Finance() {
   };
 
   // --- Delete Handler ---
-  const handleDelete = async (id) => {
-    if (window.confirm('Yakin hapus transaksi ini?')) {
-      try {
-        await api.delete(`/api/finances/${id}`);
-        toast.success('Transaksi berhasil dihapus.');
-        mutateFinances();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus transaksi.');
-      }
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/finances/${deleteTarget.id}`);
+      toast.success('Transaksi berhasil dihapus.');
+      mutateFinances();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menghapus transaksi.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -703,7 +709,7 @@ export default function Finance() {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => setDeleteTarget(item)}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -780,6 +786,18 @@ export default function Finance() {
         initialData={selectedFinance}
         isReadOnly={isReadOnlyModal}
         activeEventId={activeWorkspace?.id}
+      />
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDelete}
+        title="Hapus Transaksi"
+        message={`Yakin hapus transaksi "${deleteTarget?.title || deleteTarget?.description || 'ini'}"?`}
+        confirmText="Hapus Permanen"
+        isLoading={isDeleting}
+        isDanger={true}
       />
     </div>
   );

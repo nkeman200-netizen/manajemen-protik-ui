@@ -50,6 +50,7 @@ src/
   components/
     AttendanceModal.jsx
     CommitteeModal.jsx
+    ConfirmModal.jsx
     DivisionModal.jsx
     DocumentModal.jsx
     ErrorBoundary.jsx
@@ -64,6 +65,7 @@ src/
     DashboardLayout.jsx
   pages/
     Agenda.jsx
+    Archives.jsx
     AuditTrail.jsx
     Dashboard.jsx
     Document.jsx
@@ -73,6 +75,7 @@ src/
     MasterData.jsx
     MonthlyDue.jsx
     Profile.jsx
+    Settings.jsx
     Warning.jsx
   routes/
     ProtectedRoute.jsx
@@ -89,6 +92,77 @@ vite.config.js
 ```
 
 # Files
+
+## File: src/components/ConfirmModal.jsx
+```javascript
+import { AlertTriangle, X, Loader2 } from 'lucide-react';
+
+export default function ConfirmModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message, 
+  confirmText = 'Ya, Lanjutkan', 
+  cancelText = 'Batal',
+  isLoading = false,
+  isDanger = true 
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={!isLoading ? onClose : undefined} />
+      
+      {/* Modal Card */}
+      <div className="relative z-10 mx-4 w-full max-w-sm scale-100 transform overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl transition-all animate-slide-up-fade dark:border-white/10 dark:bg-slate-900">
+        
+        {/* Close Button */}
+        {!isLoading && (
+          <button onClick={onClose} className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-slate-300">
+            <X className="h-5 w-5"/>
+          </button>
+        )}
+
+        <div className="flex flex-col items-center text-center">
+          {/* Icon */}
+          <div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-full ${isDanger ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-500' : 'bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-500'}`}>
+            <AlertTriangle className="h-8 w-8"/>
+          </div>
+
+          {/* Text */}
+          <h2 className="mb-2 text-xl font-bold text-slate-900 dark:text-white">{title}</h2>
+          <p className="mb-6 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            {message}
+          </p>
+
+          {/* Actions */}
+          <div className="flex w-full flex-col-reverse gap-3 sm:flex-row">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              disabled={isLoading}
+              className="flex-1 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              {cancelText}
+            </button>
+            <button 
+              type="button" 
+              onClick={onConfirm} 
+              disabled={isLoading}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50 ${isDanger ? 'bg-red-600 hover:bg-red-500 shadow-red-500/25' : 'bg-primary-600 hover:bg-primary-500 shadow-primary-500/25'}`}
+            >
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin"/> : null}
+              {isLoading ? 'Memproses...' : confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
 
 ## File: public/favicon.svg
 ```xml
@@ -706,6 +780,253 @@ export default function Agenda() {
 }
 ```
 
+## File: src/pages/Archives.jsx
+```javascript
+import { useState, useMemo, useEffect } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '../contexts/AuthContext';
+import { fetcher } from '../api/fetcher';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import ConfirmModal from '../components/ConfirmModal';
+import {
+  FolderArchive, Plus, ExternalLink, MoreVertical,
+  Pencil, Trash2, Loader2, AlertCircle, X, Search, Folder
+} from 'lucide-react';
+
+const initialForm = { period_year: '', name: '', drive_url: '' };
+
+export default function Archives() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.[0]?.name === 'admin';
+
+  const { data: responseData, error, isLoading, mutate } = useSWR('/api/archives', fetcher);
+  
+  const [search, setSearch] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [activeArchive, setActiveArchive] = useState(null);
+  const [form, setForm] = useState(initialForm);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenDropdownId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const archives = useMemo(() => Array.isArray(responseData) ? responseData : (responseData?.data || []), [responseData]);
+
+  // Filter & Grouping Logic
+  const groupedArchives = useMemo(() => {
+    let filtered = archives;
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(a => a.name.toLowerCase().includes(q) || a.period_year.toLowerCase().includes(q));
+    }
+
+    return filtered.reduce((groups, archive) => {
+      const period = archive.period_year || 'Periode Lainnya';
+      if (!groups[period]) groups[period] = [];
+      groups[period].push(archive);
+      return groups;
+    }, {});
+  }, [archives, search]);
+
+  const openModal = (archive = null) => {
+    setActiveArchive(archive);
+    setForm(archive ? { period_year: archive.period_year, name: archive.name, drive_url: archive.drive_url } : initialForm);
+    setErrors({});
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setActiveArchive(null);
+    setForm(initialForm);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      if (activeArchive) {
+        await api.put(`/api/archives/${activeArchive.id}`, form);
+        toast.success('Arsip berhasil diperbarui.');
+      } else {
+        await api.post('/api/archives', form);
+        toast.success('Arsip berhasil ditambahkan.');
+      }
+      mutate();
+      closeModal();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        setErrors(err.response.data.errors || {});
+        toast.error(err.response.data.message || 'Validasi gagal.');
+      } else {
+        toast.error('Terjadi kesalahan pada server.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/archives/${deleteTarget.id}`);
+      toast.success('Arsip berhasil dihapus.');
+      mutate();
+    } catch (err) {
+      toast.error('Gagal menghapus arsip.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary-500"/></div>;
+  if (error) return <div className="flex justify-center py-16"><AlertCircle className="h-10 w-10 text-red-500"/></div>;
+
+  return (
+    <div className="space-y-8 animate-slide-up-fade">
+      {/* HEADER */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 shadow-lg shadow-blue-500/25">
+            <FolderArchive className="h-5 w-5 text-white"/>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">Arsip Organisasi</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Pusat tautan penyimpanan Google Drive per periode.</p>
+          </div>
+        </div>
+
+        {isAdmin && (
+          <button onClick={() => openModal()} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/30">
+            <Plus className="h-4 w-4"/> Tambah Arsip
+          </button>
+        )}
+      </div>
+
+      {/* SEARCH BAR */}
+      <div className="max-w-md">
+        <div className="relative">
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama folder atau periode..." className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-blue-500 focus:ring-2 dark:border-white/10 dark:bg-white/5 dark:text-white" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+        </div>
+      </div>
+
+      {/* ARCHIVE GROUPS */}
+      {Object.keys(groupedArchives).length > 0 ? (
+        Object.entries(groupedArchives).map(([period, items]) => (
+          <div key={period} className="space-y-4">
+            <div className="flex items-center gap-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{period}</h3>
+              <div className="h-px flex-1 bg-slate-200 dark:bg-white/10"></div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {items.map(item => (
+                <div key={item.id} className="group relative flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-blue-500/40 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10">
+                  {/* Folder Clickable Area */}
+                  <a href={item.drive_url} target="_blank" rel="noopener noreferrer" className="flex flex-1 items-center gap-3 overflow-hidden" title="Buka di Google Drive">
+                    <Folder className="h-8 w-8 shrink-0 fill-blue-500/20 text-blue-500 transition-transform group-hover:scale-110"/>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">{item.name}</p>
+                      <p className="text-[10px] text-slate-400">G-Drive Link <ExternalLink className="inline h-2.5 w-2.5"/></p>
+                    </div>
+                  </a>
+
+                  {/* Kebab Menu (Admin Only) */}
+                  {isAdmin && (
+                    <div className="relative shrink-0 ml-2">
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpenDropdownId(openDropdownId === item.id ? null : item.id); }} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white">
+                        <MoreVertical className="h-4 w-4"/>
+                      </button>
+
+                      {openDropdownId === item.id && (
+                        <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-8 z-50 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-slate-800">
+                          <button onClick={() => { setOpenDropdownId(null); openModal(item); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
+                            <Pencil className="h-3.5 w-3.5"/> Edit Info
+                          </button>
+                          <button onClick={() => { setOpenDropdownId(null); setDeleteTarget(item); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10">
+                            <Trash2 className="h-3.5 w-3.5"/> Hapus Arsip
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 py-16 dark:border-white/10">
+          <FolderArchive className="h-12 w-12 text-slate-300 dark:text-slate-600"/>
+          <p className="mt-2 text-sm font-medium text-slate-500">Tidak ada arsip ditemukan.</p>
+        </div>
+      )}
+
+      {/* MODAL TAMBAH/EDIT */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
+          <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-white/10">
+            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">{activeArchive ? 'Edit Arsip' : 'Tambah Arsip'}</h2>
+              <button onClick={closeModal} className="text-slate-500 hover:bg-slate-100 p-1.5 rounded-lg dark:hover:bg-white/10"><X className="h-5 w-5"/></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Periode Kepengurusan *</label>
+                <input type="text" value={form.period_year} onChange={e => setForm({...form, period_year: e.target.value})} placeholder="Contoh: 2026/2027" required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 dark:bg-slate-800 dark:border-white/10 dark:text-white" />
+                {errors.period_year && <p className="text-xs text-red-500 mt-1">{errors.period_year[0]}</p>}
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Nama Arsip / Folder *</label>
+                <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Contoh: Sertifikat Gemastik" required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 dark:bg-slate-800 dark:border-white/10 dark:text-white" />
+                {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name[0]}</p>}
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase text-slate-500">URL Google Drive *</label>
+                <input type="url" value={form.drive_url} onChange={e => setForm({...form, drive_url: e.target.value})} placeholder="https://drive.google.com/..." required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 dark:bg-slate-800 dark:border-white/10 dark:text-white" />
+                {errors.drive_url && <p className="text-xs text-red-500 mt-1">{errors.drive_url[0]}</p>}
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={closeModal} className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5">Batal</button>
+                <button type="submit" disabled={submitting} className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50">{submitting && <Loader2 className="h-4 w-4 animate-spin"/>} Simpan</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DELETE MODAL */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDelete}
+        title="Hapus Arsip"
+        message={`Yakin ingin menghapus arsip "${deleteTarget?.name}"? Tautan ke Drive akan hilang secara permanen dari sistem.`}
+        confirmText="Hapus Permanen"
+        isLoading={isDeleting}
+        isDanger={true}
+      />
+    </div>
+  );
+}
+```
+
 ## File: src/pages/AuditTrail.jsx
 ```javascript
 import { useState } from 'react';
@@ -1172,6 +1493,1318 @@ export default function EventManagement() {
         }}
         event={committeeTargetEvent}
       />
+    </div>
+  );
+}
+```
+
+## File: src/pages/Profile.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import { User, Key, Save, Loader2, ShieldCheck, Mail, Phone, Hash, GraduationCap, Calendar, MapPin } from 'lucide-react';
+
+export default function Profile() {
+  const { user, checkAuth } = useAuth();
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+    nim: '',
+    phone: '',
+    prodi: '',
+    angkatan: '',
+    address: '',
+  });
+
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    password: '',
+    password_confirmation: '',
+  });
+
+  const [profileErrors, setProfileErrors] = useState({});
+  const [passwordErrors, setPasswordErrors] = useState({});
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        email: user.email || '',
+        nim: user.nim || '',
+        phone: user.phone || '',
+        prodi: user.prodi || '',
+        angkatan: user.angkatan || '',
+        address: user.address || '',
+      });
+    }
+  }, [user]);
+
+  const handleProfileChange = (e) => {
+    const { name, value } = e.target;
+    setProfileForm((prev) => ({ ...prev, [name]: value }));
+    setProfileErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    setPasswordErrors((prev) => ({ ...prev, [name]: undefined }));
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    setProfileErrors({});
+
+    try {
+      await api.put('/api/user/profile', profileForm);
+      await checkAuth();
+      toast.success('Profil berhasil diperbarui.');
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.errors) {
+          setProfileErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError) toast.error(firstError);
+        } else if (data.message) {
+          toast.error(data.message);
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui profil.');
+      }
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingPassword(true);
+    setPasswordErrors({});
+
+    try {
+      await api.put('/api/user/password', passwordForm);
+      setPasswordForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+      });
+      toast.success('Kata sandi berhasil diperbarui.');
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.errors) {
+          setPasswordErrors(data.errors);
+          const firstError = Object.values(data.errors).flat()[0];
+          if (firstError) toast.error(firstError);
+        } else if (data.message) {
+          toast.error(data.message);
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui kata sandi.');
+      }
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  const inputClass = (hasError) =>
+    `w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 ${
+      hasError
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10 dark:focus:ring-primary-500/20'
+    }`;
+
+  return (
+    <div className="space-y-6 max-w-4xl animate-slide-up-fade">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+          <User className="h-5 w-5 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Profil Saya</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Kelola informasi data diri dan pengaturan keamanan akun Anda.
+          </p>
+        </div>
+      </div>
+
+      {/* Card 1: Informasi Pribadi */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div className="flex items-center gap-2.5">
+            <User className="h-5 w-5 text-primary-500" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Informasi Pribadi</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Perbarui biodata dan kontak akun Anda.
+              </p>
+            </div>
+          </div>
+          <span className="rounded-md bg-primary-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+            {user?.roles?.[0]?.name || 'Member'}
+          </span>
+        </div>
+
+        <form onSubmit={handleProfileSubmit} className="space-y-5">
+          {/* Row 1: Nama & Email */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <User className="h-3.5 w-3.5" />
+                Nama Lengkap
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={profileForm.name}
+                onChange={handleProfileChange}
+                placeholder="Masukkan nama lengkap"
+                className={inputClass(!!profileErrors.name)}
+              />
+              {profileErrors.name && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.name[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Mail className="h-3.5 w-3.5" />
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={profileForm.email}
+                onChange={handleProfileChange}
+                placeholder="contoh@email.com"
+                className={inputClass(!!profileErrors.email)}
+              />
+              {profileErrors.email && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.email[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 2: NIM & No Telepon */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Hash className="h-3.5 w-3.5" />
+                NIM / Nomor Induk
+              </label>
+              <input
+                type="text"
+                name="nim"
+                value={profileForm.nim}
+                onChange={handleProfileChange}
+                placeholder="Masukkan NIM"
+                className={inputClass(!!profileErrors.nim)}
+              />
+              {profileErrors.nim && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.nim[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Phone className="h-3.5 w-3.5" />
+                No. Telepon / WhatsApp
+              </label>
+              <input
+                type="text"
+                name="phone"
+                value={profileForm.phone}
+                onChange={handleProfileChange}
+                placeholder="081234567890"
+                className={inputClass(!!profileErrors.phone)}
+              />
+              {profileErrors.phone && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.phone[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 3: Program Studi & Angkatan */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <GraduationCap className="h-3.5 w-3.5" />
+                Program Studi
+              </label>
+              <input
+                type="text"
+                name="prodi"
+                value={profileForm.prodi}
+                onChange={handleProfileChange}
+                placeholder="Contoh: Teknik Informatika"
+                className={inputClass(!!profileErrors.prodi)}
+              />
+              {profileErrors.prodi && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.prodi[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <Calendar className="h-3.5 w-3.5" />
+                Tahun Angkatan
+              </label>
+              <input
+                type="text"
+                name="angkatan"
+                value={profileForm.angkatan}
+                onChange={handleProfileChange}
+                placeholder="Contoh: 2024"
+                className={inputClass(!!profileErrors.angkatan)}
+              />
+              {profileErrors.angkatan && (
+                <p className="mt-1 text-xs text-red-400">{profileErrors.angkatan[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Row 4: Alamat */}
+          <div>
+            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <MapPin className="h-3.5 w-3.5" />
+              Alamat Domisili
+            </label>
+            <textarea
+              name="address"
+              rows={3}
+              value={profileForm.address}
+              onChange={handleProfileChange}
+              placeholder="Masukkan alamat lengkap domisili saat ini..."
+              className={inputClass(!!profileErrors.address)}
+            />
+            {profileErrors.address && (
+              <p className="mt-1 text-xs text-red-400">{profileErrors.address[0]}</p>
+            )}
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={isSavingProfile}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Card 2: Keamanan Akun */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div className="flex items-center gap-2.5">
+            <Key className="h-5 w-5 text-amber-500" />
+            <div>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Keamanan Akun</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Ganti kata sandi secara berkala untuk menjaga keamanan akun Anda.
+              </p>
+            </div>
+          </div>
+          <ShieldCheck className="h-5 w-5 text-slate-400 dark:text-slate-500" />
+        </div>
+
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          {/* Current Password */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Kata Sandi Saat Ini
+            </label>
+            <input
+              type="password"
+              name="current_password"
+              value={passwordForm.current_password}
+              onChange={handlePasswordChange}
+              placeholder="Masukkan kata sandi lama Anda"
+              className={inputClass(!!passwordErrors.current_password)}
+            />
+            {passwordErrors.current_password && (
+              <p className="mt-1 text-xs text-red-400">{passwordErrors.current_password[0]}</p>
+            )}
+          </div>
+
+          {/* New Password & Confirmation */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Kata Sandi Baru
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={passwordForm.password}
+                onChange={handlePasswordChange}
+                placeholder="Minimal 8 karakter"
+                className={inputClass(!!passwordErrors.password)}
+              />
+              {passwordErrors.password && (
+                <p className="mt-1 text-xs text-red-400">{passwordErrors.password[0]}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Konfirmasi Kata Sandi Baru
+              </label>
+              <input
+                type="password"
+                name="password_confirmation"
+                value={passwordForm.password_confirmation}
+                onChange={handlePasswordChange}
+                placeholder="Ulangi kata sandi baru"
+                className={inputClass(!!passwordErrors.password_confirmation)}
+              />
+              {passwordErrors.password_confirmation && (
+                <p className="mt-1 text-xs text-red-400">{passwordErrors.password_confirmation[0]}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={isSavingPassword}
+              className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-400"
+            >
+              {isSavingPassword ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Key className="h-4 w-4" />
+              )}
+              <span>{isSavingPassword ? 'Memperbarui...' : 'Perbarui Password'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
+## File: src/pages/Settings.jsx
+```javascript
+import { useState, useEffect, useRef } from 'react';
+import useSWR, { mutate } from 'swr';
+import { useAuth } from '../contexts/AuthContext';
+import { fetcher } from '../api/fetcher';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+import {
+  Settings as SettingsIcon, Save, Loader2, AlertCircle, ShieldAlert,
+  Image as ImageIcon, Type, Link as LinkIcon, Upload, Database, Cloud
+} from 'lucide-react';
+
+export default function Settings() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.[0]?.name === 'admin';
+
+  const { data: settingsData, error, isLoading } = useSWR(isAdmin ? '/api/settings' : null, fetcher);
+  const fileInputRef = useRef(null);
+
+  const [form, setForm] = useState({
+    org_name: '',
+    org_logo: '',
+    bph_agenda_sync_url: '',
+    bph_document_sync_url: '',
+    bph_finance_sync_url: '',
+    bph_kas_sync_url: '',
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Hydrate form state when data arrives
+  useEffect(() => {
+    if (settingsData) {
+      setForm({
+        org_name: settingsData.org_name || '',
+        org_logo: settingsData.org_logo || '',
+        bph_agenda_sync_url: settingsData.bph_agenda_sync_url || '',
+        bph_document_sync_url: settingsData.bph_document_sync_url || '',
+        bph_finance_sync_url: settingsData.bph_finance_sync_url || '',
+        bph_kas_sync_url: settingsData.bph_kas_sync_url || '',
+      });
+    }
+  }, [settingsData]);
+
+  if (!isAdmin) {
+    return (
+      <div className="flex h-full items-center justify-center py-16">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-8 text-center dark:bg-red-500/10">
+          <ShieldAlert className="h-10 w-10 text-red-500"/>
+          <h2 className="text-lg font-bold text-red-700 dark:text-red-300">Akses Ditolak</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary-500"/></div>;
+  if (error) return <div className="flex justify-center py-16"><AlertCircle className="h-10 w-10 text-red-500"/></div>;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Upload File Logic (multipart/form-data)
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Optional: Client-side validation
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Ukuran file maksimal adalah 2MB.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    setUploadingLogo(true);
+    try {
+      const res = await api.post('/api/settings/logo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      // Update local state and global cache
+      setForm(prev => ({ ...prev, org_logo: res.data.url }));
+      toast.success('Logo organisasi berhasil diunggah.');
+      mutate('/api/settings'); 
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal mengunggah logo.');
+    } finally {
+      setUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Batch Update JSON Logic (Text & URLs)
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    const payload = {
+      settings: [
+        { key: 'org_name', value: form.org_name },
+        { key: 'bph_agenda_sync_url', value: form.bph_agenda_sync_url },
+        { key: 'bph_document_sync_url', value: form.bph_document_sync_url },
+        { key: 'bph_finance_sync_url', value: form.bph_finance_sync_url },
+        { key: 'bph_kas_sync_url', value: form.bph_kas_sync_url },
+      ]
+    };
+
+    try {
+      await api.post('/api/settings/batch', payload);
+      toast.success('Pengaturan sistem berhasil diperbarui.');
+      mutate('/api/settings'); 
+    } catch (err) {
+      toast.error('Gagal memperbarui pengaturan.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = "w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 dark:border-white/10 dark:bg-slate-800 dark:text-white";
+
+  return (
+    <div className="space-y-6 max-w-5xl animate-slide-up-fade">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 shadow-lg">
+          <SettingsIcon className="h-5 w-5 text-white"/>
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Pengaturan Sistem</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Kelola identitas organisasi dan parameter integrasi cloud.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Kolom Kiri: Form & Configurations */}
+        <div className="lg:col-span-2 space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* Card 1: Identitas Organisasi */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+              <h2 className="mb-6 flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 pb-4 dark:border-white/10">
+                <Database className="h-4 w-4 text-primary-500"/> Identitas Organisasi
+              </h2>
+              
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <Type className="h-3.5 w-3.5"/> Nama Organisasi
+                  </label>
+                  <input
+                    type="text"
+                    name="org_name"
+                    value={form.org_name}
+                    onChange={handleChange}
+                    required
+                    placeholder="Contoh: Himpunan Mahasiswa..."
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <ImageIcon className="h-3.5 w-3.5"/> Unggah Logo Organisasi
+                  </label>
+                  <div className="flex items-center gap-3">
+                    {/* Hidden File Input */}
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleLogoUpload}
+                      accept="image/jpeg, image/png, image/svg+xml"
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    <label 
+                      htmlFor="logo-upload" 
+                      className={`flex cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin"/> : <Upload className="h-4 w-4"/>}
+                      Pilih Gambar
+                    </label>
+                    <span className="text-xs text-slate-500 max-w-[200px] truncate">
+                      {form.org_logo ? 'Logo aktif terpasang.' : 'Belum ada logo.'}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[10px] text-slate-400">Format didukung: JPG, PNG, SVG (Maks. 2MB). Akan langsung memengaruhi sidebar global.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Cloud Sync URLs (BPH Pusat) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+              <h2 className="mb-6 flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white border-b border-slate-200 pb-4 dark:border-white/10">
+                <Cloud className="h-4 w-4 text-emerald-500"/> Integrasi Spreadsheet BPH Pusat
+              </h2>
+              
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <LinkIcon className="h-3.5 w-3.5"/> URL Sync Agenda (BPH Pusat)
+                  </label>
+                  <input
+                    type="url"
+                    name="bph_agenda_sync_url"
+                    value={form.bph_agenda_sync_url}
+                    onChange={handleChange}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <LinkIcon className="h-3.5 w-3.5"/> URL Sync Dokumen (BPH Pusat)
+                  </label>
+                  <input
+                    type="url"
+                    name="bph_document_sync_url"
+                    value={form.bph_document_sync_url}
+                    onChange={handleChange}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <LinkIcon className="h-3.5 w-3.5"/> URL Sync Keuangan (BPH Pusat)
+                  </label>
+                  <input
+                    type="url"
+                    name="bph_finance_sync_url"
+                    value={form.bph_finance_sync_url}
+                    onChange={handleChange}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <LinkIcon className="h-3.5 w-3.5"/> URL Sync Kas Pengurus
+                  </label>
+                  <input
+                    type="url"
+                    name="bph_kas_sync_url"
+                    value={form.bph_kas_sync_url}
+                    onChange={handleChange}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              {/* Submit Master Button */}
+              <div className="mt-8 flex justify-end pt-4 border-t border-slate-200 dark:border-white/10">
+                <button type="submit" disabled={submitting} className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-slate-800 disabled:opacity-50 dark:bg-primary-600 dark:hover:bg-primary-500">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>}
+                  Simpan Konfigurasi
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Kolom Kanan: Live Preview Sidebar */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-2 dark:border-white/10">Preview Tampilan Sidebar</h3>
+            <div className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm border border-slate-200 dark:bg-slate-800 dark:border-white/5">
+              {form.org_logo ? (
+                <img src={form.org_logo} alt="Logo" className="h-10 w-10 rounded-xl object-contain shadow-sm bg-white" onError={(e) => { e.target.onerror = null; e.target.src = ''; }} />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
+                  <ImageIcon className="h-5 w-5 text-white"/>
+                </div>
+              )}
+              <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white line-clamp-2">
+                {form.org_name || 'Nama Organisasi'}
+              </span>
+            </div>
+            
+            <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-500/20 dark:bg-blue-500/10">
+              <p className="text-xs text-blue-700 dark:text-blue-400">
+                <strong>Catatan:</strong> Gambar logo diunggah langsung ke penyimpanan server. URL konfigurasi Spreadsheet dikunci dan hanya dapat diedit oleh BPH Inti.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+```
+
+## File: src/routes/ProtectedRoute.jsx
+```javascript
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
+
+export default function ProtectedRoute() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+}
+```
+
+## File: src/main.jsx
+```javascript
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+```
+
+## File: .gitignore
+```
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+```
+
+## File: .oxlintrc.json
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "oxc"],
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
+```
+
+## File: index.html
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sistem Manajemen Protik — Kelola data protik dengan efisien" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <title>Manajemen Protik</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+```
+
+## File: README.md
+```markdown
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the Oxlint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+```
+
+## File: tailwind.config.js
+```javascript
+/** @type {import('tailwindcss').Config} */
+export default {
+  darkMode: 'class',
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+```
+
+## File: src/api/axios.js
+```javascript
+import axios from 'axios';
+import toast from 'react-hot-toast';
+
+const axiosInstance = axios.create({
+    baseURL: import.meta.env.VITE_API_URL,
+    withCredentials: true,
+    withXSRFToken: true, // INI KUNCI UTAMANYA UNTUK AXIOS VERSI TERBARU!
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    }
+});
+
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        // Tangkap Network Error (Internet mati atau Server Down)
+        if (!error.response) {
+            toast.error('Koneksi terputus. Periksa jaringan internet Anda.');
+        } else if (error.response.status >= 500) {
+            toast.error('Terjadi kesalahan internal server (500).');
+        } else if ((error.response?.status === 401 || error.response?.status === 419) && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
+export default axiosInstance;
+```
+
+## File: src/api/fetcher.js
+```javascript
+import api from './axios';
+
+export const fetcher = (url) => api.get(url).then((res) => res.data.data);
+
+export const paginatedFetcher = (url) => api.get(url).then((res) => res.data);
+```
+
+## File: src/components/UserModal.jsx
+```javascript
+import { useState, useEffect } from 'react';
+import { X, Loader2, UserCog } from 'lucide-react';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+const ROLES = [
+  { value: 'admin', label: 'Admin (BPH Pusat)' },
+  { value: 'member', label: 'Member (Anggota Biasa)' },
+  { value: 'advisor', label: 'Advisor (Pembina / Demisioner)' },
+];
+
+const STATUSES = [
+  { value: 'active', label: 'Aktif (Active)' },
+  { value: 'suspended', label: 'Suspended (Nonaktif)' },
+];
+
+export default function UserModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialData = null,
+  divisions = [],
+}) {
+  const [divisionId, setDivisionId] = useState('');
+  const [role, setRole] = useState('member');
+  const [status, setStatus] = useState('active');
+  const [isCoordinator, setIsCoordinator] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setDivisionId(initialData.division_id ?? '');
+      setRole(initialData.roles?.[0]?.name || 'member');
+      setStatus(initialData.status || 'active');
+      setIsCoordinator(initialData.is_coordinator || false);
+    }
+    setErrors({});
+  }, [initialData, isOpen]);
+
+  if (!isOpen || !initialData) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrors({});
+
+    try {
+      const payload = {
+        division_id: divisionId ? Number(divisionId) : null,
+        role,
+        status,
+        is_coordinator: isCoordinator,
+      };
+
+      await api.put(`/api/users/${initialData.id}`, payload);
+      toast.success(`Data pengguna ${initialData.name} berhasil diperbarui.`);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      if (err.response?.status === 422) {
+        const data = err.response.data;
+        if (data.message) toast.error(data.message);
+        if (data.errors) setErrors(data.errors);
+      } else {
+        toast.error(err.response?.data?.message || 'Gagal memperbarui pengguna.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClass = (field) =>
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 dark:bg-white/5 dark:text-white ${
+      errors[field]
+        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
+    }`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-500/25">
+              <UserCog className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                Edit Data Anggota
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Ubah divisi, hak akses (role), atau status akun anggota.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* User Info Preview */}
+        <div className="border-b border-slate-100 bg-slate-50/60 px-6 py-3 dark:border-white/5 dark:bg-white/[0.02]">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+            {initialData.name}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {initialData.email}
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+          {/* Division */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Divisi Organisasi
+            </label>
+            <select
+              value={divisionId}
+              onChange={(e) => setDivisionId(e.target.value)}
+              className={inputClass('division_id')}
+            >
+              <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
+                -- Tanpa Divisi (BPH Inti / Umum) --
+              </option>
+              {divisions.map((div) => (
+                <option
+                  key={div.id}
+                  value={div.id}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {div.name}
+                </option>
+              ))}
+            </select>
+            {errors.division_id && (
+              <p className="mt-1 text-xs text-red-400">{errors.division_id[0]}</p>
+            )}
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Hak Akses (Role)
+            </label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className={inputClass('role')}
+            >
+              {ROLES.map((r) => (
+                <option
+                  key={r.value}
+                  value={r.value}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            {errors.role && (
+              <p className="mt-1 text-xs text-red-400">{errors.role[0]}</p>
+            )}
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Status Akun
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className={inputClass('status')}
+            >
+              {STATUSES.map((s) => (
+                <option
+                  key={s.value}
+                  value={s.value}
+                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                >
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            {errors.status && (
+              <p className="mt-1 text-xs text-red-400">{errors.status[0]}</p>
+            )}
+          </div>
+
+          {/* Status Koordinator */}
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Koordinator Divisi
+              </label>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                Tandai jika anggota ini adalah ketua/koordinator dari divisi yang dipilih.
+              </p>
+            </div>
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                checked={isCoordinator}
+                onChange={(e) => setIsCoordinator(e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 dark:bg-slate-700 dark:border-slate-600"></div>
+            </label>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
+## File: src/contexts/AuthContext.jsx
+```javascript
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../api/axios';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const isAuthenticated = !!user;
+
+  const checkAuth = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/user');
+      setUser(data?.data || data);
+    } catch {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const login = useCallback(async (email, password) => {
+    await api.get('/sanctum/csrf-cookie');
+    await api.post('/login', { email, password });
+    await checkAuth();
+  }, [checkAuth]);
+
+  const logout = useCallback(async () => {
+    await api.post('/logout');
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, checkAuth }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+```
+
+## File: src/pages/Login.jsx
+```javascript
+import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
+
+export default function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await login(email, password);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      const message =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.email?.[0] ||
+        'Login gagal. Periksa kembali kredensial Anda.';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-primary-950 px-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 shadow-lg shadow-primary-500/25">
+            <LogIn className="h-7 w-7 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            Selamat Datang Kembali
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Masuk ke akun Anda untuk melanjutkan
+          </p>
+        </div>
+
+        {/* Card */}
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
+        >
+          {/* Email */}
+          <div className="mb-5">
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-300">
+              Email
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@email.com"
+                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div className="mb-6">
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-300">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
+              />
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition hover:bg-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              <>
+                <LogIn className="h-4 w-4" />
+                Masuk
+              </>
+            )}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-xs text-slate-500">
+          &copy; {new Date().getFullYear()} Manajemen Protik. All rights reserved.
+        </p>
+      </div>
     </div>
   );
 }
@@ -1978,1584 +3611,6 @@ export default function MasterData() {
 }
 ```
 
-## File: src/pages/Profile.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-import { User, Key, Save, Loader2, ShieldCheck, Mail, Phone, Hash, GraduationCap, Calendar, MapPin } from 'lucide-react';
-
-export default function Profile() {
-  const { user, checkAuth } = useAuth();
-
-  const [profileForm, setProfileForm] = useState({
-    name: '',
-    email: '',
-    nim: '',
-    phone: '',
-    prodi: '',
-    angkatan: '',
-    address: '',
-  });
-
-  const [passwordForm, setPasswordForm] = useState({
-    current_password: '',
-    password: '',
-    password_confirmation: '',
-  });
-
-  const [profileErrors, setProfileErrors] = useState({});
-  const [passwordErrors, setPasswordErrors] = useState({});
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      setProfileForm({
-        name: user.name || '',
-        email: user.email || '',
-        nim: user.nim || '',
-        phone: user.phone || '',
-        prodi: user.prodi || '',
-        angkatan: user.angkatan || '',
-        address: user.address || '',
-      });
-    }
-  }, [user]);
-
-  const handleProfileChange = (e) => {
-    const { name, value } = e.target;
-    setProfileForm((prev) => ({ ...prev, [name]: value }));
-    setProfileErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordForm((prev) => ({ ...prev, [name]: value }));
-    setPasswordErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
-
-  const handleProfileSubmit = async (e) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    setProfileErrors({});
-
-    try {
-      await api.put('/api/user/profile', profileForm);
-      await checkAuth();
-      toast.success('Profil berhasil diperbarui.');
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.errors) {
-          setProfileErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError) toast.error(firstError);
-        } else if (data.message) {
-          toast.error(data.message);
-        }
-      } else {
-        toast.error(err.response?.data?.message || 'Gagal memperbarui profil.');
-      }
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setIsSavingPassword(true);
-    setPasswordErrors({});
-
-    try {
-      await api.put('/api/user/password', passwordForm);
-      setPasswordForm({
-        current_password: '',
-        password: '',
-        password_confirmation: '',
-      });
-      toast.success('Kata sandi berhasil diperbarui.');
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.errors) {
-          setPasswordErrors(data.errors);
-          const firstError = Object.values(data.errors).flat()[0];
-          if (firstError) toast.error(firstError);
-        } else if (data.message) {
-          toast.error(data.message);
-        }
-      } else {
-        toast.error(err.response?.data?.message || 'Gagal memperbarui kata sandi.');
-      }
-    } finally {
-      setIsSavingPassword(false);
-    }
-  };
-
-  const inputClass = (hasError) =>
-    `w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed dark:bg-white/5 dark:text-white dark:placeholder-slate-500 ${
-      hasError
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10 dark:focus:ring-primary-500/20'
-    }`;
-
-  return (
-    <div className="space-y-6 max-w-4xl animate-slide-up-fade">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-          <User className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">Profil Saya</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Kelola informasi data diri dan pengaturan keamanan akun Anda.
-          </p>
-        </div>
-      </div>
-
-      {/* Card 1: Informasi Pribadi */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
-          <div className="flex items-center gap-2.5">
-            <User className="h-5 w-5 text-primary-500" />
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Informasi Pribadi</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Perbarui biodata dan kontak akun Anda.
-              </p>
-            </div>
-          </div>
-          <span className="rounded-md bg-primary-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-primary-600 dark:text-primary-400">
-            {user?.roles?.[0]?.name || 'Member'}
-          </span>
-        </div>
-
-        <form onSubmit={handleProfileSubmit} className="space-y-5">
-          {/* Row 1: Nama & Email */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <User className="h-3.5 w-3.5" />
-                Nama Lengkap
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={profileForm.name}
-                onChange={handleProfileChange}
-                placeholder="Masukkan nama lengkap"
-                className={inputClass(!!profileErrors.name)}
-              />
-              {profileErrors.name && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.name[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Mail className="h-3.5 w-3.5" />
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={profileForm.email}
-                onChange={handleProfileChange}
-                placeholder="contoh@email.com"
-                className={inputClass(!!profileErrors.email)}
-              />
-              {profileErrors.email && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.email[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 2: NIM & No Telepon */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Hash className="h-3.5 w-3.5" />
-                NIM / Nomor Induk
-              </label>
-              <input
-                type="text"
-                name="nim"
-                value={profileForm.nim}
-                onChange={handleProfileChange}
-                placeholder="Masukkan NIM"
-                className={inputClass(!!profileErrors.nim)}
-              />
-              {profileErrors.nim && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.nim[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Phone className="h-3.5 w-3.5" />
-                No. Telepon / WhatsApp
-              </label>
-              <input
-                type="text"
-                name="phone"
-                value={profileForm.phone}
-                onChange={handleProfileChange}
-                placeholder="081234567890"
-                className={inputClass(!!profileErrors.phone)}
-              />
-              {profileErrors.phone && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.phone[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 3: Program Studi & Angkatan */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <GraduationCap className="h-3.5 w-3.5" />
-                Program Studi
-              </label>
-              <input
-                type="text"
-                name="prodi"
-                value={profileForm.prodi}
-                onChange={handleProfileChange}
-                placeholder="Contoh: Teknik Informatika"
-                className={inputClass(!!profileErrors.prodi)}
-              />
-              {profileErrors.prodi && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.prodi[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                <Calendar className="h-3.5 w-3.5" />
-                Tahun Angkatan
-              </label>
-              <input
-                type="text"
-                name="angkatan"
-                value={profileForm.angkatan}
-                onChange={handleProfileChange}
-                placeholder="Contoh: 2024"
-                className={inputClass(!!profileErrors.angkatan)}
-              />
-              {profileErrors.angkatan && (
-                <p className="mt-1 text-xs text-red-400">{profileErrors.angkatan[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Row 4: Alamat */}
-          <div>
-            <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              <MapPin className="h-3.5 w-3.5" />
-              Alamat Domisili
-            </label>
-            <textarea
-              name="address"
-              rows={3}
-              value={profileForm.address}
-              onChange={handleProfileChange}
-              placeholder="Masukkan alamat lengkap domisili saat ini..."
-              className={inputClass(!!profileErrors.address)}
-            />
-            {profileErrors.address && (
-              <p className="mt-1 text-xs text-red-400">{profileErrors.address[0]}</p>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={isSavingProfile}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSavingProfile ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              <span>{isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Card 2: Keamanan Akun */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-4 dark:border-white/10">
-          <div className="flex items-center gap-2.5">
-            <Key className="h-5 w-5 text-amber-500" />
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">Keamanan Akun</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Ganti kata sandi secara berkala untuk menjaga keamanan akun Anda.
-              </p>
-            </div>
-          </div>
-          <ShieldCheck className="h-5 w-5 text-slate-400 dark:text-slate-500" />
-        </div>
-
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          {/* Current Password */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Kata Sandi Saat Ini
-            </label>
-            <input
-              type="password"
-              name="current_password"
-              value={passwordForm.current_password}
-              onChange={handlePasswordChange}
-              placeholder="Masukkan kata sandi lama Anda"
-              className={inputClass(!!passwordErrors.current_password)}
-            />
-            {passwordErrors.current_password && (
-              <p className="mt-1 text-xs text-red-400">{passwordErrors.current_password[0]}</p>
-            )}
-          </div>
-
-          {/* New Password & Confirmation */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Kata Sandi Baru
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={passwordForm.password}
-                onChange={handlePasswordChange}
-                placeholder="Minimal 8 karakter"
-                className={inputClass(!!passwordErrors.password)}
-              />
-              {passwordErrors.password && (
-                <p className="mt-1 text-xs text-red-400">{passwordErrors.password[0]}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Konfirmasi Kata Sandi Baru
-              </label>
-              <input
-                type="password"
-                name="password_confirmation"
-                value={passwordForm.password_confirmation}
-                onChange={handlePasswordChange}
-                placeholder="Ulangi kata sandi baru"
-                className={inputClass(!!passwordErrors.password_confirmation)}
-              />
-              {passwordErrors.password_confirmation && (
-                <p className="mt-1 text-xs text-red-400">{passwordErrors.password_confirmation[0]}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={isSavingPassword}
-              className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:text-amber-400"
-            >
-              {isSavingPassword ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Key className="h-4 w-4" />
-              )}
-              <span>{isSavingPassword ? 'Memperbarui...' : 'Perbarui Password'}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-```
-
-## File: src/routes/ProtectedRoute.jsx
-```javascript
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
-
-export default function ProtectedRoute() {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <Outlet />;
-}
-```
-
-## File: src/main.jsx
-```javascript
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
-```
-
-## File: .gitignore
-```
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-```
-
-## File: .oxlintrc.json
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "oxc"],
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-## File: index.html
-```html
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Sistem Manajemen Protik — Kelola data protik dengan efisien" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Manajemen Protik</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-```
-
-## File: README.md
-```markdown
-# React + Vite
-
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
-```
-
-## File: tailwind.config.js
-```javascript
-/** @type {import('tailwindcss').Config} */
-export default {
-  darkMode: 'class',
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}
-```
-
-## File: src/api/axios.js
-```javascript
-import axios from 'axios';
-import toast from 'react-hot-toast';
-
-const axiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL,
-    withCredentials: true,
-    withXSRFToken: true, // INI KUNCI UTAMANYA UNTUK AXIOS VERSI TERBARU!
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-    }
-});
-
-axiosInstance.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        // Tangkap Network Error (Internet mati atau Server Down)
-        if (!error.response) {
-            toast.error('Koneksi terputus. Periksa jaringan internet Anda.');
-        } else if (error.response.status >= 500) {
-            toast.error('Terjadi kesalahan internal server (500).');
-        } else if ((error.response?.status === 401 || error.response?.status === 419) && window.location.pathname !== '/login') {
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
-    }
-);
-
-export default axiosInstance;
-```
-
-## File: src/api/fetcher.js
-```javascript
-import api from './axios';
-
-export const fetcher = (url) => api.get(url).then((res) => res.data.data);
-
-export const paginatedFetcher = (url) => api.get(url).then((res) => res.data);
-```
-
-## File: src/components/CommitteeModal.jsx
-```javascript
-import { useState, useEffect, useRef } from 'react';
-import useSWR from 'swr';
-import * as XLSX from 'xlsx';
-import {
-  X,
-  Loader2,
-  Download,
-  Upload,
-  Trash2,
-  Search,
-  Users,
-  Plus,
-  FileSpreadsheet,
-} from 'lucide-react';
-import { paginatedFetcher } from '../api/fetcher';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-export default function CommitteeModal({ isOpen, onClose, event }) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState(null);
-  const [position, setPosition] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
-
-  const dropdownRef = useRef(null);
-  const fileInputRef = useRef(null);
-
-  // Fetch Users
-  const { data: usersData, isLoading: usersLoading } = useSWR(
-    isOpen ? '/api/users' : null,
-    paginatedFetcher
-  );
-
-  // Fetch Committees for active event
-  const committeeUrl =
-    isOpen && event?.id ? `/api/event-committees?event_id=${event.id}` : null;
-  const {
-    data: committeesData,
-    isLoading: committeeLoading,
-    mutate: mutateCommittees,
-  } = useSWR(committeeUrl, paginatedFetcher);
-
-  // Close combobox when clicking outside
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Reset state when modal closes or active event changes
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchTerm('');
-      setSelectedUserId(null);
-      setPosition('');
-      setIsDropdownOpen(false);
-      setIsUploading(false);
-      setSubmitting(false);
-    }
-  }, [isOpen, event]);
-
-  if (!isOpen || !event) return null;
-
-  const usersList =
-    usersData?.data?.data ||
-    (Array.isArray(usersData?.data) ? usersData.data : []) ||
-    [];
-  const committeesList =
-    committeesData?.data?.data ||
-    (Array.isArray(committeesData?.data) ? committeesData.data : []) ||
-    [];
-
-  const filteredUsers = usersList.filter((u) => {
-    const q = searchTerm.toLowerCase();
-    return (
-      (u.name && u.name.toLowerCase().includes(q)) ||
-      (u.email && u.email.toLowerCase().includes(q))
-    );
-  });
-
-  // TUGAS 3: Fitur Excel Multi-Sheet (Download Template)
-  const handleDownloadTemplate = () => {
-    try {
-      // Sheet 1: Form_Import
-      const formImportData = [
-        {
-          'ID Anggota': '',
-          'Jabatan': '',
-        },
-      ];
-      const wsForm = XLSX.utils.json_to_sheet(formImportData);
-
-      // Sheet 2: Referensi_Anggota
-      const referenceData = usersList.map((u) => ({
-        'ID Anggota': u.id,
-        'Nama Anggota': u.name,
-        'Email': u.email,
-      }));
-      const wsRef = XLSX.utils.json_to_sheet(referenceData);
-
-      // Sheet 3: Panduan_Sistem
-      const guideData = [
-        {
-          'ATURAN PENGISIAN PANITIA':
-            '1. Gunakan ID Anggota yang valid dari Sheet Referensi_Anggota.',
-        },
-        {
-          'ATURAN PENGISIAN PANITIA':
-            '2. Untuk akses Edit (Keuangan/Dokumen/Rapat), ketik Jabatan PERSIS: Ketua, Sekretaris, atau Bendahara.',
-        },
-        {
-          'ATURAN PENGISIAN PANITIA':
-            '3. Untuk divisi lain, ketik bebas (misal: Koordinator Acara).',
-        },
-      ];
-      const wsGuide = XLSX.utils.json_to_sheet(guideData);
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, wsForm, 'Form_Import');
-      XLSX.utils.book_append_sheet(wb, wsRef, 'Referensi_Anggota');
-      XLSX.utils.book_append_sheet(wb, wsGuide, 'Panduan_Sistem');
-
-      XLSX.writeFile(wb, 'Template_Panitia.xlsx');
-      toast.success('Template Panitia berhasil diunduh.');
-    } catch (err) {
-      console.error(err);
-      toast.error('Gagal mengunduh template.');
-    }
-  };
-
-  // TUGAS 4: Fitur Excel (Bulk Import)
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    const reader = new FileReader();
-
-    reader.onload = async (evt) => {
-      try {
-        const data = evt.target?.result;
-        const wb = XLSX.read(data, { type: 'binary' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws);
-
-        if (!rows || rows.length === 0) {
-          toast.error('File Excel kosong atau format tidak sesuai.');
-          setIsUploading(false);
-          if (fileInputRef.current) fileInputRef.current.value = '';
-          return;
-        }
-
-        let successCount = 0;
-        let failCount = 0;
-
-        for (const row of rows) {
-          const rawUserId = row['ID Anggota'];
-          const rawPosition = row['Jabatan'];
-
-          if (!rawUserId || !rawPosition) {
-            failCount++;
-            continue;
-          }
-
-          try {
-            await api.post('/api/event-committees', {
-              event_id: event.id,
-              user_id: Number(rawUserId),
-              position: String(rawPosition).trim(),
-            });
-            successCount++;
-          } catch (itemErr) {
-            console.error('Error importing row:', row, itemErr);
-            toast.error(
-              itemErr.response?.data?.message ||
-                `Gagal mengimpor anggota ID ${rawUserId}`
-            );
-            failCount++;
-          }
-        }
-
-        if (successCount > 0) {
-          toast.success(`Berhasil mengimpor ${successCount} panitia.`);
-        }
-        mutateCommittees();
-      } catch (err) {
-        console.error(err);
-        toast.error('Terjadi kesalahan saat memproses file Excel.');
-      } finally {
-        setIsUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      }
-    };
-
-    reader.onerror = () => {
-      toast.error('Gagal membaca file Excel.');
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-
-    reader.readAsBinaryString(file);
-  };
-
-  // Submit Injeksi Manual
-  const handleAddCommittee = async (e) => {
-    e.preventDefault();
-    if (!selectedUserId) {
-      toast.error('Silakan cari dan pilih anggota terlebih dahulu.');
-      return;
-    }
-    if (!position.trim()) {
-      toast.error('Silakan isi atau pilih jabatan.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await api.post('/api/event-committees', {
-        event_id: event.id,
-        user_id: selectedUserId,
-        position: position.trim(),
-      });
-
-      toast.success('Panitia berhasil ditambahkan.');
-      setSelectedUserId(null);
-      setSearchTerm('');
-      setPosition('');
-      mutateCommittees();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal menambahkan panitia.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Delete Committee
-  const handleDeleteCommittee = async (id) => {
-    if (window.confirm('Yakin ingin menghapus panitia ini?')) {
-      setDeletingId(id);
-      try {
-        await api.delete(`/api/event-committees/${id}`);
-        toast.success('Panitia berhasil dihapus.');
-        mutateCommittees();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus panitia.');
-      } finally {
-        setDeletingId(null);
-      }
-    }
-  };
-
-  const getPositionBadge = (pos) => {
-    switch (pos) {
-      case 'Ketua':
-        return 'bg-emerald-500/15 text-emerald-600 border-emerald-500/20 dark:text-emerald-400';
-      case 'Bendahara':
-        return 'bg-amber-500/15 text-amber-600 border-amber-500/20 dark:text-amber-400';
-      case 'Sekretaris':
-        return 'bg-violet-500/15 text-violet-600 border-violet-500/20 dark:text-violet-400';
-      default:
-        return 'bg-primary-500/15 text-primary-600 border-primary-500/20 dark:text-primary-400';
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal Container */}
-      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header Modal */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-md shadow-indigo-500/25">
-              <Users className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Kelola Panitia Event
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {event.name}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Content Area */}
-        <div className="space-y-6 px-6 py-5">
-          {/* Action Bar (Unduh Template & Impor Excel) */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-white/10 dark:bg-white/5">
-            <div className="flex items-center gap-2">
-              <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Impor Massal Excel
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Tombol Unduh Template */}
-              <button
-                type="button"
-                onClick={handleDownloadTemplate}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-              >
-                <Download className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Unduh Template</span>
-              </button>
-
-              {/* Tombol Impor Excel (Hidden Input) */}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".xlsx, .xls"
-                className="hidden"
-                id="excel-upload-input"
-              />
-              <label
-                htmlFor="excel-upload-input"
-                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 shadow-sm transition hover:bg-indigo-100 hover:text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 ${
-                  isUploading ? 'pointer-events-none opacity-50' : ''
-                }`}
-              >
-                {isUploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Upload className="h-3.5 w-3.5" />
-                )}
-                <span>{isUploading ? 'Mengimpor...' : 'Impor Excel'}</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Form Injeksi Manual (Grid 2 Kolom) */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/5">
-            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Injeksi Panitia Manual
-            </h3>
-            <form onSubmit={handleAddCommittee} className="space-y-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {/* Kolom Kiri: Pilih Anggota (Combobox Search) */}
-                <div className="relative" ref={dropdownRef}>
-                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Pilih Anggota <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setSelectedUserId(null);
-                        setIsDropdownOpen(true);
-                      }}
-                      onFocus={() => setIsDropdownOpen(true)}
-                      placeholder={
-                        usersLoading
-                          ? 'Memuat anggota...'
-                          : 'Cari nama atau email...'
-                      }
-                      disabled={usersLoading}
-                      className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:bg-slate-100 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5"
-                    />
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  </div>
-
-                  {/* Dropdown Hasil Search */}
-                  {isDropdownOpen && (
-                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-800">
-                      {filteredUsers.length > 0 ? (
-                        filteredUsers.map((u) => (
-                          <div
-                            key={u.id}
-                            onClick={() => {
-                              setSelectedUserId(u.id);
-                              setSearchTerm(u.name);
-                              setIsDropdownOpen(false);
-                            }}
-                            className={`flex cursor-pointer flex-col px-3.5 py-2 text-xs transition ${
-                              selectedUserId === u.id
-                                ? 'bg-primary-50 font-semibold text-primary-600 dark:bg-primary-950/50 dark:text-primary-400'
-                                : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5'
-                            }`}
-                          >
-                            <span className="font-medium">{u.name}</span>
-                            <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                              {u.email}
-                            </span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="px-4 py-3 text-center text-xs text-slate-400 dark:text-slate-500">
-                          {usersLoading
-                            ? 'Memuat data anggota...'
-                            : 'Tidak ada anggota ditemukan.'}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Kolom Kanan: Jabatan (Datalist Hibrida) */}
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
-                    Jabatan <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    list="jabatan-list"
-                    value={position}
-                    onChange={(e) => setPosition(e.target.value)}
-                    placeholder="Pilih atau ketik jabatan..."
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500"
-                  />
-                  <datalist id="jabatan-list">
-                    <option value="Ketua" />
-                    <option value="Sekretaris" />
-                    <option value="Bendahara" />
-                    <option value="Koordinator Acara" />
-                    <option value="Koordinator Media" />
-                    <option value="Koordinator Konsumsi" />
-                    <option value="Koordinator Perkap" />
-                    <option value="Koordinator Sponsorship" />
-                    <option value="Koordinator Humas" />
-                    <option value="Anggota Divisi Acara" />
-                    <option value="Anggota Divisi Media" />
-                    <option value="Anggota Divisi Konsumsi" />
-                    <option value="Anggota Divisi Perkap" />
-                    <option value="Anggota Divisi Sponsorship" />
-                    <option value="Anggota Divisi Humas" />
-                  </datalist>
-                </div>
-              </div>
-
-              {/* Tombol Tambah */}
-              <div className="flex justify-end pt-1">
-                <button
-                  type="submit"
-                  disabled={submitting || !selectedUserId || !position.trim()}
-                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary-500/25 transition hover:shadow-lg hover:shadow-primary-500/30 disabled:opacity-50"
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  <span>Tambah Panitia</span>
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Tabel Daftar Panitia Terdaftar */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Daftar Panitia Terdaftar ({committeesList.length})
-            </h3>
-
-            {committeeLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
-                  Memuat data panitia...
-                </span>
-              </div>
-            ) : committeesList.length > 0 ? (
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                        Nama
-                      </th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                        Email
-                      </th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                        Jabatan
-                      </th>
-                      <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                        Aksi
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {committeesList.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">
-                          {item.user?.name || item.user_name || '-'}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-xs text-slate-500 dark:text-slate-400">
-                          {item.user?.email || '-'}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span
-                            className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${getPositionBadge(
-                              item.position
-                            )}`}
-                          >
-                            {item.position?.name}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleDeleteCommittee(item.id)}
-                            disabled={deletingId === item.id}
-                            title="Hapus Panitia"
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 p-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 disabled:opacity-40 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
-                          >
-                            {deletingId === item.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-xs text-slate-400 dark:border-white/10 dark:text-slate-500">
-                Belum ada panitia yang ditugaskan pada event ini.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end border-t border-slate-200 px-6 py-4 dark:border-white/10">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-          >
-            Tutup
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
-## File: src/components/UserModal.jsx
-```javascript
-import { useState, useEffect } from 'react';
-import { X, Loader2, UserCog } from 'lucide-react';
-import api from '../api/axios';
-import toast from 'react-hot-toast';
-
-const ROLES = [
-  { value: 'admin', label: 'Admin (BPH Pusat)' },
-  { value: 'member', label: 'Member (Anggota Biasa)' },
-  { value: 'advisor', label: 'Advisor (Pembina / Demisioner)' },
-];
-
-const STATUSES = [
-  { value: 'active', label: 'Aktif (Active)' },
-  { value: 'suspended', label: 'Suspended (Nonaktif)' },
-];
-
-export default function UserModal({
-  isOpen,
-  onClose,
-  onSuccess,
-  initialData = null,
-  divisions = [],
-}) {
-  const [divisionId, setDivisionId] = useState('');
-  const [role, setRole] = useState('member');
-  const [status, setStatus] = useState('active');
-  const [isCoordinator, setIsCoordinator] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (initialData) {
-      setDivisionId(initialData.division_id ?? '');
-      setRole(initialData.roles?.[0]?.name || 'member');
-      setStatus(initialData.status || 'active');
-      setIsCoordinator(initialData.is_coordinator || false);
-    }
-    setErrors({});
-  }, [initialData, isOpen]);
-
-  if (!isOpen || !initialData) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrors({});
-
-    try {
-      const payload = {
-        division_id: divisionId ? Number(divisionId) : null,
-        role,
-        status,
-        is_coordinator: isCoordinator,
-      };
-
-      await api.put(`/api/users/${initialData.id}`, payload);
-      toast.success(`Data pengguna ${initialData.name} berhasil diperbarui.`);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      if (err.response?.status === 422) {
-        const data = err.response.data;
-        if (data.message) toast.error(data.message);
-        if (data.errors) setErrors(data.errors);
-      } else {
-        toast.error(err.response?.data?.message || 'Gagal memperbarui pengguna.');
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 dark:bg-white/5 dark:text-white ${
-      errors[field]
-        ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
-        : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
-    }`;
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-md shadow-primary-500/25">
-              <UserCog className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Edit Data Anggota
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Ubah divisi, hak akses (role), atau status akun anggota.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* User Info Preview */}
-        <div className="border-b border-slate-100 bg-slate-50/60 px-6 py-3 dark:border-white/5 dark:bg-white/[0.02]">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-            {initialData.name}
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {initialData.email}
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-          {/* Division */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Divisi Organisasi
-            </label>
-            <select
-              value={divisionId}
-              onChange={(e) => setDivisionId(e.target.value)}
-              className={inputClass('division_id')}
-            >
-              <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
-                -- Tanpa Divisi (BPH Inti / Umum) --
-              </option>
-              {divisions.map((div) => (
-                <option
-                  key={div.id}
-                  value={div.id}
-                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
-                >
-                  {div.name}
-                </option>
-              ))}
-            </select>
-            {errors.division_id && (
-              <p className="mt-1 text-xs text-red-400">{errors.division_id[0]}</p>
-            )}
-          </div>
-
-          {/* Role */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Hak Akses (Role)
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className={inputClass('role')}
-            >
-              {ROLES.map((r) => (
-                <option
-                  key={r.value}
-                  value={r.value}
-                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
-                >
-                  {r.label}
-                </option>
-              ))}
-            </select>
-            {errors.role && (
-              <p className="mt-1 text-xs text-red-400">{errors.role[0]}</p>
-            )}
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Status Akun
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className={inputClass('status')}
-            >
-              {STATUSES.map((s) => (
-                <option
-                  key={s.value}
-                  value={s.value}
-                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
-                >
-                  {s.label}
-                </option>
-              ))}
-            </select>
-            {errors.status && (
-              <p className="mt-1 text-xs text-red-400">{errors.status[0]}</p>
-            )}
-          </div>
-
-          {/* Status Koordinator */}
-          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Koordinator Divisi
-              </label>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                Tandai jika anggota ini adalah ketua/koordinator dari divisi yang dipilih.
-              </p>
-            </div>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                checked={isCoordinator}
-                onChange={(e) => setIsCoordinator(e.target.checked)}
-                className="peer sr-only"
-              />
-              <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 dark:bg-slate-700 dark:border-slate-600"></div>
-            </label>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4 dark:border-white/10">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              {submitting ? 'Menyimpan...' : 'Simpan Perubahan'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-```
-
-## File: src/contexts/AuthContext.jsx
-```javascript
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from '../api/axios';
-
-const AuthContext = createContext(null);
-
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const isAuthenticated = !!user;
-
-  const checkAuth = useCallback(async () => {
-    try {
-      const { data } = await api.get('/api/user');
-      setUser(data?.data || data);
-    } catch {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const login = useCallback(async (email, password) => {
-    await api.get('/sanctum/csrf-cookie');
-    await api.post('/login', { email, password });
-    await checkAuth();
-  }, [checkAuth]);
-
-  const logout = useCallback(async () => {
-    await api.post('/logout');
-    setUser(null);
-  }, []);
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, checkAuth }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
-```
-
-## File: src/pages/Login.jsx
-```javascript
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
-
-export default function Login() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await login(email, password);
-      navigate('/dashboard', { replace: true });
-    } catch (error) {
-      const message =
-        error.response?.data?.message ||
-        error.response?.data?.errors?.email?.[0] ||
-        'Login gagal. Periksa kembali kredensial Anda.';
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-primary-950 px-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-600 shadow-lg shadow-primary-500/25">
-            <LogIn className="h-7 w-7 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Selamat Datang Kembali
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Masuk ke akun Anda untuk melanjutkan
-          </p>
-        </div>
-
-        {/* Card */}
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
-        >
-          {/* Email */}
-          <div className="mb-5">
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-300">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@email.com"
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
-              />
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="mb-6">
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-300">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/25"
-              />
-            </div>
-          </div>
-
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition hover:bg-primary-500 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Memproses...
-              </>
-            ) : (
-              <>
-                <LogIn className="h-4 w-4" />
-                Masuk
-              </>
-            )}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-xs text-slate-500">
-          &copy; {new Date().getFullYear()} Manajemen Protik. All rights reserved.
-        </p>
-      </div>
-    </div>
-  );
-}
-```
-
 ## File: src/pages/MonthlyDue.jsx
 ```javascript
 import { useState, useMemo, useEffect } from 'react';
@@ -3844,6 +3899,377 @@ export default defineConfig({
     }
   }
 })
+```
+
+## File: src/components/CommitteeModal.jsx
+```javascript
+import { useState, useEffect, useRef } from 'react';
+import useSWR from 'swr';
+import * as XLSX from 'xlsx';
+import {
+  X, Loader2, Download, Upload, Trash2, Search, Users, Plus, FileSpreadsheet, ShieldCheck
+} from 'lucide-react';
+import { paginatedFetcher, fetcher } from '../api/fetcher';
+import api from '../api/axios';
+import toast from 'react-hot-toast';
+
+export default function CommitteeModal({ isOpen, onClose, event }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  
+  // FIX 1: State untuk menyimpan ID jabatan, bukan string teks.
+  const [positionId, setPositionId] = useState('');
+  
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const dropdownRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // Fetch Users
+  const { data: usersData, isLoading: usersLoading } = useSWR(
+    isOpen ? '/api/users' : null, paginatedFetcher
+  );
+
+  // Fetch Master Data Jabatan (Dynamic)
+  const { data: posRes, isLoading: posLoading } = useSWR(
+    isOpen ? '/api/committee-positions' : null, fetcher
+  );
+
+  // Fetch Committees for active event
+  const committeeUrl = isOpen && event?.id ? `/api/event-committees?event_id=${event.id}` : null;
+  const { data: committeesData, isLoading: committeeLoading, mutate: mutateCommittees } = useSWR(
+    committeeUrl, paginatedFetcher
+  );
+
+  // Auto-close dropdown handler
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Reset state on modal close
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setSelectedUserId(null);
+      setPositionId('');
+      setIsDropdownOpen(false);
+      setIsUploading(false);
+      setSubmitting(false);
+    }
+  }, [isOpen, event]);
+
+  if (!isOpen || !event) return null;
+
+  // Data parsers
+  const usersList = usersData?.data?.data || (Array.isArray(usersData?.data) ? usersData.data : []) || [];
+  const committeesList = committeesData?.data?.data || (Array.isArray(committeesData?.data) ? committeesData.data : []) || [];
+  const masterPositions = Array.isArray(posRes) ? posRes : (posRes?.data || []);
+
+  const filteredUsers = usersList.filter((u) => {
+    const q = searchTerm.toLowerCase();
+    return (u.name && u.name.toLowerCase().includes(q)) || (u.email && u.email.toLowerCase().includes(q));
+  });
+
+  // TUGAS 3: Fitur Excel Multi-Sheet (Download Template)
+  const handleDownloadTemplate = () => {
+    try {
+      const formImportData = [{ 'ID Anggota': '', 'Jabatan': '' }];
+      const wsForm = XLSX.utils.json_to_sheet(formImportData);
+
+      const referenceData = usersList.map((u) => ({
+        'ID Anggota': u.id,
+        'Nama Anggota': u.name,
+        'Email': u.email,
+      }));
+      const wsRef = XLSX.utils.json_to_sheet(referenceData);
+
+      const posData = masterPositions.map(p => ({
+        'Nama Jabatan Resmi': p.name,
+        'Hak Akses BPH Event': p.is_bph ? 'YA' : 'TIDAK'
+      }));
+      const wsPos = XLSX.utils.json_to_sheet(posData);
+
+      const guideData = [
+        { 'ATURAN PENGISIAN PANITIA': '1. Gunakan [ID Anggota] yang valid dari Sheet Referensi_Anggota.' },
+        { 'ATURAN PENGISIAN PANITIA': '2. Kolom [Jabatan] WAJIB diketik SAMA PERSIS dengan [Nama Jabatan Resmi] di Sheet Referensi_Jabatan.' },
+      ];
+      const wsGuide = XLSX.utils.json_to_sheet(guideData);
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsForm, 'Form_Import');
+      XLSX.utils.book_append_sheet(wb, wsRef, 'Referensi_Anggota');
+      XLSX.utils.book_append_sheet(wb, wsPos, 'Referensi_Jabatan');
+      XLSX.utils.book_append_sheet(wb, wsGuide, 'Panduan_Sistem');
+
+      XLSX.writeFile(wb, 'Template_Panitia.xlsx');
+      toast.success('Template Panitia berhasil diunduh.');
+    } catch (err) {
+      toast.error('Gagal mengunduh template.');
+    }
+  };
+
+  // TUGAS 4: Fitur Excel (Bulk Import dengan Auto-Mapper Jabatan)
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      try {
+        const data = evt.target?.result;
+        const wb = XLSX.read(data, { type: 'binary' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws);
+
+        if (!rows || rows.length === 0) {
+          toast.error('File Excel kosong atau format tidak sesuai.');
+          setIsUploading(false);
+          return;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const row of rows) {
+          const rawUserId = row['ID Anggota'];
+          const rawPositionName = row['Jabatan'];
+
+          if (!rawUserId || !rawPositionName) {
+            failCount++; continue;
+          }
+
+          // FIX 2: Mapping string nama jabatan dari Excel menjadi position_id
+          const matchedPosition = masterPositions.find(
+            p => p.name.toLowerCase().trim() === String(rawPositionName).toLowerCase().trim()
+          );
+
+          if (!matchedPosition) {
+            toast.error(`Jabatan "${rawPositionName}" tidak valid di Master Data.`);
+            failCount++; continue;
+          }
+
+          try {
+            await api.post('/api/event-committees', {
+              event_id: event.id,
+              user_id: Number(rawUserId),
+              position_id: matchedPosition.id, // Payload sesuai DB baru
+            });
+            successCount++;
+          } catch (itemErr) {
+            failCount++;
+          }
+        }
+
+        if (successCount > 0) toast.success(`Berhasil mengimpor ${successCount} panitia.`);
+        if (failCount > 0) toast.error(`${failCount} baris gagal diproses.`);
+        mutateCommittees();
+      } catch (err) {
+        toast.error('Terjadi kesalahan saat memproses file Excel.');
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // Submit Injeksi Manual
+  const handleAddCommittee = async (e) => {
+    e.preventDefault();
+    if (!selectedUserId) { toast.error('Silakan cari dan pilih anggota.'); return; }
+    if (!positionId) { toast.error('Silakan pilih jabatan.'); return; }
+
+    setSubmitting(true);
+    try {
+      await api.post('/api/event-committees', {
+        event_id: event.id,
+        user_id: selectedUserId,
+        position_id: Number(positionId), // FIX 3: Kirim Integer FK
+      });
+
+      toast.success('Panitia berhasil ditambahkan.');
+      setSelectedUserId(null);
+      setSearchTerm('');
+      setPositionId('');
+      mutateCommittees();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menambahkan panitia.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Delete Committee
+  const handleDeleteCommittee = async (id) => {
+    if (window.confirm('Yakin ingin menghapus panitia ini?')) {
+      setDeletingId(id);
+      try {
+        await api.delete(`/api/event-committees/${id}`);
+        toast.success('Panitia berhasil dihapus.');
+        mutateCommittees();
+      } catch (err) {
+        toast.error('Gagal menghapus panitia.');
+      } finally {
+        setDeletingId(null);
+      }
+    }
+  };
+
+  // FIX 4: Rendering warna badge secara otomatis membaca atribut flag BPH dari objek Relasi
+  const renderPositionBadge = (posObj) => {
+    if (!posObj) return <span className="text-slate-400">-</span>;
+
+    if (posObj.is_bph) {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+          <ShieldCheck className="h-3 w-3"/> {posObj.name}
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md border border-indigo-500/20 bg-indigo-500/15 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
+        {posObj.name}
+      </span>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative z-10 mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-md">
+              <Users className="h-5 w-5 text-white"/>
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Kelola Panitia Event</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{event.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"><X className="h-5 w-5"/></button>
+        </div>
+
+        <div className="space-y-6 px-6 py-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400"/>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Impor Massal Excel</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={handleDownloadTemplate} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"><Download className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400"/><span>Unduh Template</span></button>
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls" className="hidden" id="excel-upload-input" />
+              <label htmlFor="excel-upload-input" className={`inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 shadow-sm transition hover:bg-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 ${isUploading ? 'pointer-events-none opacity-50' : ''}`}>
+                {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Upload className="h-3.5 w-3.5"/>}
+                <span>{isUploading ? 'Mengimpor...' : 'Impor Excel'}</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Injeksi Panitia Manual</h3>
+            <form onSubmit={handleAddCommittee} className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="relative" ref={dropdownRef}>
+                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Pilih Anggota <span className="text-red-500">*</span></label>
+                  <div className="relative">
+                    <input type="text" value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setSelectedUserId(null); setIsDropdownOpen(true); }} onFocus={() => setIsDropdownOpen(true)} placeholder={usersLoading ? 'Memuat anggota...' : 'Cari nama atau email...'} disabled={usersLoading} className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-sm text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+                  </div>
+                  {isDropdownOpen && (
+                    <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-slate-800">
+                      {filteredUsers.length > 0 ? filteredUsers.map((u) => (
+                        <div key={u.id} onClick={() => { setSelectedUserId(u.id); setSearchTerm(u.name); setIsDropdownOpen(false); }} className="flex cursor-pointer flex-col px-3.5 py-2 text-xs transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"><span className="font-medium">{u.name}</span><span className="text-[11px] text-slate-400">{u.email}</span></div>
+                      )) : <div className="px-4 py-3 text-center text-xs text-slate-400">Tidak ada data.</div>}
+                    </div>
+                  )}
+                </div>
+
+                {/* FIX 5: Dari Datalist Statis menjadi Select Dinamis SWR */}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">Jabatan <span className="text-red-500">*</span></label>
+                  <select 
+                    value={positionId} 
+                    onChange={(e) => setPositionId(e.target.value)} 
+                    disabled={posLoading}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 outline-none transition focus:border-primary-500 focus:ring-2 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="" disabled>Pilih jabatan...</option>
+                    {masterPositions.map(pos => (
+                      <option key={pos.id} value={pos.id} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white">
+                        {pos.name} {pos.is_bph ? '(Akses BPH)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button type="submit" disabled={submitting || !selectedUserId || !positionId} className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-4 py-2 text-sm font-semibold text-white shadow-md disabled:opacity-50">
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Plus className="h-4 w-4"/>}<span>Tambah Panitia</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Daftar Panitia Terdaftar ({committeesList.length})</h3>
+            {committeeLoading ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary-500"/></div>
+            ) : committeesList.length > 0 ? (
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Nama</th>
+                      <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Jabatan</th>
+                      <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                    {committeesList.map((item) => (
+                      <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+                        <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">
+                          <p>{item.user?.name || item.user_name || '-'}</p>
+                          <p className="text-[10px] font-normal text-slate-400">{item.user?.email || '-'}</p>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          {renderPositionBadge(item.position)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          <button onClick={() => handleDeleteCommittee(item.id)} disabled={deletingId === item.id} className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 p-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-40 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400">
+                            {deletingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Trash2 className="h-3.5 w-3.5"/>}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <div className="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-xs text-slate-400 dark:border-white/10 dark:text-slate-500">Belum ada panitia.</div>}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end border-t border-slate-200 px-6 py-4 dark:border-white/10">
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">Tutup</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 ```
 
 ## File: src/components/EventModal.jsx
@@ -4168,12 +4594,23 @@ import {
   AlertCircle,
   AlertTriangle,
   Search,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 
 function formatTanggal(dateStr) {
   if (!dateStr) return '-';
   try {
     return format(new Date(dateStr), 'd MMMM yyyy', { locale: localeID });
+  } catch {
+    return dateStr;
+  }
+}
+
+function formatWaktu(dateStr) {
+  if (!dateStr) return '-';
+  try {
+    return format(new Date(dateStr), 'd MMM yyyy, HH:mm', { locale: localeID });
   } catch {
     return dateStr;
   }
@@ -4206,24 +4643,22 @@ export default function Warning() {
     paginatedFetcher
   );
 
-  // --- Loading ---
   if (isLoading && !data) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
           <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data peringatan...</p>
         </div>
       </div>
     );
   }
 
-  // --- Error ---
   if (error) {
     return (
       <div className="flex h-full items-center justify-center">
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 dark:bg-red-500/10 px-8 py-6">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400" />
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400"/>
           <div className="text-center">
             <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
             <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Terjadi kesalahan saat mengambil data peringatan.</p>
@@ -4237,12 +4672,12 @@ export default function Warning() {
   const meta = data?.meta || (data?.data && !Array.isArray(data?.data) ? data.data : null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up-fade">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 shadow-lg shadow-amber-500/25">
-            <AlertTriangle className="h-5 w-5 text-white" />
+            <AlertTriangle className="h-5 w-5 text-white"/>
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Surat Peringatan</h1>
@@ -4256,7 +4691,7 @@ export default function Warning() {
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4"/>
             Tambah Peringatan
           </button>
         )}
@@ -4275,12 +4710,12 @@ export default function Warning() {
             placeholder="Cari nama anggota atau alasan..."
             className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs text-slate-900 placeholder-slate-400 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-slate-500"
           />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -4296,6 +4731,9 @@ export default function Warning() {
                 </th>
                 <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                   Dikeluarkan Oleh
+                </th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                  Status Baca
                 </th>
               </tr>
             </thead>
@@ -4316,15 +4754,29 @@ export default function Warning() {
                       {item.reason}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <span className="rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                      <span className="rounded-lg bg-primary-500/15 px-2.5 py-1 text-xs font-semibold text-primary-600 dark:text-primary-400">
                         {item.admin?.name ?? '-'}
                       </span>
+                    </td>
+                    {/* Status Baca (Read Receipt Indicator) */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {item.read_at ? (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                          <CheckCircle2 className="h-4 w-4"/>
+                          <span>{formatWaktu(item.read_at)}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-500 dark:text-amber-400">
+                          <Clock className="h-4 w-4"/>
+                          <span>Belum Dibaca</span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400 dark:text-slate-500">
                     Belum ada data peringatan.
                   </td>
                 </tr>
@@ -4345,7 +4797,7 @@ export default function Warning() {
                 disabled={page === 1}
                 className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4"/>
                 Prev
               </button>
               <button
@@ -4354,7 +4806,7 @@ export default function Warning() {
                 className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-white/10 dark:bg-transparent dark:text-slate-300 dark:shadow-none dark:hover:bg-white/5"
               >
                 Next
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4"/>
               </button>
             </div>
           </div>
@@ -5370,405 +5822,6 @@ export default function FinanceModal({
 }
 ```
 
-## File: src/index.css
-```css
-@import "tailwindcss";
-
-@variant dark (&:where(.dark, .dark *));
-
-@theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-  --color-primary-950: #172554;
-
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-}
-
-@layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-
-  body {
-    font-family: var(--font-sans);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    color-scheme: light dark;
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white transition-colors duration-300;
-  }
-
-  /* Custom Elegant Scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full dark:bg-slate-700;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400 dark:bg-slate-600;
-  }
-}
-
-@layer components {
-  /* Memaksa input untuk beradaptasi dengan mode */
-  input[type="date"],
-  input[type="datetime-local"] {
-    color-scheme: light;
-  }
-
-  .dark input[type="date"],
-  .dark input[type="datetime-local"] {
-    color-scheme: dark;
-  }
-}
-
-@keyframes slideUpFade {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-slide-up-fade {
-  animation: slideUpFade 0.4s ease-out forwards;
-}
-```
-
-## File: src/components/AttendanceModal.jsx
-```javascript
-import { useState, useEffect, useMemo } from 'react';
-import useSWR from 'swr';
-import * as XLSX from 'xlsx';
-import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
-import api from '../api/axios';
-import { fetcher, paginatedFetcher } from '../api/fetcher';
-import toast from 'react-hot-toast';
-
-export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
-  const [activeTab, setActiveTab] = useState('targets');
-  const [localData, setLocalData] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [selectedTargets, setSelectedTargets] = useState([]);
-  const [searchUser, setSearchUser] = useState('');
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-
-  // FETCH SEMUA DATA SEKALIGUS (Data Blending)
-  const { data: usersData, isLoading: usersLoading } = useSWR(isOpen ? '/api/users?all=true' : null, fetcher);
-  const { data: divData } = useSWR(isOpen ? '/api/divisions' : null, fetcher);
-  const { data: committeeData } = useSWR(isOpen && activeEventId ? `/api/event-committees?event_id=${activeEventId}` : null, fetcher);
-  const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
-    isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null,
-    paginatedFetcher
-  );
-
-  const allUsers = useMemo(() => Array.isArray(usersData) ? usersData : (usersData?.data || []), [usersData]);
-  const divisions = useMemo(() => Array.isArray(divData) ? divData : (divData?.data || []), [divData]);
-  const committees = useMemo(() => Array.isArray(committeeData) ? committeeData : (committeeData?.data || []), [committeeData]);
-  const existingAttendances = useMemo(() => Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []), [attendanceData]);
-
-  // EKSTRAK JABATAN PANITIA UNIK (Tanpa Query Database Tambahan)
-  const eventPositions = useMemo(() => {
-    if (!activeEventId) return [];
-    return [...new Set(committees.map(c => c.position))].filter(Boolean);
-  }, [committees, activeEventId]);
-
-  useEffect(() => {
-    if (isOpen && agenda) {
-      setIsDataLoaded(false);
-      if (agenda.targets && agenda.targets.length > 0) {
-        setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
-        setActiveTab('attendance');
-      } else {
-        setSelectedTargets([]);
-        setActiveTab('targets');
-      }
-    } else {
-      setActiveTab('targets');
-    }
-  }, [isOpen, agenda]);
-
-  // MESIN FILTER PINTAR
-  const isAllInvited = selectedTargets.length === 0 || selectedTargets.some((t) => t.type === 'all');
-  const targetedUsers = useMemo(() => {
-    return allUsers.filter((user) => {
-      if (isAllInvited) return activeEventId ? committees.some(c => c.user_id === user.id) : true;
-
-      return selectedTargets.some((t) => {
-        if (t.type === 'bph') return user.roles?.[0]?.name === 'admin';
-        if (t.type === 'coordinator') return user.is_coordinator;
-        if (t.type === 'division') return String(user.division_id) === String(t.value);
-        if (t.type === 'user') return String(user.id) === String(t.value);
-        if (t.type === 'position' && activeEventId) {
-          const userCommittee = committees.find(c => c.user_id === user.id);
-          return userCommittee?.position?.toLowerCase() === String(t.value).toLowerCase();
-        }
-        return false;
-      });
-    });
-  }, [allUsers, selectedTargets, isAllInvited, activeEventId, committees]);
-
-  // HIDRASI STATE LOKAL
-  useEffect(() => {
-    if (isOpen && activeTab === 'attendance' && targetedUsers.length > 0 && !attendanceLoading && !isDataLoaded) {
-      const initialState = {};
-      targetedUsers.forEach((user) => {
-        const existing = existingAttendances.find((a) => a.user_id === user.id);
-        initialState[user.id] = { status: existing?.status || 'uninvited', proof_url: existing?.proof_url || '' };
-      });
-      setLocalData(initialState);
-      setIsDataLoaded(true);
-    }
-  }, [isOpen, activeTab, targetedUsers.length, attendanceLoading, isDataLoaded, existingAttendances]);
-
-  if (!isOpen || !agenda) return null;
-
-  // --- Handlers ---
-  const toggleTarget = (type, value = null) => {
-    setSelectedTargets((prev) => {
-      if (type === 'all') return [{ type: 'all', value: null }];
-      let newTargets = prev.filter((t) => t.type !== 'all');
-      const exists = newTargets.some((t) => t.type === type && t.value === value);
-      return exists ? newTargets.filter((t) => !(t.type === type && t.value === value)) : [...newTargets, { type, value }];
-    });
-  };
-
-  const handleSaveTargetsAndProceed = async () => {
-    if (selectedTargets.length === 0) { toast.error('Pilih minimal satu target.'); return; }
-    setSubmitting(true);
-    try {
-      await api.post(`/api/agendas/${agenda.id}/targets`, { targets: selectedTargets });
-      toast.success('Target peserta diperbarui.');
-      setActiveTab('attendance');
-    } catch (err) { toast.error('Gagal menyimpan target.'); } 
-    finally { setSubmitting(false); }
-  };
-
-  const handleChange = (userId, field, value) => {
-    setLocalData((prev) => ({ ...prev, [userId]: { ...prev[userId], [field]: value } }));
-  };
-
-  const handleMarkAllPresent = () => {
-    const newState = { ...localData };
-    Object.keys(newState).forEach((key) => { newState[key].status = 'present'; });
-    setLocalData(newState);
-  };
-
-  const handleSubmitAttendance = async () => {
-    setSubmitting(true);
-    try {
-      const payload = Object.entries(localData)
-        .filter(([_, data]) => data.status && data.status !== 'uninvited')
-        .map(([userId, data]) => ({ user_id: Number(userId), status: data.status, proof_url: data.proof_url || null }));
-
-      await api.post('/api/agenda-attendances/bulk', { agenda_id: agenda.id, attendances: payload });
-      toast.success('Data absensi berhasil disimpan.');
-      mutateAttendance();
-      onClose();
-    } catch (err) { toast.error('Gagal menyimpan absensi massal.'); } 
-    finally { setSubmitting(false); }
-  };
-
-  const getPositionString = (user) => {
-    if (activeEventId) {
-      const c = committees.find(com => com.user_id === user.id);
-      return c ? c.position : (user.division?.name ? `${user.division.name} (Eksternal Event)` : 'BPH (Eksternal Event)');
-    }
-    return user.division?.name || 'BPH Pusat';
-  };
-
-  const handleExportExcel = () => {
-    const wsData = [
-      ['DAFTAR HADIR KEGIATAN PROTIK', ''],
-      ['Nama Agenda', ':', agenda.title],
-      ['Waktu Pelaksanaan', ':', agenda.start_date ? new Date(agenda.start_date).toLocaleString('id-ID') : '-'],
-      ['Tempat / Lokasi', ':', agenda.location || '-'],
-      [],
-      ['No', 'Nama Anggota', 'Divisi / Jabatan', 'Status Kehadiran', 'Bukti / Keterangan']
-    ];
-
-    targetedUsers.forEach((user, index) => {
-      const savedAtt = existingAttendances.find((a) => a.user_id === user.id);
-      const statusMap = { present: 'Hadir', permit: 'Izin', sick: 'Sakit', absent: 'Alpha' };
-      wsData.push([index + 1, user.name, getPositionString(user), statusMap[savedAtt?.status] || 'Belum Diabsen', savedAtt?.proof_url || '']);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 25 }, { wch: 18 }, { wch: 45 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Hadir');
-    XLSX.writeFile(wb, `Absensi_${agenda.title.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
-    toast.success('Daftar hadir berhasil diunduh!');
-  };
-
-  const buttonClass = (isSelected, activeColor) => `px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${isSelected ? activeColor : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'}`;
-
-  const renderTargetsTab = () => (
-    <div className="p-6 space-y-6 animate-slide-up-fade">
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800/50">
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Grup Utama</h3>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => toggleTarget('all')} className={buttonClass(selectedTargets.some(t => t.type === 'all'), 'bg-primary-500 text-white border-primary-600')}>
-            {activeEventId ? 'Semua Panitia Event' : 'Semua Peserta / Umum'}
-          </button>
-          <button type="button" onClick={() => toggleTarget('bph')} className={buttonClass(selectedTargets.some(t => t.type === 'bph'), 'bg-violet-500 text-white border-violet-600')}>
-            BPH Inti (Admin)
-          </button>
-          <button type="button" onClick={() => toggleTarget('coordinator')} className={buttonClass(selectedTargets.some(t => t.type === 'coordinator'), 'bg-amber-500 text-white border-amber-600')}>
-            Koordinator Divisi
-          </button>
-        </div>
-      </div>
-
-      {activeEventId && eventPositions.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Spesifik Jabatan Panitia</h3>
-          <div className="flex flex-wrap gap-2">
-            {eventPositions.map((pos) => (
-              <button type="button" key={pos} onClick={() => toggleTarget('position', pos)} className={buttonClass(selectedTargets.some(t => t.type === 'position' && t.value === pos), 'bg-emerald-500 text-white border-emerald-600')}>
-                {pos}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {divisions.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Spesifik Divisi (Global)</h3>
-          <div className="flex flex-wrap gap-2">
-            {divisions.map((div) => (
-              <button type="button" key={div.id} onClick={() => toggleTarget('division', String(div.id))} className={buttonClass(selectedTargets.some(t => t.type === 'division' && t.value === String(div.id)), 'bg-indigo-500 text-white border-indigo-600')}>
-                {div.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div>
-        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Undang Personal (Target Lepas)</h3>
-        <div className="relative">
-          <input type="text" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} placeholder="Cari nama anggota untuk diundang khusus..." className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
-        </div>
-        {searchUser && (
-          <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800">
-            {allUsers.filter(u => u.name?.toLowerCase().includes(searchUser.toLowerCase())).map(u => {
-              const isSelected = selectedTargets.some(t => t.type === 'user' && t.value === String(u.id));
-              return (
-                <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0 border-slate-100 dark:border-white/5">
-                  <span className="text-xs text-slate-700 dark:text-slate-300">{u.name}</span>
-                  <button type="button" onClick={() => toggleTarget('user', String(u.id))} className={`px-2 py-1 rounded text-[10px] font-bold ${isSelected ? 'bg-red-100 text-red-600' : 'bg-primary-100 text-primary-600'}`}>
-                    {isSelected ? 'Batal' : 'Undang'}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const renderAttendanceTab = () => (
-    <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-semibold text-slate-500">Menampilkan {targetedUsers.length} peserta tertarget.</p>
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={handleExportExcel} className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400"><FileSpreadsheet className="h-4 w-4"/> Ekspor Excel</button>
-          <button type="button" onClick={handleMarkAllPresent} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"><CheckCircle2 className="h-4 w-4"/> Hadirkan Semua</button>
-        </div>
-      </div>
-
-      {usersLoading || attendanceLoading ? (
-        <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-emerald-500"/></div>
-      ) : targetedUsers.length === 0 ? (
-        <div className="text-center text-sm text-slate-500">Tidak ada peserta yang cocok dengan target.</div>
-      ) : (
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
-            <tr><th className="pb-3 pr-4">Nama Anggota</th><th className="pb-3 px-4">Status Absensi</th><th className="pb-3 pl-4">URL Bukti Izin</th></tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-            {targetedUsers.map((user) => {
-              const rowData = localData[user.id] || { status: 'uninvited', proof_url: '' };
-              return (
-                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                  <td className="py-3 pr-4">
-                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
-                    <p className="text-[10px] text-slate-500">{getPositionString(user)}</p>
-                  </td>
-                  <td className="py-3 px-4">
-                    <select value={rowData.status} onChange={(e) => handleChange(user.id, 'status', e.target.value)} className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${rowData.status === 'present' ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' : rowData.status === 'absent' ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10' : rowData.status === 'uninvited' ? 'border-slate-300 text-slate-400 bg-slate-50 dark:bg-white/5 dark:border-white/10' : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'}`}>
-                      <option value="uninvited">- Belum Diabsen -</option><option value="present">Hadir</option><option value="permit">Izin</option><option value="sick">Sakit</option><option value="absent">Alpha</option>
-                    </select>
-                  </td>
-                  <td className="py-3 pl-4">
-                    <input type="url" placeholder="https://..." value={rowData.proof_url} disabled={rowData.status === 'present' || rowData.status === 'uninvited'} onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none disabled:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
-        <div className="flex flex-col border-b border-slate-200 bg-white px-6 pt-4 dark:border-white/10 dark:bg-slate-900">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
-                <UserCheck className="h-5 w-5 text-white"/>
-              </div>
-              <div><h2 className="text-base font-bold text-slate-900 dark:text-white">Buku Tamu Absensi</h2><p className="text-xs text-slate-500 dark:text-slate-400">{agenda.title}</p></div>
-            </div>
-            <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"><X className="h-5 w-5"/></button>
-          </div>
-          <div className="flex gap-6">
-            <button type="button" onClick={() => setActiveTab('targets')} className={`pb-3 text-sm font-semibold border-b-2 transition ${activeTab === 'targets' ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><span className="flex items-center gap-2"><Target className="h-4 w-4"/> 1. Tentukan Target</span></button>
-            <button type="button" onClick={() => setActiveTab('attendance')} className={`pb-3 text-sm font-semibold border-b-2 transition ${activeTab === 'attendance' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><span className="flex items-center gap-2"><Users className="h-4 w-4"/> 2. Catat Kehadiran</span></button>
-          </div>
-        </div>
-        {activeTab === 'targets' ? renderTargetsTab() : renderAttendanceTab()}
-        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300">Batal</button>
-          {activeTab === 'targets' ? (
-            <button type="button" onClick={handleSaveTargetsAndProceed} disabled={submitting} className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50">{submitting && <Loader2 className="h-4 w-4 animate-spin"/>} {submitting ? 'Menyimpan...' : 'Simpan & Lanjut Absen'}</button>
-          ) : (
-            <button type="button" onClick={handleSubmitAttendance} disabled={submitting || usersLoading} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50">{submitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>} Simpan Rekap Kehadiran</button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
 ## File: src/pages/Document.jsx
 ```javascript
 import { useState, useEffect } from 'react';
@@ -6370,424 +6423,400 @@ export default function Document() {
 }
 ```
 
-## File: src/pages/Dashboard.jsx
+## File: src/index.css
+```css
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* PALET HIJAU EMERALD PROTIC */
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+  --color-primary-800: #065f46;
+  --color-primary-900: #064e3b;
+  --color-primary-950: #022c22;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: light dark;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white transition-colors duration-300;
+  }
+
+  /* Custom Elegant Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full dark:bg-slate-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-400 dark:bg-slate-600;
+  }
+}
+
+@layer components {
+  /* Memaksa input untuk beradaptasi dengan mode */
+  input[type="date"],
+  input[type="datetime-local"] {
+    color-scheme: light;
+  }
+
+  .dark input[type="date"],
+  .dark input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up-fade {
+  animation: slideUpFade 0.4s ease-out forwards;
+}
+```
+
+## File: src/components/AttendanceModal.jsx
 ```javascript
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
-import { fetcher } from '../api/fetcher';
-import { 
-  format, addMonths, subMonths, startOfMonth, endOfMonth, 
-  startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, isToday 
-} from 'date-fns';
-import { id as localeID } from 'date-fns/locale';
-import {
-  Wallet, CalendarClock, Activity, AlertCircle, Loader2, AlertTriangle, 
-  ChevronDown, ChevronLeft, ChevronRight, MapPin
-} from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import * as XLSX from 'xlsx';
+import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
+import api from '../api/axios';
+import { fetcher, paginatedFetcher } from '../api/fetcher';
+import toast from 'react-hot-toast';
 
-function formatRupiah(value) {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-}
+export default function AttendanceModal({ isOpen, onClose, meeting: agenda, activeEventId }) {
+  const [activeTab, setActiveTab] = useState('targets');
+  const [localData, setLocalData] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedTargets, setSelectedTargets] = useState([]);
+  const [searchUser, setSearchUser] = useState('');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-function StatCard({ icon: Icon, label, value, subValue, gradient, iconBg }) {
-  return (
-    <div className="group relative flex h-full flex-col justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
-      <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
-      <div className="relative flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
-            {subValue && <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{subValue}</span>}
-          </div>
-        </div>
-        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg ${iconBg}`}>
-          <Icon className="h-7 w-7 text-white"/>
-        </div>
-      </div>
-    </div>
+  // FETCH SEMUA DATA SEKALIGUS (Data Blending)
+  const { data: usersData, isLoading: usersLoading } = useSWR(isOpen ? '/api/users?all=true' : null, fetcher);
+  const { data: divData } = useSWR(isOpen ? '/api/divisions' : null, fetcher);
+  const { data: committeeData } = useSWR(isOpen && activeEventId ? `/api/event-committees?event_id=${activeEventId}` : null, fetcher);
+  const { data: attendanceData, isLoading: attendanceLoading, mutate: mutateAttendance } = useSWR(
+    isOpen && agenda ? `/api/agenda-attendances?agenda_id=${agenda.id}` : null,
+    paginatedFetcher
   );
-}
 
-export default function Dashboard() {
-  const [activeChartTab, setActiveChartTab] = useState('Kas Umum');
-  const [timeRange, setTimeRange] = useState('6m');
+  const allUsers = useMemo(() => Array.isArray(usersData) ? usersData : (usersData?.data || []), [usersData]);
+  const divisions = useMemo(() => Array.isArray(divData) ? divData : (divData?.data || []), [divData]);
+  const committees = useMemo(() => Array.isArray(committeeData) ? committeeData : (committeeData?.data || []), [committeeData]);
+  const existingAttendances = useMemo(() => Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []), [attendanceData]);
 
-  // Calendar States
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // FIX 1: EKSTRAK JABATAN PANITIA UNIK (Pastikan mengekstrak string .name dari Object)
+  const eventPositions = useMemo(() => {
+    if (!activeEventId) return [];
+    return [...new Set(committees.map(c => c.position?.name))].filter(Boolean);
+  }, [committees, activeEventId]);
 
-  const { data: stats, error: statsError, isLoading: statsLoading } = useSWR('/api/dashboard/statistics', fetcher);
-  const { data: agenda, error: agendaError, isLoading: agendaLoading } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
-
-  // --- ATURAN HOOKS: Semua Hook (termasuk useMemo) WAJIB berada sebelum early return ---
-  const personalDues = stats?.personal_dues;
-  const agendaPart = stats?.agenda_participation;
-  const financial = stats?.financial_health;
-
-  // Chart Logic (Dievaluasi dengan aman meskipun data belum ada)
-  const chartKeys = useMemo(() => (financial?.chart_data ? Object.keys(financial.chart_data) : []), [financial?.chart_data]);
-  const currentChartData = useMemo(() => financial?.chart_data?.[activeChartTab] || [], [financial?.chart_data, activeChartTab]);
-  const displayChartData = useMemo(() => (timeRange === '3m' ? currentChartData.slice(-3) : currentChartData), [currentChartData, timeRange]);
-
-  // Calendar Logic
-  const allAgendas = agenda?.upcoming_meetings || [];
-  const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
-
-  // --- EARLY RETURNS (Setelah semua Hooks dideklarasikan) ---
-  if (statsLoading || agendaLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Menyinkronkan data dasbor...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (statsError || agendaError) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-6 dark:bg-red-500/10">
-          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400"/>
-          <div className="text-center">
-            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
-            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Koneksi ke server terputus.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const renderCalendar = () => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }); // Senin awal minggu
-    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-
-    const rows = [];
-    let days = [];
-    let day = startDate;
-
-    while (day <= endDate) {
-      for (let i = 0; i < 7; i++) {
-        const cloneDay = day;
-        const dayAgendas = allAgendas.filter(m => isSameDay(new Date(m.start_date), cloneDay));
-        const hasAgenda = dayAgendas.length > 0;
-        
-        const isNotCurrentMonth = !isSameMonth(day, monthStart);
-        const isSelected = isSameDay(day, selectedDate);
-        const isTodayDate = isToday(day);
-
-        days.push(
-          <div
-            key={day.toISOString()}
-            onClick={() => setSelectedDate(cloneDay)}
-            className={`group flex h-16 sm:h-24 cursor-pointer flex-col overflow-hidden border-b border-r border-slate-100 p-1.5 transition-all dark:border-white/5 ${
-              isNotCurrentMonth ? "bg-slate-50/50 text-slate-300 dark:bg-slate-900/20 dark:text-slate-600" : 
-              isSelected ? "bg-primary-50 dark:bg-primary-900/20" : 
-              "hover:bg-slate-50 dark:hover:bg-white/5"
-            }`}
-          >
-            <div className="flex items-start justify-between">
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                isSelected ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : 
-                isTodayDate ? "text-emerald-600 dark:text-emerald-400" : 
-                "text-slate-700 dark:text-slate-300"
-              }`}>
-                {format(day, 'd')}
-              </span>
-              {hasAgenda && !isSelected && (
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary-500 shadow-[0_0_4px_rgba(59,130,246,0.5)]"></span>
-              )}
-            </div>
-            
-            {/* Indikator Baris Acara (Maks 2) */}
-            <div className="mt-1 flex flex-col gap-1">
-              {dayAgendas.slice(0, 2).map((m, idx) => (
-                <div key={idx} className={`truncate rounded-sm px-1.5 py-0.5 text-[9px] font-semibold ${
-                  isSelected ? 'bg-primary-100 text-primary-700 dark:bg-primary-500/30 dark:text-primary-300' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 dark:bg-white/5 dark:text-slate-400'
-                }`}>
-                  {m.title}
-                </div>
-              ))}
-              {dayAgendas.length > 2 && (
-                <span className="pl-1 text-[8px] font-medium text-slate-400">+{dayAgendas.length - 2} lagi</span>
-              )}
-            </div>
-          </div>
-        );
-        day = addDays(day, 1);
+  useEffect(() => {
+    if (isOpen && agenda) {
+      setIsDataLoaded(false);
+      if (agenda.targets && agenda.targets.length > 0) {
+        setSelectedTargets(agenda.targets.map((t) => ({ type: t.target_type, value: t.target_value })));
+        setActiveTab('attendance');
+      } else {
+        setSelectedTargets([]);
+        setActiveTab('targets');
       }
-      rows.push(<div className="grid grid-cols-7" key={day.toISOString()}>{days}</div>);
-      days = [];
+    } else {
+      setActiveTab('targets');
     }
+  }, [isOpen, agenda]);
 
-    return (
-      <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        {/* Header Kalender */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-            {format(currentMonth, 'MMMM yyyy', { locale: localeID })}
-          </h3>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
-              <ChevronLeft className="h-4 w-4"/>
-            </button>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
-              <ChevronRight className="h-4 w-4"/>
-            </button>
-          </div>
-        </div>
+  // MESIN FILTER PINTAR
+  const isAllInvited = selectedTargets.length === 0 || selectedTargets.some((t) => t.type === 'all');
+  const targetedUsers = useMemo(() => {
+    return allUsers.filter((user) => {
+      if (isAllInvited) return activeEventId ? committees.some(c => c.user_id === user.id) : true;
 
-        {/* Hari (Header Grid) */}
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30">
-          {weekDays.map(dayName => (
-            <div key={dayName} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              {dayName}
-            </div>
-          ))}
-        </div>
+      return selectedTargets.some((t) => {
+        if (t.type === 'bph') return user.roles?.[0]?.name === 'admin';
+        if (t.type === 'coordinator') return user.is_coordinator;
+        if (t.type === 'division') return String(user.division_id) === String(t.value);
+        if (t.type === 'user') return String(user.id) === String(t.value);
+        // FIX 2: Akses properti .name dari Object position saat filter
+        if (t.type === 'position' && activeEventId) {
+          const userCommittee = committees.find(c => c.user_id === user.id);
+          return userCommittee?.position?.name?.toLowerCase() === String(t.value).toLowerCase();
+        }
+        return false;
+      });
+    });
+  }, [allUsers, selectedTargets, isAllInvited, activeEventId, committees]);
 
-        {/* Matriks Tanggal */}
-        <div className="flex flex-col border-l border-slate-100 dark:border-white/5">
-          {rows}
-        </div>
-      </div>
-    );
+  // HIDRASI STATE LOKAL
+  useEffect(() => {
+    if (isOpen && activeTab === 'attendance' && targetedUsers.length > 0 && !attendanceLoading && !isDataLoaded) {
+      const initialState = {};
+      targetedUsers.forEach((user) => {
+        const existing = existingAttendances.find((a) => a.user_id === user.id);
+        initialState[user.id] = { status: existing?.status || 'uninvited', proof_url: existing?.proof_url || '' };
+      });
+      setLocalData(initialState);
+      setIsDataLoaded(true);
+    }
+  }, [isOpen, activeTab, targetedUsers.length, attendanceLoading, isDataLoaded, existingAttendances]);
+
+  if (!isOpen || !agenda) return null;
+
+  const toggleTarget = (type, value = null) => {
+    setSelectedTargets((prev) => {
+      if (type === 'all') return [{ type: 'all', value: null }];
+      let newTargets = prev.filter((t) => t.type !== 'all');
+      const exists = newTargets.some((t) => t.type === type && t.value === value);
+      return exists ? newTargets.filter((t) => !(t.type === type && t.value === value)) : [...newTargets, { type, value }];
+    });
   };
 
-  return (
-    <div className="space-y-6 animate-slide-up-fade">
-      {/* 1. WARNING BANNER (KEDISIPLINAN KAS) */}
-      {personalDues?.unpaid_months > 0 && (
-        <div className="flex items-start gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 shadow-sm">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
-            <AlertTriangle className="h-5 w-5"/>
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-red-700 dark:text-red-400">Peringatan Tunggakan Kas!</h3>
-            <p className="mt-1 text-xs font-medium text-red-600/80 dark:text-red-400/80">
-              Kamu memiliki tunggakan kas pengurus selama <strong className="text-red-700 dark:text-red-300">{personalDues.unpaid_months} bulan</strong>. Segera lunasi kewajibanmu untuk mendukung operasional organisasi.
-            </p>
+  const handleSaveTargetsAndProceed = async () => {
+    if (selectedTargets.length === 0) { toast.error('Pilih minimal satu target.'); return; }
+    setSubmitting(true);
+    try {
+      await api.post(`/api/agendas/${agenda.id}/targets`, { targets: selectedTargets });
+      toast.success('Target peserta diperbarui.');
+      setActiveTab('attendance');
+    } catch (err) { toast.error('Gagal menyimpan target.'); } 
+    finally { setSubmitting(false); }
+  };
+
+  const handleChange = (userId, field, value) => {
+    setLocalData((prev) => ({ ...prev, [userId]: { ...prev[userId], [field]: value } }));
+  };
+
+  const handleMarkAllPresent = () => {
+    const newState = { ...localData };
+    Object.keys(newState).forEach((key) => { newState[key].status = 'present'; });
+    setLocalData(newState);
+  };
+
+  const handleSubmitAttendance = async () => {
+    setSubmitting(true);
+    try {
+      const payload = Object.entries(localData)
+        .filter(([_, data]) => data.status && data.status !== 'uninvited')
+        .map(([userId, data]) => ({ user_id: Number(userId), status: data.status, proof_url: data.proof_url || null }));
+
+      await api.post('/api/agenda-attendances/bulk', { agenda_id: agenda.id, attendances: payload });
+      toast.success('Data absensi berhasil disimpan.');
+      mutateAttendance();
+      onClose();
+    } catch (err) { toast.error('Gagal menyimpan absensi massal.'); } 
+    finally { setSubmitting(false); }
+  };
+
+  // FIX 3: Pastikan getPositionString mengekstrak nama dari Object
+  const getPositionString = (user) => {
+    if (activeEventId) {
+      const c = committees.find(com => com.user_id === user.id);
+      return c?.position?.name ? c.position.name : (user.division?.name ? `${user.division.name} (Eksternal Event)` : 'BPH (Eksternal Event)');
+    }
+    return user.division?.name || 'BPH Pusat';
+  };
+
+  const handleExportExcel = () => {
+    const wsData = [
+      ['DAFTAR HADIR KEGIATAN PROTIK', ''],
+      ['Nama Agenda', ':', agenda.title],
+      ['Waktu Pelaksanaan', ':', agenda.start_date ? new Date(agenda.start_date).toLocaleString('id-ID') : '-'],
+      ['Tempat / Lokasi', ':', agenda.location || '-'],
+      [],
+      ['No', 'Nama Anggota', 'Divisi / Jabatan', 'Status Kehadiran', 'Bukti / Keterangan']
+    ];
+
+    targetedUsers.forEach((user, index) => {
+      const savedAtt = existingAttendances.find((a) => a.user_id === user.id);
+      const statusMap = { present: 'Hadir', permit: 'Izin', sick: 'Sakit', absent: 'Alpha' };
+      wsData.push([index + 1, user.name, getPositionString(user), statusMap[savedAtt?.status] || 'Belum Diabsen', savedAtt?.proof_url || '']);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 5 }, { wch: 35 }, { wch: 25 }, { wch: 18 }, { wch: 45 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Daftar Hadir');
+    XLSX.writeFile(wb, `Absensi_${agenda.title.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+    toast.success('Daftar hadir berhasil diunduh!');
+  };
+
+  const buttonClass = (isSelected, activeColor) => `px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${isSelected ? activeColor : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:border-white/10'}`;
+
+  const renderTargetsTab = () => (
+    <div className="p-6 space-y-6 animate-slide-up-fade">
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-800/50">
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Grup Utama</h3>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => toggleTarget('all')} className={buttonClass(selectedTargets.some(t => t.type === 'all'), 'bg-primary-500 text-white border-primary-600')}>
+            {activeEventId ? 'Semua Panitia Event' : 'Semua Peserta / Umum'}
+          </button>
+          <button type="button" onClick={() => toggleTarget('bph')} className={buttonClass(selectedTargets.some(t => t.type === 'bph'), 'bg-violet-500 text-white border-violet-600')}>
+            BPH Inti (Admin)
+          </button>
+          <button type="button" onClick={() => toggleTarget('coordinator')} className={buttonClass(selectedTargets.some(t => t.type === 'coordinator'), 'bg-amber-500 text-white border-amber-600')}>
+            Koordinator Divisi
+          </button>
+        </div>
+      </div>
+
+      {activeEventId && eventPositions.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Spesifik Jabatan Panitia</h3>
+          <div className="flex flex-wrap gap-2">
+            {eventPositions.map((pos) => (
+              <button type="button" key={pos} onClick={() => toggleTarget('position', pos)} className={buttonClass(selectedTargets.some(t => t.type === 'position' && t.value === pos), 'bg-emerald-500 text-white border-emerald-600')}>
+                {pos}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 2. STAT CARDS & LEADERBOARD */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <StatCard gradient="bg-emerald-500" icon={Wallet} iconBg="bg-gradient-to-br from-emerald-500 to-emerald-700" label="Total Saldo Kas Umum" value={formatRupiah(financial?.total_balance)}/>
+      {divisions.length > 0 && (
+        <div>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Spesifik Divisi (Global)</h3>
+          <div className="flex flex-wrap gap-2">
+            {divisions.map((div) => (
+              <button type="button" key={div.id} onClick={() => toggleTarget('division', String(div.id))} className={buttonClass(selectedTargets.some(t => t.type === 'division' && t.value === String(div.id)), 'bg-indigo-500 text-white border-indigo-600')}>
+                {div.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {/* Partisipasi Gamifikasi */}
-        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-10 blur-2xl transition-opacity duration-300 group-hover:opacity-20" />
-          <div className="relative mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/10">
+      <div>
+        <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Undang Personal (Target Lepas)</h3>
+        <div className="relative">
+          <input type="text" value={searchUser} onChange={(e) => setSearchUser(e.target.value)} placeholder="Cari nama anggota untuk diundang khusus..." className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3.5 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+        </div>
+        {searchUser && (
+          <div className="mt-2 max-h-32 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800">
+            {allUsers.filter(u => u.name?.toLowerCase().includes(searchUser.toLowerCase())).map(u => {
+              const isSelected = selectedTargets.some(t => t.type === 'user' && t.value === String(u.id));
+              return (
+                <div key={u.id} className="flex items-center justify-between px-3 py-2 border-b last:border-0 border-slate-100 dark:border-white/5">
+                  <span className="text-xs text-slate-700 dark:text-slate-300">{u.name}</span>
+                  <button type="button" onClick={() => toggleTarget('user', String(u.id))} className={`px-2 py-1 rounded text-[10px] font-bold ${isSelected ? 'bg-red-100 text-red-600' : 'bg-primary-100 text-primary-600'}`}>
+                    {isSelected ? 'Batal' : 'Undang'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderAttendanceTab = () => (
+    <div className="flex-1 overflow-y-auto p-6 animate-slide-up-fade">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs font-semibold text-slate-500">Menampilkan {targetedUsers.length} peserta tertarget.</p>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={handleExportExcel} className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-400"><FileSpreadsheet className="h-4 w-4"/> Ekspor Excel</button>
+          <button type="button" onClick={handleMarkAllPresent} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400"><CheckCircle2 className="h-4 w-4"/> Hadirkan Semua</button>
+        </div>
+      </div>
+
+      {usersLoading || attendanceLoading ? (
+        <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-emerald-500"/></div>
+      ) : targetedUsers.length === 0 ? (
+        <div className="text-center text-sm text-slate-500">Tidak ada peserta yang cocok dengan target.</div>
+      ) : (
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-white/10">
+            <tr><th className="pb-3 pr-4">Nama Anggota</th><th className="pb-3 px-4">Status Absensi</th><th className="pb-3 pl-4">URL Bukti Izin</th></tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+            {targetedUsers.map((user) => {
+              const rowData = localData[user.id] || { status: 'uninvited', proof_url: '' };
+              return (
+                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                  <td className="py-3 pr-4">
+                    <p className="font-medium text-slate-900 dark:text-white">{user.name}</p>
+                    <p className="text-[10px] text-slate-500">{getPositionString(user)}</p>
+                  </td>
+                  <td className="py-3 px-4">
+                    <select value={rowData.status} onChange={(e) => handleChange(user.id, 'status', e.target.value)} className={`rounded-lg border px-3 py-1.5 text-xs font-medium outline-none dark:bg-slate-800 ${rowData.status === 'present' ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10' : rowData.status === 'absent' ? 'border-red-500/50 text-red-600 bg-red-50 dark:bg-red-500/10' : rowData.status === 'uninvited' ? 'border-slate-300 text-slate-400 bg-slate-50 dark:bg-white/5 dark:border-white/10' : 'border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-500/10'}`}>
+                      <option value="uninvited">- Belum Diabsen -</option><option value="present">Hadir</option><option value="permit">Izin</option><option value="sick">Sakit</option><option value="absent">Alpha</option>
+                    </select>
+                  </td>
+                  <td className="py-3 pl-4">
+                    <input type="url" placeholder="https://..." value={rowData.proof_url} disabled={rowData.status === 'present' || rowData.status === 'uninvited'} onChange={(e) => handleChange(user.id, 'proof_url', e.target.value)} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none disabled:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
+        <div className="flex flex-col border-b border-slate-200 bg-white px-6 pt-4 dark:border-white/10 dark:bg-slate-900">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-md">
-                <Activity className="h-4 w-4 text-white"/>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-md">
+                <UserCheck className="h-5 w-5 text-white"/>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Leaderboard Partisipasi</h3>
-                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Tingkat kehadiran 5 agenda terakhir</p>
-              </div>
+              <div><h2 className="text-base font-bold text-slate-900 dark:text-white">Buku Tamu Absensi</h2><p className="text-xs text-slate-500 dark:text-slate-400">{agenda.title}</p></div>
             </div>
+            <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"><X className="h-5 w-5"/></button>
           </div>
-
-          <div className="relative space-y-3.5">
-            {agendaPart && agendaPart.length > 0 ? (
-              agendaPart.map((item, idx) => (
-                <div key={idx}>
-                  <div className="mb-1.5 flex items-center justify-between text-xs">
-                    <span className="truncate pr-4 font-semibold text-slate-700 dark:text-slate-300">{item.title}</span>
-                    <span className={`font-black tracking-tight ${item.rate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : item.rate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.rate}%</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] dark:bg-slate-800/80">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ease-out ${item.rate >= 80 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : item.rate >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'}`} 
-                      style={{ width: `${item.rate}%` }}
-                    />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="flex h-24 items-center justify-center text-xs font-medium text-slate-400">Belum ada riwayat absensi.</div>
-            )}
+          <div className="flex gap-6">
+            <button type="button" onClick={() => setActiveTab('targets')} className={`pb-3 text-sm font-semibold border-b-2 transition ${activeTab === 'targets' ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><span className="flex items-center gap-2"><Target className="h-4 w-4"/> 1. Tentukan Target</span></button>
+            <button type="button" onClick={() => setActiveTab('attendance')} className={`pb-3 text-sm font-semibold border-b-2 transition ${activeTab === 'attendance' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}><span className="flex items-center gap-2"><Users className="h-4 w-4"/> 2. Catat Kehadiran</span></button>
           </div>
         </div>
-      </div>
-
-      {/* 3. TABBED DYNAMIC CHART */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-white/10">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">Arus Kas Organisasi</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Visualisasi tren pemasukan & pengeluaran.</p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
-              {chartKeys.map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveChartTab(key)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-                    activeChartTab === key
-                      ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-700 dark:text-primary-400'
-                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {key}
-                </button>
-              ))}
-            </div>
-
-            <div className="relative">
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-              >
-                <option value="6m">6 Bulan Terakhir</option>
-                <option value="3m">3 Bulan Terakhir</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-2 h-3.5 w-3.5 text-slate-400"/>
-            </div>
-          </div>
-        </div>
-
-        <div className="h-72 w-full">
-          {displayChartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={displayChartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-200 dark:stroke-white/5" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  dy={10}
-                  tick={{ fontSize: 11 }}
-                  className="fill-slate-500"
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11 }}
-                  className="fill-slate-500"
-                  tickFormatter={(value) =>
-                    `Rp${value >= 1000000 ? value / 1000000 + 'M' : value / 1000 + 'K'}`
-                  }
-                />
-                <Tooltip
-                  formatter={(value) => formatRupiah(value)}
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Pemasukan"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorIncome)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Pengeluaran"
-                  stroke="#f43f5e"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorExpense)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+        {activeTab === 'targets' ? renderTargetsTab() : renderAttendanceTab()}
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-slate-50/50 px-6 py-4 dark:border-white/10 dark:bg-slate-900/50">
+          <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:text-slate-300">Batal</button>
+          {activeTab === 'targets' ? (
+            <button type="button" onClick={handleSaveTargetsAndProceed} disabled={submitting} className="flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-500 disabled:opacity-50">{submitting && <Loader2 className="h-4 w-4 animate-spin"/>} {submitting ? 'Menyimpan...' : 'Simpan & Lanjut Absen'}</button>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
-              Belum ada data transaksi.
-            </div>
+            <button type="button" onClick={handleSubmitAttendance} disabled={submitting || usersLoading} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white hover:shadow-lg disabled:opacity-50">{submitting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Save className="h-4 w-4"/>} Simpan Rekap Kehadiran</button>
           )}
-        </div>
-      </div>
-
-      {/* 4. CALENDAR & AGENDA DETAIL (THE MASTERPIECE) */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Native Calendar */}
-        <div className="lg:col-span-2">
-          {renderCalendar()}
-        </div>
-
-        {/* Selected Date Agendas */}
-        <div className="lg:col-span-1">
-          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-            <div className="border-b border-slate-200 bg-primary-600/5 px-6 py-4 dark:border-white/10 dark:bg-primary-900/10">
-              <h3 className="text-sm font-bold text-primary-700 dark:text-primary-400">
-                Agenda {format(selectedDate, 'd MMMM yyyy', { locale: localeID })}
-              </h3>
-              <p className="mt-1 text-[10px] font-medium text-primary-600/70 dark:text-primary-400/70">
-                {agendasSelectedDay.length} agenda dijadwalkan
-              </p>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-2">
-              {agendasSelectedDay.length > 0 ? (
-                <div className="space-y-2">
-                  {agendasSelectedDay.map(meeting => (
-                    <div key={meeting.id} className="group flex flex-col gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md dark:border-white/5 dark:bg-slate-800/50 dark:hover:border-primary-500/30">
-                      <div className="flex items-start justify-between">
-                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">{meeting.title}</h4>
-                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                          {format(new Date(meeting.start_date), 'HH:mm')}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium text-slate-500 dark:text-slate-400">
-                        {meeting.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-red-400"/>
-                            <span className="truncate max-w-[100px]">{meeting.location}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <Activity className="h-3 w-3 text-amber-500"/>
-                          <span>Status: {meeting.status || 'Terjadwal'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex h-48 flex-col items-center justify-center text-center">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5">
-                    <CalendarClock className="h-6 w-6 text-slate-300 dark:text-slate-600"/>
-                  </div>
-                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Tidak ada agenda.</p>
-                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Pilih tanggal lain di kalender.</p>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -7585,12 +7614,484 @@ export default function Finance() {
 }
 ```
 
+## File: src/pages/Dashboard.jsx
+```javascript
+import { useState, useMemo } from 'react';
+import useSWR from 'swr';
+import { fetcher, paginatedFetcher } from '../api/fetcher';
+import api from '../api/axios';
+import { Link } from 'react-router-dom';
+import { 
+  format, addMonths, subMonths, startOfMonth, endOfMonth, 
+  startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, isToday 
+} from 'date-fns';
+import { id as localeID } from 'date-fns/locale';
+import {
+  Wallet, CalendarClock, Activity, AlertCircle, Loader2, AlertTriangle, 
+  ChevronDown, ChevronLeft, ChevronRight, MapPin, ArrowRight
+} from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+function formatRupiah(value) {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value ?? 0);
+}
+
+function StatCard({ icon: Icon, label, value, subValue, gradient, iconBg }) {
+  return (
+    <div className="group relative flex h-full flex-col justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+      <div className={`absolute -right-6 -top-6 h-32 w-32 rounded-full opacity-20 blur-2xl transition-opacity duration-300 group-hover:opacity-40 ${gradient}`} />
+      <div className="relative flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{label}</p>
+          <div className="mt-2 flex items-baseline gap-2">
+            <p className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">{value}</p>
+            {subValue && <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{subValue}</span>}
+          </div>
+        </div>
+        <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lg ${iconBg}`}>
+          <Icon className="h-7 w-7 text-white"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const [activeChartTab, setActiveChartTab] = useState('Kas Umum');
+  const [timeRange, setTimeRange] = useState('6m');
+
+  // Calendar States
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const { data: stats, error: statsError, isLoading: statsLoading } = useSWR('/api/dashboard/statistics', fetcher);
+  const { data: agenda, error: agendaError, isLoading: agendaLoading } = useSWR('/api/dashboard/upcoming-agenda', fetcher);
+  
+  // FETCH SURAT PERINGATAN (Dengan SWR Mutator)
+  const { data: warningsData, mutate: mutateWarnings } = useSWR('/api/warnings?page=1', paginatedFetcher);
+
+  const personalDues = stats?.personal_dues;
+  const agendaPart = stats?.agenda_participation;
+  const financial = stats?.financial_health;
+  
+  // Ekstraksi & Filter Peringatan Aktif (Hanya yang belum dibaca)
+  const myWarnings = warningsData?.data?.data || (Array.isArray(warningsData?.data) ? warningsData.data : []) || [];
+  const activeWarnings = myWarnings.filter(w => !w.read_at);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      await api.patch(`/api/warnings/${id}/read`);
+      mutateWarnings();
+    } catch (err) {
+      console.error('Gagal menandai peringatan:', err);
+    }
+  };
+
+  const chartKeys = useMemo(() => (financial?.chart_data ? Object.keys(financial.chart_data) : []), [financial?.chart_data]);
+  const currentChartData = useMemo(() => financial?.chart_data?.[activeChartTab] || [], [financial?.chart_data, activeChartTab]);
+  const displayChartData = useMemo(() => (timeRange === '3m' ? currentChartData.slice(-3) : currentChartData), [currentChartData, timeRange]);
+
+  const allAgendas = agenda?.upcoming_meetings || [];
+  const agendasSelectedDay = allAgendas.filter(m => isSameDay(new Date(m.start_date), selectedDate));
+
+  if (statsLoading || agendaLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Menyinkronkan data dasbor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (statsError || agendaError) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-50 px-8 py-6 dark:bg-red-500/10">
+          <AlertCircle className="h-10 w-10 text-red-500 dark:text-red-400"/>
+          <div className="text-center">
+            <p className="font-semibold text-red-700 dark:text-red-300">Gagal memuat data</p>
+            <p className="mt-1 text-sm text-red-600/70 dark:text-red-400/70">Koneksi ke server terputus.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const renderCalendar = () => {
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+
+    const rows = [];
+    let days = [];
+    let day = startDate;
+
+    while (day <= endDate) {
+      for (let i = 0; i < 7; i++) {
+        const cloneDay = day;
+        const dayAgendas = allAgendas.filter(m => isSameDay(new Date(m.start_date), cloneDay));
+        const hasAgenda = dayAgendas.length > 0;
+        
+        const isNotCurrentMonth = !isSameMonth(day, monthStart);
+        const isSelected = isSameDay(day, selectedDate);
+        const isTodayDate = isToday(day);
+
+        days.push(
+          <div
+            key={day.toISOString()}
+            onClick={() => setSelectedDate(cloneDay)}
+            className={`group flex h-16 sm:h-24 cursor-pointer flex-col overflow-hidden border-b border-r border-slate-100 p-1.5 transition-all dark:border-white/5 ${
+              isNotCurrentMonth ? "bg-slate-50/50 text-slate-300 dark:bg-slate-900/20 dark:text-slate-600" : 
+              isSelected ? "bg-primary-50 dark:bg-primary-900/20" : 
+              "hover:bg-slate-50 dark:hover:bg-white/5"
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                isSelected ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : 
+                isTodayDate ? "text-primary-500 dark:text-primary-400" : 
+                "text-slate-700 dark:text-slate-300"
+              }`}>
+                {format(day, 'd')}
+              </span>
+              {hasAgenda && !isSelected && (
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary-500 shadow-[0_0_4px_rgba(59,130,246,0.5)]"></span>
+              )}
+            </div>
+            
+            <div className="mt-1 flex flex-col gap-1">
+              {dayAgendas.slice(0, 2).map((m, idx) => (
+                <div key={idx} className={`truncate rounded-sm px-1.5 py-0.5 text-[9px] font-semibold ${
+                  isSelected ? 'bg-primary-100 text-primary-700 dark:bg-primary-500/30 dark:text-primary-300' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200 dark:bg-white/5 dark:text-slate-400'
+                }`}>
+                  {m.title}
+                </div>
+              ))}
+              {dayAgendas.length > 2 && (
+                <span className="pl-1 text-[8px] font-medium text-slate-400">+{dayAgendas.length - 2} lagi</span>
+              )}
+            </div>
+          </div>
+        );
+        day = addDays(day, 1);
+      }
+      rows.push(<div className="grid grid-cols-7" key={day.toISOString()}>{days}</div>);
+      days = [];
+    }
+
+    return (
+      <div className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+            {format(currentMonth, 'MMMM yyyy', { locale: localeID })}
+          </h3>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
+              <ChevronLeft className="h-4 w-4"/>
+            </button>
+            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-transparent dark:text-slate-400 dark:hover:bg-white/5">
+              <ChevronRight className="h-4 w-4"/>
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-slate-900/30">
+          {weekDays.map(dayName => (
+            <div key={dayName} className="py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {dayName}
+            </div>
+          ))}
+        </div>
+        <div className="flex flex-col border-l border-slate-100 dark:border-white/5">
+          {rows}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6 animate-slide-up-fade">
+      
+      {/* 1. SMART AGGRESSIVE WARNING BANNER (Hanya tampil jika ada yang belum dibaca) */}
+      {activeWarnings.length > 0 && (
+        <div className="flex items-start gap-4 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 to-amber-500/5 p-5 shadow-sm dark:from-amber-500/10 dark:to-transparent">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 shadow-inner">
+            <AlertCircle className="h-6 w-6"/>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-amber-800 dark:text-amber-400">Surat Peringatan Baru!</h3>
+            <p className="mt-1 text-xs font-medium text-amber-700/90 dark:text-amber-400/80">
+              Kamu memiliki <strong className="text-amber-900 dark:text-amber-300">{activeWarnings.length} surat peringatan</strong> yang belum dibaca. Harap perhatikan peringatan ini demi kelancaran operasional organisasi.
+            </p>
+            <div className="mt-3 flex flex-col gap-2.5">
+              {activeWarnings.slice(0, 2).map((w) => (
+                <div key={w.id} className="relative overflow-hidden rounded-xl border border-amber-200/60 bg-white/60 p-3 pr-32 shadow-sm dark:border-amber-500/20 dark:bg-black/20">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500">
+                    Diberikan pada: {format(new Date(w.date), 'dd MMMM yyyy', { locale: localeID })}
+                  </span>
+                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-200 leading-relaxed">
+                    "{w.reason}"
+                  </p>
+                  
+                  {/* Tombol Aksi Mutasi Data */}
+                  <button 
+                    onClick={() => handleMarkAsRead(w.id)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg bg-amber-500 px-3 py-1.5 text-[10px] font-bold text-white shadow-sm transition hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+                  >
+                    Tandai Dibaca
+                  </button>
+                </div>
+              ))}
+            </div>
+            <Link className="mt-3.5 inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300" to="/dashboard/warnings">
+              Lihat Riwayat Peringatan <ArrowRight className="h-3.5 w-3.5"/>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* 2. WARNING BANNER (KEDISIPLINAN KAS) */}
+      {personalDues?.unpaid_months > 0 && (
+        <div className="flex items-start gap-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-500/20 text-red-600 dark:text-red-400">
+            <AlertTriangle className="h-5 w-5"/>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-red-700 dark:text-red-400">Peringatan Tunggakan Kas!</h3>
+            <p className="mt-1 text-xs font-medium text-red-600/80 dark:text-red-400/80">
+              Kamu memiliki tunggakan kas pengurus selama <strong className="text-red-700 dark:text-red-300">{personalDues.unpaid_months} bulan</strong>. Segera lunasi kewajibanmu untuk mendukung operasional organisasi.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 3. STAT CARDS & LEADERBOARD */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <StatCard gradient="bg-primary-500" icon={Wallet} iconBg="bg-gradient-to-br from-primary-500 to-primary-700" label="Total Saldo Kas Umum" value={formatRupiah(financial?.total_balance)}/>
+
+        <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:shadow-2xl">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-blue-500 opacity-10 blur-2xl transition-opacity duration-300 group-hover:opacity-20" />
+          <div className="relative mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 shadow-md">
+                <Activity className="h-4 w-4 text-white"/>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Leaderboard Partisipasi</h3>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Tingkat kehadiran 5 agenda terakhir</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative space-y-3.5">
+            {agendaPart && agendaPart.length > 0 ? (
+              agendaPart.map((item, idx) => (
+                <div key={idx}>
+                  <div className="mb-1.5 flex items-center justify-between text-xs">
+                    <span className="truncate pr-4 font-semibold text-slate-700 dark:text-slate-300">{item.title}</span>
+                    <span className={`font-black tracking-tight ${item.rate >= 80 ? 'text-primary-600 dark:text-primary-400' : item.rate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>{item.rate}%</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] dark:bg-slate-800/80">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${item.rate >= 80 ? 'bg-primary-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : item.rate >= 50 ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]'}`} 
+                      style={{ width: `${item.rate}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex h-24 items-center justify-center text-xs font-medium text-slate-400">Belum ada riwayat absensi.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 4. TABBED DYNAMIC CHART */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 dark:border-white/10">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">Arus Kas Organisasi</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Visualisasi tren pemasukan & pengeluaran.</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
+              {chartKeys.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveChartTab(key)}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    activeChartTab === key
+                      ? 'bg-white text-primary-600 shadow-sm dark:bg-slate-700 dark:text-primary-400'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative">
+              <select
+                value={timeRange}
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="appearance-none rounded-lg border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 outline-none hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <option value="6m">6 Bulan Terakhir</option>
+                <option value="3m">3 Bulan Terakhir</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-2.5 top-2 h-3.5 w-3.5 text-slate-400"/>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-72 w-full">
+          {displayChartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={displayChartData}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-200 dark:stroke-white/5" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  dy={10}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11 }}
+                  className="fill-slate-500"
+                  tickFormatter={(value) =>
+                    `Rp${value >= 1000000 ? value / 1000000 + 'M' : value / 1000 + 'K'}`
+                  }
+                />
+                <Tooltip
+                  formatter={(value) => formatRupiah(value)}
+                  contentStyle={{
+                    borderRadius: '12px',
+                    border: 'none',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pemasukan"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorIncome)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="Pengeluaran"
+                  stroke="#f43f5e"
+                  strokeWidth={2}
+                  fillOpacity={1}
+                  fill="url(#colorExpense)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+              Belum ada data transaksi.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 5. CALENDAR & AGENDA DETAIL */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          {renderCalendar()}
+        </div>
+
+        <div className="lg:col-span-1">
+          <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+            <div className="border-b border-slate-200 bg-primary-600/5 px-6 py-4 dark:border-white/10 dark:bg-primary-900/10">
+              <h3 className="text-sm font-bold text-primary-700 dark:text-primary-400">
+                Agenda {format(selectedDate, 'd MMMM yyyy', { locale: localeID })}
+              </h3>
+              <p className="mt-1 text-[10px] font-medium text-primary-600/70 dark:text-primary-400/70">
+                {agendasSelectedDay.length} agenda dijadwalkan
+              </p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-2">
+              {agendasSelectedDay.length > 0 ? (
+                <div className="space-y-2">
+                  {agendasSelectedDay.map(meeting => (
+                    <div key={meeting.id} className="group flex flex-col gap-2 rounded-xl border border-slate-100 bg-white p-4 shadow-sm transition hover:border-primary-200 hover:shadow-md dark:border-white/5 dark:bg-slate-800/50 dark:hover:border-primary-500/30">
+                      <div className="flex items-start justify-between">
+                        <h4 className="text-sm font-semibold text-slate-900 group-hover:text-primary-600 dark:text-white dark:group-hover:text-primary-400">{meeting.title}</h4>
+                        <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                          {format(new Date(meeting.start_date), 'HH:mm')}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                        {meeting.location && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-red-400"/>
+                            <span className="truncate max-w-[100px]">{meeting.location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <Activity className="h-3 w-3 text-amber-500"/>
+                          <span>Status: {meeting.status || 'Terjadwal'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-48 flex-col items-center justify-center text-center">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-white/5">
+                    <CalendarClock className="h-6 w-6 text-slate-300 dark:text-slate-600"/>
+                  </div>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Tidak ada agenda.</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Pilih tanggal lain di kalender.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
 ## File: src/layouts/DashboardLayout.jsx
 ```javascript
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import useSWR from 'swr';
+import { fetcher } from '../api/fetcher';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   LayoutDashboard,
   CalendarRange,
@@ -7600,13 +8101,17 @@ import {
   Wallet, 
   Calculator,
   FileText,
+  FolderArchive,
   AlertTriangle,
+  Settings,
   LogOut,
   Menu,
   X,
   ChevronRight,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 const navigationGroups = [
@@ -7622,6 +8127,7 @@ const navigationGroups = [
       { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
       { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
       { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
+      { name: 'Arsip', href: '/dashboard/archives', icon: FolderArchive },
     ]
   },
   {
@@ -7637,6 +8143,7 @@ const navigationGroups = [
       { name: 'Peringatan', href: '/dashboard/warnings', icon: AlertTriangle },
       { name: 'Master Data', href: '/dashboard/master-data', icon: Database, adminOnly: true },
       { name: 'Log Aktivitas', href: '/dashboard/audit-trails', icon: Activity, adminOnly: true },
+      { name: 'Pengaturan', href: '/dashboard/settings', icon: Settings, adminOnly: true },
     ]
   },
 ];
@@ -7646,20 +8153,28 @@ export default function DashboardLayout() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   
+  const { data: settingsData } = useSWR('/api/settings', fetcher);
+  const orgName = settingsData?.org_name || 'Protik';
+  const orgLogo = settingsData?.org_logo || '';
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
   const isMember = user?.roles?.[0]?.name === 'member';
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await logout();
+    setIsLogoutModalOpen(false);
     navigate('/login', { replace: true });
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-primary-950 transition-colors duration-300">
+    <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       
       {sidebarOpen && (
         <div
@@ -7683,10 +8198,14 @@ export default function DashboardLayout() {
           onMouseLeave={() => setIsHeaderHovered(false)}
         >
           <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 absolute' : 'w-auto opacity-100'}`}>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
-              <LayoutDashboard className="h-5 w-5 text-white"/>
-            </div>
-            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Protik</span>
+            {orgLogo ? (
+              <img src={orgLogo} alt="Logo" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-sm bg-white/50" />
+            ) : (
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
+                <LayoutDashboard className="h-5 w-5 text-white"/>
+              </div>
+            )}
+            <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">{orgName}</span>
           </div>
 
           {!isCollapsed && (
@@ -7702,9 +8221,13 @@ export default function DashboardLayout() {
           {isCollapsed && (
             <div className="relative flex h-10 w-10 items-center justify-center">
               <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${isHeaderHovered ? 'opacity-0' : 'opacity-100'}`}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
-                  <LayoutDashboard className="h-4 w-4 text-white"/>
-                </div>
+                {orgLogo ? (
+                  <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded-xl object-contain shadow-sm bg-white/50" />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
+                    <LayoutDashboard className="h-4 w-4 text-white"/>
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setIsCollapsed(false)}
@@ -7856,19 +8379,15 @@ export default function DashboardLayout() {
               className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
             >
               {theme === 'dark' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-amber-400">
-                  <circle cx="12" cy="12" r="4" /><path d="M12 2v2" /><path d="M12 20v2" /><path d="m4.93 4.93 1.41 1.41" /><path d="m17.66 17.66 1.41 1.41" /><path d="M2 12h2" /><path d="M20 12h2" /><path d="m6.34 17.66-1.41 1.41" /><path d="m19.07 4.93-1.41 1.41" />
-                </svg>
+                <Sun className="h-4 w-4 text-amber-400"/>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-600">
-                  <path d="M12 3a6 6 0 0 0 9 9 9 0 1 1-9-9Z" />
-                </svg>
+                <Moon className="h-4 w-4 text-slate-600"/>
               )}
             </button>
 
             {/* Logout */}
             <button
-              onClick={handleLogout}
+              onClick={() => setIsLogoutModalOpen(true)}
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 sm:px-4 text-sm font-medium text-slate-700 transition hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
             >
               <LogOut className="h-4 w-4 shrink-0"/>
@@ -7882,6 +8401,18 @@ export default function DashboardLayout() {
           <Outlet/>
         </main>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+        title="Konfirmasi Keluar"
+        message="Apakah Anda yakin ingin keluar dari panel manajemen? Sesi Anda akan diakhiri."
+        confirmText="Ya, Keluar"
+        isDanger={true}
+        isLoading={isLoggingOut}
+      />
     </div>
   );
 }
@@ -7912,6 +8443,8 @@ const Warning = lazy(() => import('./pages/Warning'));
 const Profile = lazy(() => import('./pages/Profile'));
 const AuditTrail = lazy(() => import('./pages/AuditTrail'));
 const MonthlyDue = lazy(() => import('./pages/MonthlyDue'));
+const Archives = lazy(() => import('./pages/Archives'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 // Fallback Spinner saat transisi halaman
 const PageLoader = () => (
@@ -7949,8 +8482,10 @@ export default function App() {
                       <Route path="/dashboard/monthly-dues" element={<MonthlyDue />} />
                       <Route path="/dashboard/agendas" element={<Agenda />} />
                       <Route path="/dashboard/documents" element={<Document />} />
+                      <Route path="/dashboard/archives" element={<Archives />} />
                       <Route path="/dashboard/profile" element={<Profile />} />
                       <Route path="/dashboard/warnings" element={<Warning />} />
+                      <Route path="/dashboard/settings" element={<Settings />} />
                     </Route>
                   </Route>
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -8170,4 +8705,27 @@ export default function App() {
 ### Changed
 - Merefaktorisasi `DashboardLayout.jsx` untuk mengadopsi standar arsitektur navigasi *Enterprise SaaS*. Mengimplementasikan pengelompokan menu berbasis domain (Utama, Operasional, Finansial, Sistem & HR, Personal) dengan *Section Headers* yang secara dinamis menyusut menjadi garis pemisah (`<hr>`) saat mode *Collapsed* aktif.
 - Memoles interaksi *Collapsible Sidebar* dengan mekanisme *Hover State Toggle* ("Gemini-style"). Mengeliminasi *button clutter* dengan menampilkan Logo Protik secara *default* saat sidebar diciutkan, di mana ikon `PanelLeftOpen` hanya akan di-render sebagai *overlay* interaktif secara eksklusif ketika kursor memindai area *Header Sidebar*, menciptakan antarmuka yang sangat bersih dan minimalis.
+## [2026-08-26]
+### Changed
+- Merefaktorisasi `CommitteeModal.jsx` untuk tersinkronisasi penuh dengan struktur *Normalisasi Database* pada entitas `EventCommittee`. Mengganti elemen *Datalist* *string* statis menjadi komponen *Select Dropdown* dinamis yang dimuat secara asinkron via SWR dari `/api/committee-positions`.
+- Mengimplementasikan sistem *Auto-Mapper* pada fitur Impor Massal Excel. Algoritma kini memindai kolom string "Jabatan" pada lembar kerja dan mentranslasikannya menjadi *Foreign Key* (`position_id`) secara mutlak, meniadakan anomali *Missing Record*.
+- Merevisi *engine* pewarnaan *Badge UI* (*Role Tagging*) agar menyoroti (*highlight*) jabatan berdasarkan hak otorisasi absolut (`is_bph` *flag*) dari objek relasi *Eloquent*, menghasilkan representasi visual hierarki keamanan yang akurat.
+## [2026-08-26]
+### Added
+- Mengimplementasikan `Archives.jsx` sebagai modul UI Gudang Dokumen (*Repository*) berarsitektur *Grid Card* bergaya *Google Drive*.
+- Menginjeksi fungsionalitas *Client-Side Array Grouping* berbasis `period_year` untuk mengeleminasi paginasi hierarkis, mendistribusikan ratusan *folder* virtual dalam segmentasi per-kepengurusan yang mudah dipindai secara visual.
+- Menerapkan *Role-Based Access Control* (RBAC) pada level elemen UI. Administrator diberikan akses *inline CRUD* (Menu Kebab Kustom), sementara visibilitas bagi *Member* dibatasi hanya pada kapabilitas *Click-to-Redirect* ke *Google Drive External Link*.
+## [2026-08-26]
+### Added
+- Mengimplementasikan halaman `Settings.jsx` sebagai pusat kontrol *Global Variables* organisasi (Nama dan Logo).
+- Menginjeksi *Batch Update Payload* untuk memfasilitasi modifikasi multi-kunci pada API `/api/settings/batch` secara atomik.
+- Menerapkan arsitektur *Global State Synchronization*. `DashboardLayout.jsx` kini bertindak sebagai *SWR Subscriber* yang secara dinamis me-*render* atribut *Branding* organisasi. Mutasi data dari halaman pengaturan akan memicu *hot-reload* asinkron pada komponen *Sidebar* tanpa interupsi *refresh* peramban.
+## [2026-08-26]
+### Changed
+- Mengeksekusi *Brand Identity Override* pada tingkat CSS Root (`index.css`). Menyelaraskan *Global Color Palette* aplikasi dengan warna primer logo organisasi (Hijau Emerald).
+- Memanfaatkan arsitektur *CSS Variables* dari Tailwind v4 (`--color-primary-*`) untuk melakukan mutasi warna massal secara aman tanpa menibulkan friksi pada struktur *class* komponen React yang sudah ada.
+## [2026-08-27]
+### Fixed
+- Menambal celah UI React *Crash* (Error Boundary) pada komponen `AttendanceModal.jsx`. 
+- Menyelaraskan alur render komponen dari perubahan struktur *Database* di *Backend* di mana atribut `position` dirender sebagai *Object*, bukan *String* secara langsung.
 ```

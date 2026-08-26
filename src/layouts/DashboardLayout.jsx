@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import { fetcher } from '../api/fetcher';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   LayoutDashboard,
   CalendarRange,
@@ -72,12 +73,16 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
   const isMember = user?.roles?.[0]?.name === 'member';
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await logout();
+    setIsLogoutModalOpen(false);
     navigate('/login', { replace: true });
   };
 
@@ -295,7 +300,7 @@ export default function DashboardLayout() {
 
             {/* Logout */}
             <button
-              onClick={handleLogout}
+              onClick={() => setIsLogoutModalOpen(true)}
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 sm:px-4 text-sm font-medium text-slate-700 transition hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
             >
               <LogOut className="h-4 w-4 shrink-0"/>
@@ -309,6 +314,18 @@ export default function DashboardLayout() {
           <Outlet/>
         </main>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogout}
+        title="Konfirmasi Keluar"
+        message="Apakah Anda yakin ingin keluar dari panel manajemen? Sesi Anda akan diakhiri."
+        confirmText="Ya, Keluar"
+        isDanger={true}
+        isLoading={isLoggingOut}
+      />
     </div>
   );
 }

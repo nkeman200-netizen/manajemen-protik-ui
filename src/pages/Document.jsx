@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import DocumentModal from '../components/DocumentModal';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   Plus,
   ChevronLeft,
@@ -49,6 +50,8 @@ export default function Document() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isReadOnlyModal, setIsReadOnlyModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -117,15 +120,18 @@ export default function Document() {
   };
 
   // --- Delete Handler ---
-  const handleDelete = async (id) => {
-    if (window.confirm('Yakin hapus dokumen ini?')) {
-      try {
-        await api.delete(`/api/documents/${id}`);
-        toast.success('Surat berhasil dihapus.');
-        mutateDocuments();
-      } catch (err) {
-        toast.error(err.response?.data?.message || 'Gagal menghapus surat.');
-      }
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/api/documents/${deleteTarget.id}`);
+      toast.success('Surat berhasil dihapus.');
+      mutateDocuments();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menghapus surat.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -527,7 +533,7 @@ export default function Document() {
                             <button
                               onClick={() => {
                                 setOpenDropdownId(null);
-                                handleDelete(item.id);
+                                setDeleteTarget(item);
                               }}
                               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
                             >
@@ -591,6 +597,18 @@ export default function Document() {
         initialData={selectedDocument}
         isReadOnly={isReadOnlyModal}
         activeEventId={activeWorkspace?.id}
+      />
+
+      {/* Confirm Delete Modal */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDelete}
+        title="Hapus Surat"
+        message={`Yakin hapus surat nomor "${deleteTarget?.letter_number}"?`}
+        confirmText="Hapus Permanen"
+        isLoading={isDeleting}
+        isDanger={true}
       />
     </div>
   );

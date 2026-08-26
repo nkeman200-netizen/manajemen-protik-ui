@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { fetcher } from '../api/fetcher';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   FolderArchive, Plus, ExternalLink, MoreVertical,
   Pencil, Trash2, Loader2, AlertCircle, X, Search, Folder
@@ -24,6 +25,9 @@ export default function Archives() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState(null);
+
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -90,14 +94,18 @@ export default function Archives() {
     }
   };
 
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Yakin ingin menghapus arsip "${name}"? Tautan ke Drive akan hilang dari sistem.`)) return;
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
     try {
-      await api.delete(`/api/archives/${id}`);
+      await api.delete(`/api/archives/${deleteTarget.id}`);
       toast.success('Arsip berhasil dihapus.');
       mutate();
     } catch (err) {
       toast.error('Gagal menghapus arsip.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -166,7 +174,7 @@ export default function Archives() {
                           <button onClick={() => { setOpenDropdownId(null); openModal(item); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
                             <Pencil className="h-3.5 w-3.5"/> Edit Info
                           </button>
-                          <button onClick={() => { setOpenDropdownId(null); handleDelete(item.id, item.name); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10">
+                          <button onClick={() => { setOpenDropdownId(null); setDeleteTarget(item); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10">
                             <Trash2 className="h-3.5 w-3.5"/> Hapus Arsip
                           </button>
                         </div>
@@ -185,7 +193,7 @@ export default function Archives() {
         </div>
       )}
 
-      {/* MODAL */}
+      {/* MODAL TAMBAH/EDIT */}
       {modalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
@@ -218,6 +226,18 @@ export default function Archives() {
           </div>
         </div>
       )}
+
+      {/* CONFIRM DELETE MODAL */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDelete}
+        title="Hapus Arsip"
+        message={`Yakin ingin menghapus arsip "${deleteTarget?.name}"? Tautan ke Drive akan hilang secara permanen dari sistem.`}
+        confirmText="Hapus Permanen"
+        isLoading={isDeleting}
+        isDanger={true}
+      />
     </div>
   );
 }

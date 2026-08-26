@@ -210,7 +210,10 @@
 ### Fixed
 - Menambal celah UI React *Crash* (Error Boundary) pada komponen `AttendanceModal.jsx`. 
 - Menyelaraskan alur render komponen dari perubahan struktur *Database* di *Backend* di mana atribut `position` dirender sebagai *Object*, bukan *String* secara langsung.
-
+## [2026-08-27]
+### Changed
+- Mengeksekusi eradikasi global terhadap penggunaan antarmuka pemblokir *Main-Thread* sinkron (`window.confirm()`) pada fitur penghapusan data di modul `EventManagement.jsx`, `MasterData.jsx`, `CommitteeModal.jsx`, `Finance.jsx`, dan `Document.jsx`. 
+- Menggantikan peringatan interupsi tersebut dengan `ConfirmModal.jsx` kustom yang reaktif, asinkron, dan konsisten dengan arsitektur UI/UX *Enterprise*.
 
 
 
