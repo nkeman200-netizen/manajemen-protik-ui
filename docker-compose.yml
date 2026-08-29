@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: protik-frontend-ui
+    container_name: protik_ui
+    restart: unless-stopped
+    ports:
+      # Expose ke port 5173 di host VPS agar Nginx Proxy Manager kampus mudah menangkapnya
+      - "5173:80"
