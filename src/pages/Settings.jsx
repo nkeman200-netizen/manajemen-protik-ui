@@ -8,6 +8,7 @@ import {
   Settings as SettingsIcon, Save, Loader2, AlertCircle, ShieldAlert,
   Image as ImageIcon, Type, Link as LinkIcon, Upload, Database, Cloud
 } from 'lucide-react';
+import TemplateManager from '../components/TemplateManager';
 
 export default function Settings() {
   const { user } = useAuth();
@@ -264,6 +265,9 @@ export default function Settings() {
               </div>
             </div>
           </form>
+
+          {/* Manajemen Template Dapur Surat */}
+          <TemplateManager />
         </div>
 
         {/* Kolom Kanan: Live Preview Sidebar */}

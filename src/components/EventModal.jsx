@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 
 const initialForm = {
   name: '',
+  abbreviation: '',
   description: '',
   budget_approved: '',
   drive_folder_url: '',
@@ -29,6 +30,7 @@ export default function EventModal({
     if (initialData) {
       setForm({
         name: initialData.name || '',
+        abbreviation: initialData.abbreviation || '',
         description: initialData.description || '',
         budget_approved: initialData.budget_approved ?? '',
         drive_folder_url: initialData.drive_folder_url || '',
@@ -60,6 +62,7 @@ export default function EventModal({
     try {
       const payload = {
         name: form.name,
+        abbreviation: form.abbreviation || null,
         description: form.description || null,
         budget_approved: form.budget_approved !== '' ? Number(form.budget_approved) : 0,
         drive_folder_url: form.drive_folder_url || null,
@@ -148,6 +151,24 @@ export default function EventModal({
               className={inputClass('name')}
             />
             {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name[0]}</p>}
+          </div>
+
+          {/* Abbreviation */}
+          <div>
+            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Singkatan Event
+              <span className="ml-1.5 rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Dapur Surat</span>
+            </label>
+            <input
+              type="text"
+              name="abbreviation"
+              value={form.abbreviation}
+              onChange={handleChange}
+              placeholder="Cth: MAKRAB, OSPEK, WORKSHOP"
+              className={inputClass('abbreviation')}
+            />
+            {errors.abbreviation && <p className="mt-1 text-xs text-red-400">{errors.abbreviation[0]}</p>}
+            <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">Digunakan otomatis saat merakit nomor surat di fitur Dapur Surat.</p>
           </div>
 
           {/* Description */}

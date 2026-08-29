@@ -162,7 +162,7 @@ export default function MonthlyDue() {
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Filter Divisi</label>
               <div className="relative">
                 <select value={divisionFilter} onChange={(e) => setDivisionFilter(e.target.value)} className="appearance-none w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white">
-                  <option value="">Semua Divisi / BPH Inti</option>
+                  <option value="">Semua Divisi</option>
                   {divisions.map(div => <option key={div} value={div}>{div}</option>)}
                 </select>
                 <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>

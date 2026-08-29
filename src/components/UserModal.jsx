@@ -30,7 +30,7 @@ export default function UserModal({
 
   useEffect(() => {
     if (initialData) {
-      setDivisionId(initialData.division_id ?? '');
+      setDivisionId(initialData.division_id ?? initialData.division?.id ?? '');
       setRole(initialData.roles?.[0]?.name || 'member');
       setStatus(initialData.status || 'active');
       setIsCoordinator(initialData.is_coordinator || false);
@@ -133,7 +133,7 @@ export default function UserModal({
               className={inputClass('division_id')}
             >
               <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
-                -- Tanpa Divisi (BPH Inti / Umum) --
+                -- Tanpa Divisi (Umum) --
               </option>
               {divisions.map((div) => (
                 <option

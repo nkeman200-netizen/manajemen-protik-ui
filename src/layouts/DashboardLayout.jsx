@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import useSWR from 'swr';
 import { fetcher } from '../api/fetcher';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,12 +19,12 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
-  ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
   Sun,
-  Moon
+  Moon,
+  User as UserIcon,
+  X
 } from 'lucide-react';
 
 const navigationGroups = [
@@ -73,11 +73,26 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  
+  // State Dropdown Profil & Logout
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileDropdownRef = useRef(null);
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isAdmin = user?.roles?.[0]?.name === 'admin';
   const isMember = user?.roles?.[0]?.name === 'member';
+
+  // Auto-close profil dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -89,28 +104,31 @@ export default function DashboardLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       
+      {/* Mobile Backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
+      {/* Sidebar */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white/80 dark:border-white/10 dark:bg-slate-950/80 backdrop-blur-2xl transition-all duration-300 ease-in-out
           lg:static lg:translate-x-0
-          ${sidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72'}
-          ${isCollapsed ? 'lg:w-[4.5rem]' : 'lg:w-72'}
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          w-72 ${isCollapsed ? 'lg:w-[4.5rem]' : 'lg:w-72'}
         `}
       >
-        {/* Header Area */}
+        {/* Header Area (Brand) */}
         <div 
-          className={`relative flex h-16 shrink-0 items-center border-b border-slate-200 dark:border-white/10 transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'justify-between px-5'}`}
+          className={`relative flex h-16 shrink-0 items-center border-b border-slate-200 dark:border-white/10 transition-all duration-300 px-5 ${isCollapsed ? 'lg:justify-center lg:px-0' : 'justify-between'}`}
           onMouseEnter={() => setIsHeaderHovered(true)}
           onMouseLeave={() => setIsHeaderHovered(false)}
         >
-          <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0 absolute' : 'w-auto opacity-100'}`}>
+          {/* Brand Name & Logo - Hidden ONLY on LG when Collapsed */}
+          <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 w-auto opacity-100 ${isCollapsed ? 'lg:w-0 lg:opacity-0 lg:absolute' : ''}`}>
             {orgLogo ? (
               <img src={orgLogo} alt="Logo" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-sm bg-white/50" />
             ) : (
@@ -121,199 +139,180 @@ export default function DashboardLayout() {
             <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">{orgName}</span>
           </div>
 
-          {!isCollapsed && (
-            <button
-              onClick={() => setIsCollapsed(true)}
-              className="hidden rounded-full p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:block shrink-0"
-              title="Tutup sidebar"
-            >
-              <PanelLeftClose className="h-5 w-5"/>
-            </button>
-          )}
-
-          {isCollapsed && (
-            <div className="relative flex h-10 w-10 items-center justify-center">
-              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${isHeaderHovered ? 'opacity-0' : 'opacity-100'}`}>
-                {orgLogo ? (
-                  <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded-xl object-contain shadow-sm bg-white/50" />
-                ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-sm">
-                    <LayoutDashboard className="h-4 w-4 text-white"/>
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setIsCollapsed(false)}
-                className={`absolute inset-0 flex h-full w-full items-center justify-center rounded-full text-slate-500 transition-all duration-200 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:flex ${isHeaderHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
-                title="Buka sidebar"
-              >
-                <PanelLeftOpen className="h-5 w-5"/>
-              </button>
-            </div>
-          )}
-
+          {/* Mobile Close Sidebar Button */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden shrink-0 absolute right-4"
+            className="lg:hidden rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white shrink-0"
+            title="Tutup menu"
           >
             <X className="h-5 w-5"/>
           </button>
+
+          {/* Desktop Collapse Button - Hidden on Mobile, Hidden on LG if Collapsed */}
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className={`hidden shrink-0 rounded-full p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white ${isCollapsed ? 'lg:hidden' : 'lg:block'}`}
+            title="Tutup sidebar"
+          >
+            <PanelLeftClose className="h-5 w-5"/>
+          </button>
+
+          {/* Collapsed Brand/Button - Visible ONLY on LG when Collapsed */}
+          <div className={`relative h-10 w-10 items-center justify-center hidden ${isCollapsed ? 'lg:flex' : 'lg:hidden'}`}>
+            <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${isHeaderHovered ? 'opacity-0' : 'opacity-100'}`}>
+              {orgLogo ? (
+                <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded-lg object-contain" />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700">
+                  <LayoutDashboard className="h-4 w-4 text-white"/>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setIsCollapsed(false)}
+              className={`absolute inset-0 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-opacity duration-200 dark:bg-white/10 dark:text-white ${isHeaderHovered ? 'opacity-100' : 'opacity-0'}`}
+              title="Buka sidebar"
+            >
+              <PanelLeftOpen className="h-5 w-5"/>
+            </button>
+          </div>
         </div>
 
-        {/* Navigasi (Menu Personal Telah Dihapus) */}
-        <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-4 custom-scrollbar">
-          {navigationGroups.map((group, groupIndex) => {
-            const validItems = group.items.filter(item => !(item.adminOnly && !isAdmin));
-            if (validItems.length === 0) return null;
+        {/* Navigation Area */}
+        <nav className="flex-1 space-y-6 overflow-y-auto p-4 custom-scrollbar">
+          {navigationGroups.map((group) => {
+            const visibleItems = group.items.filter(item => {
+              if (item.adminOnly && !isAdmin) return false;
+              if (item.restrictedForMember && isMember) return false;
+              return true;
+            });
+
+            if (visibleItems.length === 0) return null;
 
             return (
-              <div key={group.title} className="space-y-1">
-                {!isCollapsed ? (
-                  <h3 className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                    {group.title}
-                  </h3>
-                ) : (
-                  groupIndex > 0 && <hr className="mx-4 my-2 border-slate-200 dark:border-white/10" />
-                )}
-
-                {validItems.map((item) => (
-                  <NavLink
-                    key={item.name}
-                    to={item.href}
-                    end={item.href === '/dashboard'}
-                    onClick={() => setSidebarOpen(false)}
-                    title={isCollapsed ? item.name : undefined}
-                    className={({ isActive }) =>
-                      `group flex items-center rounded-xl text-sm font-medium transition-all duration-200 ${
-                        isCollapsed ? 'justify-center mx-1 p-2.5' : 'gap-3 px-3 py-2.5'
-                      } ${
-                        isActive
-                          ? 'bg-primary-600/15 text-primary-600 shadow-sm dark:bg-primary-600/20 dark:text-primary-400 dark:shadow-primary-500/10'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-200'
-                      }`
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <item.icon
-                          className={`h-5 w-5 shrink-0 transition-colors ${
-                            isActive
-                              ? 'text-primary-600 dark:text-primary-400'
-                              : 'text-slate-400 group-hover:text-slate-700 dark:text-slate-500 dark:group-hover:text-slate-300'
-                          }`}
-                        />
-                        
-                        {!isCollapsed && (
-                          <div className="flex flex-1 items-center justify-between overflow-hidden whitespace-nowrap">
-                            <span className="truncate">{item.name}</span>
-                            {isMember && item.restrictedForMember && (
-                              <span className="ml-2 shrink-0 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                                Read Only
-                              </span>
-                            )}
-                            {isActive && (
-                              <ChevronRight className="ml-2 h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400"/>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </NavLink>
-                ))}
+              <div key={group.title}>
+                <h3 className={`mb-3 px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 block ${isCollapsed ? 'lg:hidden' : ''}`}>
+                  {group.title}
+                </h3>
+                <div className="space-y-1">
+                  {visibleItems.map((item) => (
+                    <NavLink
+                      key={item.name}
+                      to={item.href}
+                      end={item.href === '/dashboard'}
+                      onClick={() => setSidebarOpen(false)}
+                      className={({ isActive }) =>
+                        `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                          isActive
+                            ? 'bg-primary-50 text-primary-700 shadow-sm dark:bg-primary-500/10 dark:text-primary-400'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
+                        } ${isCollapsed ? 'lg:justify-center lg:px-0' : ''}`
+                      }
+                      title={isCollapsed ? item.name : undefined}
+                    >
+                      <item.icon className="h-5 w-5 shrink-0 transition-colors group-hover:text-primary-500" />
+                      <span className={`block ${isCollapsed ? 'lg:hidden' : ''}`}>{item.name}</span>
+                    </NavLink>
+                  ))}
+                </div>
               </div>
             );
           })}
         </nav>
 
-        {/* User Card (Merangkap Tombol Profil Saya) */}
-        <NavLink
-          to="/dashboard/profile"
-          onClick={() => setSidebarOpen(false)}
-          title={isCollapsed ? 'Profil Saya' : undefined}
-          className={({ isActive }) => 
-            `block shrink-0 border-t border-slate-200 transition dark:border-white/10 ${isCollapsed ? 'p-3' : 'px-4 py-4'} ${isActive ? 'bg-primary-50/50 dark:bg-primary-900/10' : 'hover:bg-slate-50 dark:hover:bg-white/5'}`
-          }
-        >
-          {({ isActive }) => (
-            <div className={`flex items-center rounded-xl transition-all duration-300 ${
-              isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2.5'
-            } ${
-              isActive 
-                ? 'bg-primary-100 dark:bg-primary-500/20 ring-1 ring-primary-500/30 shadow-inner' 
-                : 'bg-slate-100 dark:bg-white/5'
-            }`}>
-              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-md transition-all ${
-                isActive 
-                  ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white ring-2 ring-primary-100 dark:ring-primary-900' 
-                  : 'bg-gradient-to-br from-primary-400 to-primary-600 text-white'
-              }`}>
-                {user?.name?.charAt(0)?.toUpperCase() ?? 'U'}
-              </div>
-              
-              {!isCollapsed && (
-                <div className="min-w-0 flex-1 overflow-hidden">
-                  <p className={`truncate text-sm font-bold transition-colors ${isActive ? 'text-primary-700 dark:text-primary-400' : 'text-slate-900 dark:text-white'}`}>
-                    {user?.name ?? 'Pengguna'}
-                  </p>
-                  <p className={`truncate text-[10px] font-semibold uppercase tracking-wider transition-colors ${isActive ? 'text-primary-600/80 dark:text-primary-400/80' : 'text-slate-500 dark:text-slate-400'}`}>
-                    {user?.roles?.[0]?.name ?? 'user'}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </NavLink>
+        {/* Micro-Footer (Enterprise Edition) */}
+        <div className="mt-auto shrink-0 border-t border-slate-200 p-4 dark:border-white/10 flex justify-center">
+          <div className={`flex flex-col items-center justify-center gap-0.5 opacity-80 ${isCollapsed ? 'lg:hidden' : ''}`}>
+            <p className="text-[9px] font-extrabold tracking-wide text-slate-400 dark:text-slate-500">
+              &copy; {new Date().getFullYear()} {orgName.toUpperCase()}.
+            </p>
+            <p className="text-[8px] font-medium tracking-wider text-slate-400/80 dark:text-slate-500/80">
+              v1.0.0 &bull; Stable Release
+            </p>
+          </div>
+        </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-        {/* Header */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 dark:border-white/10 dark:bg-white/5 px-4 backdrop-blur-xl sm:px-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white lg:hidden"
-            >
+      {/* Main Content Area */}
+      <main className="flex flex-1 flex-col overflow-hidden relative">
+        
+        {/* UNIVERSAL TOP NAVBAR */}
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white/80 px-4 sm:px-6 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/80 z-20">
+          
+          {/* Mobile Hamburger & Brand */}
+          <div className="flex items-center gap-3 lg:hidden">
+            <button onClick={() => setSidebarOpen(true)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/10">
               <Menu className="h-5 w-5"/>
             </button>
-            <div className="min-w-0 overflow-hidden">
-              <h2 className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                Halo, {user?.name ?? 'Pengguna'} 👋
-              </h2>
-              <p className="hidden truncate text-xs text-slate-500 dark:text-slate-400 sm:block">Selamat datang kembali di panel manajemen.</p>
-            </div>
+            <span className="text-sm font-bold text-slate-900 dark:text-white">{orgName}</span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Theme Toggle */}
+          {/* Desktop Spacer */}
+          <div className="hidden lg:block"></div>
+
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-3">
+            {/* 1. Theme Toggle (Independent) */}
             <button
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
-              className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+              className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
             >
-              {theme === 'dark' ? (
-                <Sun className="h-4 w-4 text-amber-400"/>
-              ) : (
-                <Moon className="h-4 w-4 text-slate-600"/>
-              )}
+              {theme === 'dark' ? <Sun className="h-5 w-5 text-amber-400"/> : <Moon className="h-5 w-5"/>}
             </button>
 
-            {/* Logout */}
-            <button
-              onClick={() => setIsLogoutModalOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 sm:px-4 text-sm font-medium text-slate-700 transition hover:border-red-500/30 hover:bg-red-50 hover:text-red-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-            >
-              <LogOut className="h-4 w-4 shrink-0"/>
-              <span className="hidden sm:block">Keluar</span>
-            </button>
+            {/* 2. User Avatar Dropdown */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button 
+                onClick={() => setIsProfileOpen(!isProfileOpen)} 
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white shadow-sm ring-2 ring-transparent transition-all hover:ring-primary-500/50"
+              >
+                {user?.name?.charAt(0).toUpperCase() || <UserIcon className="h-4 w-4"/>}
+              </button>
+
+              {/* Popover Menu */}
+              {isProfileOpen && (
+                <div className="absolute right-0 top-12 w-56 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-slate-900 animate-slide-up-fade origin-top-right">
+                  <div className="border-b border-slate-100 bg-slate-50/50 px-4 py-3 dark:border-white/5 dark:bg-white/5">
+                    <p className="truncate text-sm font-bold text-slate-900 dark:text-white">{user?.name}</p>
+                    <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{user?.email}</p>
+                    <span className="mt-1.5 inline-block rounded-md bg-primary-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400">
+                      {user?.roles?.[0]?.name || 'Member'}
+                    </span>
+                  </div>
+                  <div className="p-1">
+                    <Link
+                      to="/dashboard/profile"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"
+                    >
+                      <UserIcon className="h-4 w-4"/> Profil Saya
+                    </Link>
+                  </div>
+                  <div className="border-t border-slate-100 p-1 dark:border-white/5">
+                    <button
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        setIsLogoutModalOpen(true);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                    >
+                      <LogOut className="h-4 w-4"/> Keluar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
-          <Outlet/>
-        </main>
-      </div>
+        {/* Viewport for Pages */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
+          <div className="mx-auto max-w-7xl">
+            <Outlet/>
+          </div>
+        </div>
+      </main>
 
       {/* Logout Confirmation Modal */}
       <ConfirmModal

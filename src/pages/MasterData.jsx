@@ -210,7 +210,7 @@ export default function MasterData() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2 dark:border-white/10">
+      <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap border-b border-slate-200 pb-3 custom-scrollbar dark:border-white/10">
         <button
           onClick={() => setActiveTab('users')}
           className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 ${

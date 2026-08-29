@@ -214,7 +214,20 @@
 ### Changed
 - Mengeksekusi eradikasi global terhadap penggunaan antarmuka pemblokir *Main-Thread* sinkron (`window.confirm()`) pada fitur penghapusan data di modul `EventManagement.jsx`, `MasterData.jsx`, `CommitteeModal.jsx`, `Finance.jsx`, dan `Document.jsx`. 
 - Menggantikan peringatan interupsi tersebut dengan `ConfirmModal.jsx` kustom yang reaktif, asinkron, dan konsisten dengan arsitektur UI/UX *Enterprise*.
-
+## [2026-08-28]
+### Changed
+- Merefaktorisasi antarmuka `GenerateDocumentModal.jsx` untuk mendongkrak efisiensi UX administrasi kesekretariatan.
+- Menambahkan utilitas "Smart Date Picker" yang secara asinkron memformat input kalender dasar (`YYYY-MM-DD`) menjadi format narasi resmi bahasa Indonesia ("Hari, d MMMM YYYY") via pustaka `date-fns`.
+- Mengimplementasikan HTML5 `<datalist>` pada atribut `tujuan_surat` yang menampung 13 direktori sasaran institusional internal PNC, mereduksi potensi *human-error* pada pengetikan gelar akademik.
+- Menginjeksi fitur "Magic Wand" Auto-Generator Nomor Surat yang secara adaptif membaca tipe dokumen (Internal/Eksternal) dan menerjemahkannya ke dalam sintaks penomoran hierarki PROTIC.
+### Fixed
+- Menambal distorsi peletakan *Flexbox* pada elemen tombol *Submit Generator* yang melipat teks secara tidak wajar pada resolusi *viewport* perangkat *Mobile*. Mengimplementasikan klaster utilitas responsif `w-full sm:w-auto` untuk menjamin kestabilan UI lintas layar.
+## [2026-08-28]
+### Changed
+- Merevisi arsitektur UI Dapur Surat (`GenerateDocumentModal.jsx`) dengan pendekatan desain Minimalis (*Clean UI*), mengeleminasi batasan bingkai (*border*) tebal dan kontras warna yang agresif.
+- Membuang penggunaan elemen HTML5 `<datalist>` yang destruktif terhadap UX perangkat seluler (*Mobile*). Menggantinya dengan komponen `AutocompleteInput` (React Combobox) terdedikasi yang mendukung integrasi teks bebas dan membatasi ukuran layar jatuhan (*dropdown max-height*).
+- Merelokasi pemantik "Auto-Generate Nomor Surat" dari blok panel yang memakan ruang menjadi aksi mikro interaktif langsung pada label Nomor Surat (*Inline Button*).
+- Memodifikasi algoritma pelabelan unduhan di `DocumentGeneratorController` untuk mengkatalisasi nomor registrasi surat (setelah direstriksi dari karakter `\` dan `/`) menjadi *filename* absolut tanpa spasi ganda.
 
 
 
