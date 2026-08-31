@@ -73,6 +73,12 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+
+  // Reset state error jika orgLogo diperbarui dari API/Backend
+  useEffect(() => {
+    setLogoError(false);
+  }, [orgLogo]);
   
   // State Dropdown Profil & Logout
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -130,7 +136,12 @@ export default function DashboardLayout() {
           {/* Brand Name & Logo - Hidden ONLY on LG when Collapsed */}
           <div className={`flex items-center gap-3 overflow-hidden whitespace-nowrap transition-all duration-300 w-auto opacity-100 ${isCollapsed ? 'lg:w-0 lg:opacity-0 lg:absolute' : ''}`}>
             {orgLogo ? (
-              <img src={orgLogo} alt="Logo" className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-sm bg-white/50" />
+              <img
+                src={logoError ? '/default-logo.png' : (orgLogo || '/default-logo.png')}
+                alt="Logo Organisasi"
+                onError={() => setLogoError(true)}
+                className="h-9 w-9 shrink-0 rounded-xl object-contain shadow-sm bg-white/50"
+              />
             ) : (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/25">
                 <LayoutDashboard className="h-5 w-5 text-white"/>
@@ -161,7 +172,12 @@ export default function DashboardLayout() {
           <div className={`relative h-10 w-10 items-center justify-center hidden ${isCollapsed ? 'lg:flex' : 'lg:hidden'}`}>
             <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${isHeaderHovered ? 'opacity-0' : 'opacity-100'}`}>
               {orgLogo ? (
-                <img src={orgLogo} alt="Logo" className="h-8 w-8 rounded-lg object-contain" />
+                <img
+                  src={logoError ? '/default-logo.png' : (orgLogo || '/default-logo.png')}
+                  alt="Logo Organisasi"
+                  onError={() => setLogoError(true)}
+                  className="h-8 w-8 rounded-lg object-contain"
+                />
               ) : (
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700">
                   <LayoutDashboard className="h-4 w-4 text-white"/>
