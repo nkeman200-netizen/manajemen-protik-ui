@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import useSWR from 'swr';
 import api from '../api/axios';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../contexts/AuthContext';
 import { Loader2, RefreshCw, CheckCircle2, XCircle, Wallet, Search, Filter, ArrowUpDown, Building2, Minus } from 'lucide-react';
 
 // --- MESIN WAKTU PROTIK (PERBAIKAN LOGIKA) ---
@@ -20,6 +21,9 @@ const isFutureMonth = (targetMonth) => {
 };
 
 export default function MonthlyDue() {
+  const { user } = useAuth();
+  const isAdmin = user?.roles?.some((r) => r.name === 'admin') || user?.roles?.[0]?.name === 'admin';
+
   const { data, error, isLoading, mutate } = useSWR(
     '/api/monthly-dues',
     async (url) => {
@@ -33,15 +37,8 @@ export default function MonthlyDue() {
   const [divisionFilter, setDivisionFilter] = useState('');
   const [sortBy, setSortBy] = useState('name_asc');
   
-  // State untuk UI Mobile Responsif
-  const [showFilter, setShowFilter] = useState(true);
-
-  // Auto-collapse filter di layar HP saat pertama dimuat
-  useEffect(() => {
-    if (window.innerWidth < 768) {
-      setShowFilter(false);
-    }
-  }, []);
+  // State untuk UI Mobile Responsif (toggle di HP)
+  const [showFilter, setShowFilter] = useState(false);
 
   const rawUsers = Array.isArray(data?.users) ? data.users : [];
   const dues = Array.isArray(data?.dues) ? data.dues : [];
@@ -125,11 +122,11 @@ export default function MonthlyDue() {
             <p className="text-xs text-slate-500 dark:text-slate-400">Pemantauan kepatuhan iuran terintegrasi Spreadsheet.</p>
           </div>
         </div>
-
-        <button onClick={handleSync} disabled={isSyncing} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
+        
+        {isAdmin && (<button onClick={handleSync} disabled={isSyncing} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
           <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
           <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
-        </button>
+        </button>)}
       </div>
 
       {/* FILTER CARD (Diseragamkan dengan Keuangan) */}
@@ -148,41 +145,40 @@ export default function MonthlyDue() {
           </button>
         </div>
 
-        {showFilter && (
-          <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-3">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cari Pengurus</label>
-              <div className="relative">
-                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Ketik nama atau NIM..." className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Filter Divisi</label>
-              <div className="relative">
-                <select value={divisionFilter} onChange={(e) => setDivisionFilter(e.target.value)} className="appearance-none w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white">
-                  <option value="">Semua Divisi</option>
-                  {divisions.map(div => <option key={div} value={div}>{div}</option>)}
-                </select>
-                <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Urutkan Berdasarkan</label>
-              <div className="relative">
-                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white">
-                  <option value="name_asc">Nama (A - Z)</option>
-                  <option value="name_desc">Nama (Z - A)</option>
-                  <option value="most_active">Paling Rajin Bayar</option>
-                  <option value="most_overdue">Tunggakan Terbanyak</option>
-                </select>
-                <ArrowUpDown className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
-              </div>
+        {/* Konten Filter: Selalu tampil di Desktop (md:grid), dan toggleable di Mobile */}
+        <div className={`p-6 gap-5 md:grid md:grid-cols-3 ${showFilter ? 'grid grid-cols-1' : 'hidden'}`}>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Cari Pengurus</label>
+            <div className="relative">
+              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Ketik nama atau NIM..." className="w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
             </div>
           </div>
-        )}
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Filter Divisi</label>
+            <div className="relative">
+              <select value={divisionFilter} onChange={(e) => setDivisionFilter(e.target.value)} className="appearance-none w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white">
+                <option value="">Semua Divisi</option>
+                {divisions.map(div => <option key={div} value={div}>{div}</option>)}
+              </select>
+              <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Urutkan Berdasarkan</label>
+            <div className="relative">
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white">
+                <option value="name_asc">Nama (A - Z)</option>
+                <option value="name_desc">Nama (Z - A)</option>
+                <option value="most_active">Paling Rajin Bayar</option>
+                <option value="most_overdue">Tunggakan Terbanyak</option>
+              </select>
+              <ArrowUpDown className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* DATA GRID TABLE */}

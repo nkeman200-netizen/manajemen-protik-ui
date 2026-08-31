@@ -38,7 +38,7 @@ const navigationGroups = [
     title: 'Operasional',
     items: [
       { name: 'Manajemen Event', href: '/dashboard/events', icon: CalendarRange, adminOnly: true },
-      { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock, restrictedForMember: true },
+      { name: 'Agenda', href: '/dashboard/agendas', icon: CalendarClock },
       { name: 'Dokumen', href: '/dashboard/documents', icon: FileText },
       { name: 'Arsip', href: '/dashboard/archives', icon: FolderArchive },
     ]
@@ -46,8 +46,8 @@ const navigationGroups = [
   {
     title: 'Finansial',
     items: [
-      { name: 'Keuangan', href: '/dashboard/finance', icon: Calculator, restrictedForMember: true },
-      { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet, adminOnly: true },
+      { name: 'Keuangan', href: '/dashboard/finance', icon: Calculator },
+      { name: 'Kas Pengurus', href: '/dashboard/monthly-dues', icon: Wallet },
     ]
   },
   {
