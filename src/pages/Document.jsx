@@ -179,7 +179,7 @@ export default function Document() {
 
   return (
     <div className="space-y-6 animate-slide-up-fade">
-      <button onClick={() => { setActiveWorkspace(null); setPage(1); setSearch(''); setDebouncedSearch(''); setClassificationFilter(''); setOriginFilter(''); setDestinationFilter(''); setShowFilter(false); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"><ArrowLeft className="h-4 w-4" /> Kembali ke Direktori</button>
+      <button onClick={() => { setActiveWorkspace(null); setPage(1); setSearch(''); setDebouncedSearch(''); setClassificationFilter(''); setOriginFilter(''); setDestinationFilter(''); setShowFilter(false); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"><ArrowLeft className="h-4 w-4" /> Kembali ke Direktori</button>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">

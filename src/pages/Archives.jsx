@@ -204,7 +204,20 @@ export default function Archives() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="mb-1 block text-xs font-bold uppercase text-slate-500">Periode Kepengurusan *</label>
-                <input type="text" value={form.period_year} onChange={e => setForm({...form, period_year: e.target.value})} placeholder="Contoh: 2026/2027" required className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 dark:bg-slate-800 dark:border-white/10 dark:text-white" />
+                <input
+                  type="text"
+                  list="period-options"
+                  value={form.period_year}
+                  onChange={e => setForm({...form, period_year: e.target.value})}
+                  placeholder="Contoh: 2026/2027"
+                  required
+                  className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 dark:bg-slate-800 dark:border-white/10 dark:text-white"
+                />
+                <datalist id="period-options">
+                  <option value="2026/2027" />
+                  <option value="2025/2026" />
+                  <option value="2024/2025" />
+                </datalist>
                 {errors.period_year && <p className="text-xs text-red-500 mt-1">{errors.period_year[0]}</p>}
               </div>
               <div>

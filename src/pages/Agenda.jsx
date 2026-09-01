@@ -157,7 +157,7 @@ export default function Agenda() {
   // ==========================================
   return (
     <div className="space-y-6 animate-slide-up-fade">
-      <button onClick={() => { setActiveWorkspace(null); setSearch(''); setDebouncedSearch(''); setLocationType(''); setStatusFilter(''); setDateRange({start:'', end:''}); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:text-white"><ArrowLeft className="h-4 w-4"/> Kembali ke Direktori</button>
+      <button onClick={() => { setActiveWorkspace(null); setSearch(''); setDebouncedSearch(''); setLocationType(''); setStatusFilter(''); setDateRange({start:'', end:''}); }} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:shadow-none dark:hover:bg-white/10 dark:hover:text-white"><ArrowLeft className="h-4 w-4"/> Kembali ke Direktori</button>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -230,60 +230,79 @@ export default function Agenda() {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left">
             <thead className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent text-xs font-semibold uppercase text-slate-600 dark:text-slate-400">
-              <tr><th className="px-6 py-3.5">Agenda Kegiatan</th><th className="px-6 py-3.5">Waktu & Tempat</th><th className="px-6 py-3.5">PJ / Divisi</th><th className="px-6 py-3.5 text-right">Aksi</th></tr>
+              <tr>
+                <th className="px-6 py-3.5">Agenda Kegiatan</th>
+                <th className="px-6 py-3.5">Waktu & Tempat</th>
+                <th className="px-6 py-3.5">PJ / Divisi</th>
+                {canEdit && <th className="px-6 py-3.5 text-right">Aksi</th>}
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
               {agendasLoading ? (
-                <TableSkeleton rows={5} cols={4} />
+                <TableSkeleton rows={5} cols={canEdit ? 4 : 3} />
               ) : agendas.length > 0 ? (
                 agendas.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-sm text-slate-900 dark:text-white">{item.title}</div>
-                      <div className="mt-1.5"><span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusBadge(item.status)}`}>{item.status || 'Belum Ditentukan'}</span></div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getStatusBadge(item.status)}`}>{item.status || 'Belum Ditentukan'}</span>
+                        {item.minutes_url && (
+                          <a
+                            href={item.minutes_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                          >
+                            <ExternalLink className="h-3 w-3" /> Notulensi / Materi
+                          </a>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-xs text-slate-600 dark:text-slate-300 space-y-1">
                       <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-slate-400"/> {formatTanggalWaktu(item.start_date)} {item.end_date && `- ${formatTanggalWaktu(item.end_date)}`}</div>
                       {item.location && <div className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-slate-400"/> {item.location}</div>}
                     </td>
                     <td className="px-6 py-4 text-xs font-medium text-slate-700 dark:text-slate-300"><div className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-slate-400"/> {item.pic || 'Belum Ada PIC'}</div></td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right">
-                      <ActionMenu
-                        groups={[
-                          {
-                            title: 'Tautan Kegiatan',
-                            items: [
-                              {
-                                label: 'Buka Notulensi / Materi',
-                                icon: ExternalLink,
-                                iconColor: 'text-blue-500',
-                                href: item.minutes_url,
-                                hidden: !item.minutes_url,
-                              },
-                            ],
-                          },
-                          {
-                            title: 'Aksi Agenda',
-                            items: [
-                              {
-                                label: 'Kelola Absensi',
-                                icon: UserCheck,
-                                iconColor: 'text-emerald-500',
-                                onClick: () => {
-                                  setSelectedAgendaForAttendance(item);
-                                  setAttendanceModalOpen(true);
+                    {canEdit && (
+                      <td className="whitespace-nowrap px-6 py-4 text-right">
+                        <ActionMenu
+                          groups={[
+                            {
+                              title: 'Tautan Kegiatan',
+                              items: [
+                                {
+                                  label: 'Buka Notulensi / Materi',
+                                  icon: ExternalLink,
+                                  iconColor: 'text-blue-500',
+                                  href: item.minutes_url,
+                                  hidden: !item.minutes_url,
                                 },
-                                hidden: !canEdit,
-                              },
-                            ],
-                          },
-                        ]}
-                      />
-                    </td>
+                              ],
+                            },
+                            {
+                              title: 'Aksi Agenda',
+                              items: [
+                                {
+                                  label: 'Kelola Absensi',
+                                  icon: UserCheck,
+                                  iconColor: 'text-emerald-500',
+                                  onClick: () => {
+                                    setSelectedAgendaForAttendance(item);
+                                    setAttendanceModalOpen(true);
+                                  },
+                                  hidden: !canEdit,
+                                },
+                              ],
+                            },
+                          ]}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">Tidak ada agenda yang cocok dengan filter.</td></tr>
+                <tr><td colSpan={canEdit ? 4 : 3} className="px-6 py-12 text-center text-sm text-slate-400">Tidak ada agenda yang cocok dengan filter.</td></tr>
               )}
             </tbody>
           </table>
@@ -320,39 +339,41 @@ export default function Agenda() {
                     </div>
                   </div>
 
-                  <div className="shrink-0 -mr-1 -mt-1">
-                    <ActionMenu
-                      groups={[
-                        {
-                          title: 'Tautan Kegiatan',
-                          items: [
-                            {
-                              label: 'Buka Notulensi / Materi',
-                              icon: ExternalLink,
-                              iconColor: 'text-blue-500',
-                              href: item.minutes_url,
-                              hidden: !item.minutes_url,
-                            },
-                          ],
-                        },
-                        {
-                          title: 'Aksi Agenda',
-                          items: [
-                            {
-                              label: 'Kelola Absensi',
-                              icon: UserCheck,
-                              iconColor: 'text-emerald-500',
-                              onClick: () => {
-                                setSelectedAgendaForAttendance(item);
-                                setAttendanceModalOpen(true);
+                  {canEdit && (
+                    <div className="shrink-0 -mr-1 -mt-1">
+                      <ActionMenu
+                        groups={[
+                          {
+                            title: 'Tautan Kegiatan',
+                            items: [
+                              {
+                                label: 'Buka Notulensi / Materi',
+                                icon: ExternalLink,
+                                iconColor: 'text-blue-500',
+                                href: item.minutes_url,
+                                hidden: !item.minutes_url,
                               },
-                              hidden: !canEdit,
-                            },
-                          ],
-                        },
-                      ]}
-                    />
-                  </div>
+                            ],
+                          },
+                          {
+                            title: 'Aksi Agenda',
+                            items: [
+                              {
+                                label: 'Kelola Absensi',
+                                icon: UserCheck,
+                                iconColor: 'text-emerald-500',
+                                onClick: () => {
+                                  setSelectedAgendaForAttendance(item);
+                                  setAttendanceModalOpen(true);
+                                },
+                                hidden: !canEdit,
+                              },
+                            ],
+                          },
+                        ]}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Details: Time, Location, PIC */}
