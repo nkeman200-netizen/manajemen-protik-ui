@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, FolderTree } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
@@ -62,7 +63,7 @@ export default function DivisionModal({
 
   const modalTitle = initialData?.id ? 'Edit Divisi' : 'Tambah Divisi';
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* Backdrop */}
       <div
@@ -136,5 +137,5 @@ export default function DivisionModal({
         </form>
       </div>
     </div>
-  );
+  , document.body);
 }

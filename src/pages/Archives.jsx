@@ -1,12 +1,15 @@
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { fetcher } from '../api/fetcher';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import ConfirmModal from '../components/ConfirmModal';
+import ActionMenu from '../components/ActionMenu';
+import { ArchiveCardSkeleton } from '../components/SkeletonLoader';
 import {
-  FolderArchive, Plus, ExternalLink, MoreVertical,
+  FolderArchive, Plus, ExternalLink,
   Pencil, Trash2, Loader2, AlertCircle, X, Search, Folder
 } from 'lucide-react';
 
@@ -24,17 +27,9 @@ export default function Archives() {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = () => setOpenDropdownId(null);
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
 
   const archives = useMemo(() => Array.isArray(responseData) ? responseData : (responseData?.data || []), [responseData]);
 
@@ -109,7 +104,6 @@ export default function Archives() {
     }
   };
 
-  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary-500"/></div>;
   if (error) return <div className="flex justify-center py-16"><AlertCircle className="h-10 w-10 text-red-500"/></div>;
 
   return (
@@ -141,8 +135,10 @@ export default function Archives() {
         </div>
       </div>
 
-      {/* ARCHIVE GROUPS */}
-      {Object.keys(groupedArchives).length > 0 ? (
+      {/* ARCHIVE GROUPS OR SKELETON */}
+      {isLoading ? (
+        <ArchiveCardSkeleton count={8} />
+      ) : Object.keys(groupedArchives).length > 0 ? (
         Object.entries(groupedArchives).map(([period, items]) => (
           <div key={period} className="space-y-4">
             <div className="flex items-center gap-3">
@@ -164,21 +160,24 @@ export default function Archives() {
 
                   {/* Kebab Menu (Admin Only) */}
                   {isAdmin && (
-                    <div className="relative shrink-0 ml-2">
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpenDropdownId(openDropdownId === item.id ? null : item.id); }} className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white">
-                        <MoreVertical className="h-4 w-4"/>
-                      </button>
-
-                      {openDropdownId === item.id && (
-                        <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-8 z-50 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-white/10 dark:bg-slate-800">
-                          <button onClick={() => { setOpenDropdownId(null); openModal(item); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-white/5">
-                            <Pencil className="h-3.5 w-3.5"/> Edit Info
-                          </button>
-                          <button onClick={() => { setOpenDropdownId(null); setDeleteTarget(item); }} className="flex w-full items-center gap-2 px-4 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10">
-                            <Trash2 className="h-3.5 w-3.5"/> Hapus Arsip
-                          </button>
-                        </div>
-                      )}
+                    <div className="shrink-0 ml-2">
+                      <ActionMenu
+                        items={[
+                          {
+                            label: 'Edit Info',
+                            icon: Pencil,
+                            iconColor: 'text-amber-500',
+                            onClick: () => openModal(item),
+                          },
+                          {
+                            label: 'Hapus Arsip',
+                            icon: Trash2,
+                            iconColor: 'text-rose-500',
+                            isDanger: true,
+                            onClick: () => setDeleteTarget(item),
+                          },
+                        ]}
+                      />
                     </div>
                   )}
                 </div>
@@ -194,7 +193,7 @@ export default function Archives() {
       )}
 
       {/* MODAL TAMBAH/EDIT */}
-      {modalOpen && (
+      {modalOpen && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeModal} />
           <div className="relative z-10 w-full max-w-md mx-4 rounded-2xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-white/10">
@@ -224,7 +223,8 @@ export default function Archives() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* CONFIRM DELETE MODAL */}

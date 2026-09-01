@@ -5,6 +5,7 @@ import { paginatedFetcher } from '../api/fetcher';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import WarningModal from '../components/WarningModal';
+import { TableSkeleton } from '../components/SkeletonLoader';
 import {
   Plus,
   ChevronLeft,
@@ -61,17 +62,6 @@ export default function Warning() {
     warningUrl,
     paginatedFetcher
   );
-
-  if (isLoading && !data) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400"/>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data peringatan...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -157,7 +147,9 @@ export default function Warning() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {warnings.length > 0 ? (
+              {isLoading ? (
+                <TableSkeleton rows={5} cols={5} />
+              ) : warnings.length > 0 ? (
                 warnings.map((item) => (
                   <tr
                     key={item.id}

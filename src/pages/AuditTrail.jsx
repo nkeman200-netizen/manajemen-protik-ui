@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher } from '../api/fetcher';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
+import { TableSkeleton } from '../components/SkeletonLoader';
 import { Activity, ShieldAlert, Loader2, AlertCircle, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 function formatTanggalWaktu(dateStr) {
@@ -30,7 +32,6 @@ export default function AuditTrail() {
     );
   }
 
-  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-10 w-10 animate-spin text-primary-500"/></div>;
   if (error) return <div className="flex justify-center py-16"><AlertCircle className="h-10 w-10 text-red-500"/></div>;
 
   const audits = data?.data?.data || (Array.isArray(data?.data) ? data.data : []) || [];
@@ -63,8 +64,10 @@ export default function AuditTrail() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-        <div className="overflow-x-auto">
+      {/* Audit Logs & Mobile Cards Container */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
+        {/* VIEW 1: DESKTOP TABLE (hidden md:block) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase text-slate-600 dark:border-white/10 dark:bg-transparent dark:text-slate-400">
               <tr>
@@ -76,21 +79,84 @@ export default function AuditTrail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {audits.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
-                  <td className="whitespace-nowrap px-6 py-4 text-xs text-slate-600 dark:text-slate-300">{formatTanggalWaktu(item.created_at)}</td>
-                  <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900 dark:text-white">{item.user?.name || 'System'}</td>
-                  <td className="whitespace-nowrap px-6 py-4">{getActionBadge(item.action)}</td>
-                  <td className="whitespace-nowrap px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400">{formatModelName(item.auditable_type)} #{item.auditable_id}</td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right">
-                    <button onClick={() => setSelectedAudit(item)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                      <Eye className="h-3.5 w-3.5"/> Detail
-                    </button>
+              {isLoading ? (
+                <TableSkeleton rows={8} cols={5} />
+              ) : audits.length > 0 ? (
+                audits.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
+                    <td className="whitespace-nowrap px-6 py-4 text-xs text-slate-600 dark:text-slate-300">{formatTanggalWaktu(item.created_at)}</td>
+                    <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900 dark:text-white">{item.user?.name || 'System'}</td>
+                    <td className="whitespace-nowrap px-6 py-4">{getActionBadge(item.action)}</td>
+                    <td className="whitespace-nowrap px-6 py-4 text-xs font-mono text-slate-500 dark:text-slate-400">{formatModelName(item.auditable_type)} #{item.auditable_id}</td>
+                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                      <button onClick={() => setSelectedAudit(item)} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                        <Eye className="h-3.5 w-3.5"/> Detail
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-slate-400">
+                    Belum ada log aktivitas yang tercatat.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
+        </div>
+
+        {/* VIEW 2: MOBILE CARD LIST (block md:hidden) */}
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5">
+          {isLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse rounded-2xl border border-slate-200/60 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="h-4 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="h-4 w-32 rounded bg-slate-200 dark:bg-slate-700 mb-2" />
+                  <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+              ))}
+            </div>
+          ) : audits.length > 0 ? (
+            audits.map((item) => (
+              <div key={item.id} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-2">
+                  <div>{getActionBadge(item.action)}</div>
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                    {formatTanggalWaktu(item.created_at)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      {item.user?.name || 'System'}
+                    </p>
+                    <p className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                      {formatModelName(item.auditable_type)} #{item.auditable_id}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAudit(item)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>Detail</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-sm text-slate-400">
+              Belum ada log aktivitas yang tercatat.
+            </div>
+          )}
         </div>
         
         {/* Pagination Controls */}
@@ -106,27 +172,27 @@ export default function AuditTrail() {
       </div>
 
       {/* JSON Viewer Modal */}
-      {selectedAudit && (
+      {selectedAudit && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedAudit(null)} />
-          <div className="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+          <div className="relative z-10 mx-4 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-white/10">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold dark:text-white">Detail Perubahan JSON</h3>
-              <button onClick={() => setSelectedAudit(null)}><X className="h-5 w-5 text-slate-500"/></button>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Detail Perubahan JSON</h3>
+              <button onClick={() => setSelectedAudit(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-white/10 dark:hover:text-white"><X className="h-5 w-5"/></button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <p className="mb-2 text-xs font-bold text-slate-500">Nilai Lama (Old)</p>
-                <pre className="max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-[10px] text-emerald-400">{JSON.stringify(selectedAudit.old_values, null, 2) || 'null'}</pre>
+                <pre className="max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-[10px] text-rose-400 font-mono">{JSON.stringify(selectedAudit.old_values, null, 2) || 'null'}</pre>
               </div>
               <div>
                 <p className="mb-2 text-xs font-bold text-slate-500">Nilai Baru (New)</p>
-                <pre className="max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-[10px] text-emerald-400">{JSON.stringify(selectedAudit.new_values, null, 2) || 'null'}</pre>
+                <pre className="max-h-96 overflow-auto rounded-xl bg-slate-950 p-4 text-[10px] text-emerald-400 font-mono">{JSON.stringify(selectedAudit.new_values, null, 2) || 'null'}</pre>
               </div>
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }

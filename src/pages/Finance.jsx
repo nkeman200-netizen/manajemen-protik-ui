@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher, fetcher } from '../api/fetcher';
@@ -9,6 +9,9 @@ import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import FinanceModal from '../components/FinanceModal';
 import ConfirmModal from '../components/ConfirmModal';
+import ActionMenu from '../components/ActionMenu';
+import { TableSkeleton, DirectoryCardSkeleton } from '../components/SkeletonLoader';
+import SyncHeaderActions from '../components/SyncHeaderActions';
 import {
   Plus,
   ChevronLeft,
@@ -31,6 +34,7 @@ import {
   FileSpreadsheet,
   RefreshCw,
   ArrowUpDown,
+  ExternalLink,
 } from 'lucide-react';
 
 function formatRupiah(value) {
@@ -53,6 +57,7 @@ function formatTanggal(dateStr) {
 
 export default function Finance() {
   const { user } = useAuth();
+  const { data: settingsData } = useSWR('/api/settings', fetcher);
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -247,21 +252,24 @@ export default function Finance() {
     }
   };
 
+  const finances = financesData?.data?.data || (Array.isArray(financesData?.data) ? financesData.data : []) || [];
+  const meta = financesData?.meta || (financesData?.data && !Array.isArray(financesData?.data) ? financesData.data : null);
+
+  const lastSyncedAt = useMemo(() => {
+    if (financesData?.last_synced_at) return financesData.last_synced_at;
+    if (finances?.length > 0) {
+      const timestamps = finances.map(f => f?.updated_at || f?.created_at).filter(Boolean);
+      if (timestamps.length > 0) return timestamps.sort().reverse()[0];
+    }
+    return null;
+  }, [financesData, finances]);
+
+  const inputClass = "w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white";
+
   // ==========================================
   // VIEW 1: DIRECTORY MODE (CARD DIRECTORY)
   // ==========================================
   if (!activeWorkspace) {
-    if (eventsLoading) {
-      return (
-        <div className="flex h-full items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-            <p className="text-sm text-slate-500 dark:text-slate-400">Memuat direktori keuangan...</p>
-          </div>
-        </div>
-      );
-    }
-
     if (eventsError) {
       return (
         <div className="flex h-full items-center justify-center">
@@ -295,8 +303,11 @@ export default function Finance() {
           </div>
         </div>
 
-        {/* Directory Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
+        {/* Directory Grid or Skeleton */}
+        {eventsLoading ? (
+          <DirectoryCardSkeleton count={3} />
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 animate-slide-up-fade">
           {/* Card: Kas Umum */}
           <div
             onClick={() => {
@@ -398,6 +409,7 @@ export default function Finance() {
             );
           })}
         </div>
+        )}
       </div>
     );
   }
@@ -405,17 +417,6 @@ export default function Finance() {
   // ==========================================
   // VIEW 2: WORKSPACE MODE (FINANCE TABLE)
   // ==========================================
-  if (financesLoading && !financesData) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat data transaksi {activeWorkspace.name}...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (financesError) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -429,11 +430,6 @@ export default function Finance() {
       </div>
     );
   }
-
-  const finances = financesData?.data?.data || (Array.isArray(financesData?.data) ? financesData.data : []) || [];
-  const meta = financesData?.meta || (financesData?.data && !Array.isArray(financesData?.data) ? financesData.data : null);
-
-  const inputClass = "w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-emerald-500 dark:border-white/10 dark:bg-slate-800 dark:text-white";
 
   return (
     <div className="space-y-6">
@@ -490,50 +486,27 @@ export default function Finance() {
         </div>
 
         {/* Action Buttons Container */}
-        {canEdit && (
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Sinkronisasi Cloud */}
-            <button
-              type="button"
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-2.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-            >
-              <Loader2 className={`h-4 w-4 ${isSyncing ? 'animate-spin' : 'hidden'}`} />
-              {!isSyncing && <RefreshCw className="h-4 w-4" />}
-              <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
-            </button>
-
-            {/* Ekspor LPJ */}
-            <button
-              type="button"
-              disabled={isExporting}
-              onClick={handleExportLPJ}
-              className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50/50 px-4 py-2.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <FileSpreadsheet className="h-4 w-4" />
-              )}
-              <span>{isExporting ? 'Mengekspor...' : 'Ekspor LPJ'}</span>
-            </button>
-
-            {/* Tambah Transaksi */}
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedFinance(null);
-                setIsReadOnlyModal(false);
-                setModalOpen(true);
-              }}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-xs font-semibold text-white shadow-lg shadow-primary-500/25 transition-all duration-200 hover:shadow-xl hover:shadow-primary-500/30"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Transaksi
-            </button>
-          </div>
-        )}
+        <SyncHeaderActions
+          onSync={handleSync}
+          isSyncing={isSyncing}
+          lastSyncedAt={lastSyncedAt}
+          canSync={canEdit}
+        >
+          {/* Ekspor LPJ */}
+          <button
+            type="button"
+            disabled={isExporting}
+            onClick={handleExportLPJ}
+            className="inline-flex items-center gap-2 rounded-xl border border-emerald-300/80 bg-emerald-50/80 px-3.5 py-2.5 text-xs font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="h-4 w-4" />
+            )}
+            <span>{isExporting ? 'Mengekspor...' : 'Ekspor LPJ'}</span>
+          </button>
+        </SyncHeaderActions>
       </div>
 
       {/* Advanced Collapsible Filter Panel */}
@@ -608,9 +581,10 @@ export default function Finance() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="overflow-x-auto">
+      {/* Table & Mobile Cards Container */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl animate-slide-up-fade dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        {/* VIEW 1: DESKTOP TABLE (hidden md:block) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
@@ -638,7 +612,9 @@ export default function Finance() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {finances.length > 0 ? (
+              {financesLoading ? (
+                <TableSkeleton rows={5} cols={7} />
+              ) : finances.length > 0 ? (
                 finances.map((item) => (
                   <tr key={item.id} className="transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
@@ -694,42 +670,37 @@ export default function Finance() {
                       {formatRupiah(item.amount ?? ((item.qty || 1) * (item.unit_price || 0)))}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right">
-                      {canEdit ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => {
-                              setSelectedFinance(item);
-                              setIsReadOnlyModal(false);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(item)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Hapus
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end">
-                          <button
-                            onClick={() => {
-                              setSelectedFinance(item);
-                              setIsReadOnlyModal(true);
-                              setModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Detail
-                          </button>
-                        </div>
-                      )}
+                      <ActionMenu
+                        groups={[
+                          {
+                            title: 'Tautan Bukti',
+                            items: [
+                              {
+                                label: 'Nota / Bukti Transaksi',
+                                icon: ExternalLink,
+                                iconColor: 'text-blue-500',
+                                href: item.receipt_url,
+                                hidden: !item.receipt_url,
+                              },
+                            ],
+                          },
+                          {
+                            title: 'Aksi Transaksi',
+                            items: [
+                              {
+                                label: 'Detail Transaksi',
+                                icon: Eye,
+                                iconColor: 'text-indigo-500',
+                                onClick: () => {
+                                  setSelectedFinance(item);
+                                  setIsReadOnlyModal(true);
+                                  setModalOpen(true);
+                                },
+                              },
+                            ],
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
                 ))
@@ -742,6 +713,144 @@ export default function Finance() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* VIEW 2: MOBILE CARD LIST (block md:hidden) */}
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5">
+          {financesLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse rounded-2xl border border-slate-200/60 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-2" />
+                  <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+              ))}
+            </div>
+          ) : finances.length > 0 ? (
+            finances.map((item) => (
+              <div key={item.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                {/* Header: Type Badge, Date & ActionMenu */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {item.type === 'income' ? (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/15 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        <ArrowUpCircle className="h-3.5 w-3.5" />
+                        Pemasukan
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400">
+                        <ArrowDownCircle className="h-3.5 w-3.5" />
+                        Pengeluaran
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                      {formatTanggal(item.date)}
+                    </span>
+                  </div>
+
+                  <div className="shrink-0 -mr-1 -mt-1">
+                    <ActionMenu
+                      groups={[
+                        {
+                          title: 'Tautan Bukti',
+                          items: [
+                            {
+                              label: 'Nota / Bukti Transaksi',
+                              icon: ExternalLink,
+                              iconColor: 'text-blue-500',
+                              href: item.receipt_url,
+                              hidden: !item.receipt_url,
+                            },
+                          ],
+                        },
+                        {
+                          title: 'Aksi Transaksi',
+                          items: [
+                            {
+                              label: 'Detail Transaksi',
+                              icon: Eye,
+                              iconColor: 'text-indigo-500',
+                              onClick: () => {
+                                setSelectedFinance(item);
+                                setIsReadOnlyModal(true);
+                                setModalOpen(true);
+                              },
+                            },
+                          ],
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {/* Title / Uraian & Amount */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                      {item.title || item.description || '-'}
+                    </h3>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span
+                      className={`text-sm font-extrabold ${
+                        item.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                      }`}
+                    >
+                      {item.type === 'income' ? '+' : '-'}{' '}
+                      {formatRupiah(item.amount ?? ((item.qty || 1) * (item.unit_price || 0)))}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tags: Kategori, PIC, Dana, Qty x Harga */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  {item.category && (
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      {item.category}
+                    </span>
+                  )}
+                  {item.pic && (
+                    <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                      PIC: {item.pic}
+                    </span>
+                  )}
+                  {item.funding_source && (
+                    <span className="rounded-md bg-primary-50 px-2 py-0.5 text-[10px] font-medium text-primary-600 dark:bg-primary-500/10 dark:text-primary-400">
+                      Dana: {item.funding_source}
+                    </span>
+                  )}
+                  {item.unit_price && (
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                      {item.qty ?? 1} {item.unit || 'unit'} × {formatRupiah(item.unit_price)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Nota Quick Link */}
+                {item.receipt_url && (
+                  <div className="pt-2 border-t border-dashed border-slate-100 dark:border-white/5">
+                    <a
+                      href={item.receipt_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-600 hover:underline dark:text-primary-400"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      <span>Lihat Nota / Bukti</span>
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">
+              Belum ada data transaksi untuk ruang kerja ini.
+            </div>
+          )}
         </div>
 
         {/* Pagination */}

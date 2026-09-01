@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import UsersIndex from './UsersIndex';
 import DivisionModal from '../components/DivisionModal';
 import ConfirmModal from '../components/ConfirmModal';
+import ActionMenu from '../components/ActionMenu';
+import { TableSkeleton } from '../components/SkeletonLoader';
 import {
   Database,
   Users,
@@ -224,11 +226,7 @@ export default function MasterData() {
               </button>
             </div>
 
-            {divisionsLoading ? (
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-              </div>
-            ) : divisionsError ? (
+            {divisionsError ? (
               <div className="flex items-center justify-center py-12">
                 <div className="flex flex-col items-center gap-2 rounded-2xl border border-red-500/20 bg-red-50 p-6 dark:bg-red-500/10">
                   <AlertCircle className="h-8 w-8 text-red-500" />
@@ -239,7 +237,8 @@ export default function MasterData() {
               </div>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-                <div className="overflow-x-auto">
+                {/* VIEW 1: DESKTOP TABLE (hidden md:block) */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
@@ -252,7 +251,9 @@ export default function MasterData() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                      {divisionsList.length > 0 ? (
+                      {divisionsLoading ? (
+                        <TableSkeleton rows={4} cols={2} />
+                      ) : divisionsList.length > 0 ? (
                         divisionsList.map((item) => (
                           <tr
                             key={item.id}
@@ -269,28 +270,29 @@ export default function MasterData() {
                               </div>
                             </td>
                             <td className="whitespace-nowrap px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedDivision(item);
-                                    setDivisionModalOpen(true);
-                                  }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setDeleteTarget(item);
-                                    setDeleteType('division');
-                                  }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  Hapus
-                                </button>
-                              </div>
+                              <ActionMenu
+                                items={[
+                                  {
+                                    label: 'Edit Divisi',
+                                    icon: Pencil,
+                                    iconColor: 'text-amber-500',
+                                    onClick: () => {
+                                      setSelectedDivision(item);
+                                      setDivisionModalOpen(true);
+                                    },
+                                  },
+                                  {
+                                    label: 'Hapus Divisi',
+                                    icon: Trash2,
+                                    iconColor: 'text-rose-500',
+                                    isDanger: true,
+                                    onClick: () => {
+                                      setDeleteTarget(item);
+                                      setDeleteType('division');
+                                    },
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         ))
@@ -306,6 +308,66 @@ export default function MasterData() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* VIEW 2: MOBILE CARD LIST (block md:hidden) */}
+                <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5">
+                  {divisionsLoading ? (
+                    <div className="p-4 space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="animate-pulse rounded-2xl border border-slate-200/60 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                            <div className="h-4 w-32 rounded bg-slate-200 dark:bg-slate-700" />
+                          </div>
+                          <div className="h-8 w-8 rounded-lg bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : divisionsList.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      <FolderTree className="h-8 w-8 mx-auto text-slate-400 mb-2" />
+                      <p className="text-sm font-semibold">Belum ada divisi terdaftar</p>
+                    </div>
+                  ) : (
+                    divisionsList.map((item) => (
+                      <div key={item.id} className="p-4 flex items-center justify-between gap-3 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+                            <FolderTree className="h-4.5 w-4.5" />
+                          </div>
+                          <span className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                            {item.name}
+                          </span>
+                        </div>
+                        <div className="shrink-0">
+                          <ActionMenu
+                            items={[
+                              {
+                                label: 'Edit Divisi',
+                                icon: Pencil,
+                                iconColor: 'text-amber-500',
+                                onClick: () => {
+                                  setSelectedDivision(item);
+                                  setDivisionModalOpen(true);
+                                },
+                              },
+                              {
+                                label: 'Hapus Divisi',
+                                icon: Trash2,
+                                iconColor: 'text-rose-500',
+                                isDanger: true,
+                                onClick: () => {
+                                  setDeleteTarget(item);
+                                  setDeleteType('division');
+                                },
+                              },
+                            ]}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {/* Division Pagination */}
@@ -357,11 +419,7 @@ export default function MasterData() {
               </button>
             </div>
 
-            {positionsLoading ? (
-              <div className="flex h-64 items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-              </div>
-            ) : positionsError ? (
+            {positionsError ? (
               <div className="flex items-center justify-center py-12">
                 <div className="flex flex-col items-center gap-2 rounded-2xl border border-red-500/20 bg-red-50 p-6 dark:bg-red-500/10">
                   <AlertCircle className="h-8 w-8 text-red-500" />
@@ -372,7 +430,8 @@ export default function MasterData() {
               </div>
             ) : (
               <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-                <div className="overflow-x-auto">
+                {/* VIEW 1: DESKTOP TABLE (hidden md:block) */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
@@ -388,7 +447,9 @@ export default function MasterData() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                      {positionsList.length > 0 ? (
+                      {positionsLoading ? (
+                        <TableSkeleton rows={4} cols={3} />
+                      ) : positionsList.length > 0 ? (
                         positionsList.map((item) => (
                           <tr
                             key={item.id}
@@ -417,33 +478,34 @@ export default function MasterData() {
                               )}
                             </td>
                             <td className="whitespace-nowrap px-6 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedPosition(item);
-                                    setPositionForm({
-                                      name: item.name,
-                                      is_bph: Boolean(item.is_bph),
-                                    });
-                                    setPositionErrors({});
-                                    setPositionModalOpen(true);
-                                  }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setDeleteTarget(item);
-                                    setDeleteType('position');
-                                  }}
-                                  className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                  Hapus
-                                </button>
-                              </div>
+                              <ActionMenu
+                                items={[
+                                  {
+                                    label: 'Edit Jabatan',
+                                    icon: Pencil,
+                                    iconColor: 'text-amber-500',
+                                    onClick: () => {
+                                      setSelectedPosition(item);
+                                      setPositionForm({
+                                        name: item.name,
+                                        is_bph: Boolean(item.is_bph),
+                                      });
+                                      setPositionErrors({});
+                                      setPositionModalOpen(true);
+                                    },
+                                  },
+                                  {
+                                    label: 'Hapus Jabatan',
+                                    icon: Trash2,
+                                    iconColor: 'text-rose-500',
+                                    isDanger: true,
+                                    onClick: () => {
+                                      setDeleteTarget(item);
+                                      setDeleteType('position');
+                                    },
+                                  },
+                                ]}
+                              />
                             </td>
                           </tr>
                         ))
@@ -459,6 +521,90 @@ export default function MasterData() {
                       )}
                     </tbody>
                   </table>
+                </div>
+
+                {/* VIEW 2: MOBILE CARD LIST (block md:hidden) */}
+                <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5">
+                  {positionsLoading ? (
+                    <div className="p-4 space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="animate-pulse rounded-2xl border border-slate-200/60 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-9 w-9 rounded-xl bg-slate-200 dark:bg-slate-700" />
+                              <div className="h-4 w-28 rounded bg-slate-200 dark:bg-slate-700" />
+                            </div>
+                            <div className="h-8 w-8 rounded-lg bg-slate-200 dark:bg-slate-700" />
+                          </div>
+                          <div className="h-5 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : positionsList.length === 0 ? (
+                    <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                      <Shield className="h-8 w-8 mx-auto text-slate-400 mb-2" />
+                      <p className="text-sm font-semibold">Tidak ada data jabatan kepanitiaan</p>
+                    </div>
+                  ) : (
+                    positionsList.map((item) => (
+                      <div key={item.id} className="p-4 space-y-2.5 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/15 text-purple-600 dark:text-purple-400">
+                              <Shield className="h-4.5 w-4.5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                {item.name}
+                              </h3>
+                            </div>
+                          </div>
+                          <div className="shrink-0 -mr-1 -mt-1">
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: 'Edit Jabatan',
+                                  icon: Pencil,
+                                  iconColor: 'text-amber-500',
+                                  onClick: () => {
+                                    setSelectedPosition(item);
+                                    setPositionForm({
+                                      name: item.name,
+                                      is_bph: Boolean(item.is_bph),
+                                    });
+                                    setPositionErrors({});
+                                    setPositionModalOpen(true);
+                                  },
+                                },
+                                {
+                                  label: 'Hapus Jabatan',
+                                  icon: Trash2,
+                                  iconColor: 'text-rose-500',
+                                  isDanger: true,
+                                  onClick: () => {
+                                    setDeleteTarget(item);
+                                    setDeleteType('position');
+                                  },
+                                },
+                              ]}
+                            />
+                          </div>
+                        </div>
+                        <div className="pl-12">
+                          {item.is_bph ? (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-primary-500/20 bg-primary-500/15 px-2.5 py-0.5 text-xs font-semibold text-primary-600 dark:text-primary-400">
+                              <Shield className="h-3 w-3" />
+                              Akses BPH Event
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-400">
+                              Anggota Biasa
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {/* Position Pagination */}

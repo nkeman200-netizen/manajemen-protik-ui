@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import * as XLSX from 'xlsx';
 import { X, Loader2, UserCheck, Save, CheckCircle2, Target, Users, Search, FileSpreadsheet } from 'lucide-react';
@@ -278,7 +279,7 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
     </div>
   );
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 mx-4 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-slate-900/95">
@@ -308,5 +309,5 @@ export default function AttendanceModal({ isOpen, onClose, meeting: agenda, acti
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }

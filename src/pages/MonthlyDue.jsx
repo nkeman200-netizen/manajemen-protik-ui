@@ -1,9 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import useSWR from 'swr';
 import api from '../api/axios';
+import { fetcher } from '../api/fetcher';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, RefreshCw, CheckCircle2, XCircle, Wallet, Search, Filter, ArrowUpDown, Building2, Minus } from 'lucide-react';
+import { MonthlyDueTableSkeleton } from '../components/SkeletonLoader';
+import SyncHeaderActions from '../components/SyncHeaderActions';
+import { CheckCircle2, XCircle, Wallet, Search, Filter, ArrowUpDown, Building2, Minus } from 'lucide-react';
 
 // --- MESIN WAKTU PROTIK (PERBAIKAN LOGIKA) ---
 const getMonthIndex = (m) => {
@@ -24,6 +27,8 @@ export default function MonthlyDue() {
   const { user } = useAuth();
   const isAdmin = user?.roles?.some((r) => r.name === 'admin') || user?.roles?.[0]?.name === 'admin';
 
+  const { data: settingsData } = useSWR('/api/settings', fetcher);
+
   const { data, error, isLoading, mutate } = useSWR(
     '/api/monthly-dues',
     async (url) => {
@@ -40,8 +45,19 @@ export default function MonthlyDue() {
   // State untuk UI Mobile Responsif (toggle di HP)
   const [showFilter, setShowFilter] = useState(false);
 
-  const rawUsers = Array.isArray(data?.users) ? data.users : [];
-  const dues = Array.isArray(data?.dues) ? data.dues : [];
+  const rawUsers = Array.isArray(data?.users)
+    ? data.users
+    : Array.isArray(data?.data?.users)
+    ? data.data.users
+    : Array.isArray(data?.data)
+    ? data.data
+    : [];
+
+  const dues = Array.isArray(data?.dues)
+    ? data.dues
+    : Array.isArray(data?.data?.dues)
+    ? data.data.dues
+    : [];
 
   const monthList = useMemo(() => [
     { num: 10, name: 'Okt' }, { num: 11, name: 'Nov' }, { num: 12, name: 'Des' },
@@ -106,7 +122,15 @@ export default function MonthlyDue() {
     }
   };
 
-  if (isLoading) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-emerald-500"/></div>;
+  const lastSyncedAt = useMemo(() => {
+    if (data?.last_synced_at) return data.last_synced_at;
+    if (dues?.length > 0) {
+      const timestamps = dues.map(d => d?.updated_at || d?.created_at).filter(Boolean);
+      if (timestamps.length > 0) return timestamps.sort().reverse()[0];
+    }
+    return null;
+  }, [data, dues]);
+
   if (error) return <div className="text-center text-red-500 py-16 font-semibold">Gagal memuat data kas.</div>;
 
   return (
@@ -123,10 +147,12 @@ export default function MonthlyDue() {
           </div>
         </div>
         
-        {isAdmin && (<button onClick={handleSync} disabled={isSyncing} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-50">
-          <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronisasi Cloud'}</span>
-        </button>)}
+        <SyncHeaderActions
+          onSync={handleSync}
+          isSyncing={isSyncing}
+          lastSyncedAt={lastSyncedAt}
+          canSync={isAdmin}
+        />
       </div>
 
       {/* FILTER CARD (Diseragamkan dengan Keuangan) */}
@@ -181,9 +207,10 @@ export default function MonthlyDue() {
         </div>
       </div>
 
-      {/* DATA GRID TABLE */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/50">
-        <div className="overflow-x-auto pb-4">
+      {/* DATA GRID & MOBILE CARDS CONTAINER */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/50">
+        {/* VIEW 1: DESKTOP DATA GRID (hidden md:block) */}
+        <div className="hidden md:block overflow-x-auto pb-4">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-white/10 dark:text-slate-400">
               <tr>
@@ -192,50 +219,54 @@ export default function MonthlyDue() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {processedUsers.length > 0 ? processedUsers.map((user) => (
-                <tr key={user.id} className="transition hover:bg-slate-50 dark:hover:bg-white/5">
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <div className="font-bold text-slate-900 dark:text-white">{user?.name || 'Tanpa Nama'}</div>
-                    <div className="mt-1 flex items-center gap-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                      {user?.nim && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 dark:bg-white/10">{user.nim}</span>}
-                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3 text-emerald-500"/> {user?.division?.name || 'BPH Pusat'}</span>
-                    </div>
-                  </td>
-                  {monthList.map((m) => {
-                    const isPaidObj = dues.find((d) => d?.user_id === user?.id && Number(d?.month) === m.num);
-                    const isFuture = isFutureMonth(m.num);
+              {isLoading ? (
+                <MonthlyDueTableSkeleton rows={6} />
+              ) : processedUsers.length > 0 ? (
+                processedUsers.map((user) => (
+                  <tr key={user.id} className="transition hover:bg-slate-50 dark:hover:bg-white/5">
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="font-bold text-slate-900 dark:text-white">{user?.name || 'Tanpa Nama'}</div>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                        {user?.nim && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 dark:bg-white/10">{user.nim}</span>}
+                        <span className="flex items-center gap-1"><Building2 className="h-3 w-3 text-emerald-500"/> {user?.division?.name || 'BPH Pusat'}</span>
+                      </div>
+                    </td>
+                    {monthList.map((m) => {
+                      const isPaidObj = dues.find((d) => d?.user_id === user?.id && Number(d?.month) === m.num);
+                      const isFuture = isFutureMonth(m.num);
 
-                    return (
-                      <td key={m.num} className="px-3 py-4 text-center">
-                        <div className="flex justify-center">
-                          {isPaidObj ? (
-                            <div className="group relative">
-                              <CheckCircle2 className="h-5 w-5 text-emerald-500 drop-shadow-sm"/>
-                              <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
-                                Rp {Number(isPaidObj?.amount || 0).toLocaleString('id-ID')}
-                              </span>
-                            </div>
-                          ) : isFuture ? (
-                            <div className="group relative">
-                              <Minus className="h-5 w-5 text-slate-300 dark:text-slate-600"/>
-                              <span className="absolute bottom-full left-1/2 mb-2 hidden w-max -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
-                                Belum Waktunya
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="group relative">
-                              <XCircle className="h-5 w-5 text-rose-500 drop-shadow-sm"/>
-                              <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-rose-600 px-2 py-1 text-[10px] text-white group-hover:block shadow-lg shadow-rose-500/20">
-                                Menunggak
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              )) : (
+                      return (
+                        <td key={m.num} className="px-3 py-4 text-center">
+                          <div className="flex justify-center">
+                            {isPaidObj ? (
+                              <div className="group relative">
+                                <CheckCircle2 className="h-5 w-5 text-emerald-500 drop-shadow-sm"/>
+                                <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
+                                  Rp {Number(isPaidObj?.amount || 0).toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            ) : isFuture ? (
+                              <div className="group relative">
+                                <Minus className="h-5 w-5 text-slate-300 dark:text-slate-600"/>
+                                <span className="absolute bottom-full left-1/2 mb-2 hidden w-max -translate-x-1/2 rounded bg-slate-800 px-2 py-1 text-[10px] text-white group-hover:block">
+                                  Belum Waktunya
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="group relative">
+                                <XCircle className="h-5 w-5 text-rose-500 drop-shadow-sm"/>
+                                <span className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-rose-600 px-2 py-1 text-[10px] text-white group-hover:block shadow-lg shadow-rose-500/20">
+                                  Menunggak
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              ) : (
                 <tr>
                   <td colSpan={10} className="px-6 py-12 text-center text-sm font-semibold text-slate-400">
                     Tidak ada pengurus yang cocok dengan kriteria filter.
@@ -244,6 +275,103 @@ export default function MonthlyDue() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* VIEW 2: MOBILE CARD LIST (block md:hidden) */}
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5">
+          {isLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse rounded-2xl border border-slate-200/60 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="h-4 w-36 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="h-12 w-full rounded-xl bg-slate-200 dark:bg-slate-700" />
+                </div>
+              ))}
+            </div>
+          ) : processedUsers.length > 0 ? (
+            processedUsers.map((user) => {
+              // Hitung jumlah lunas & tunggakan
+              const paidCount = monthList.filter((m) =>
+                dues.some((d) => d?.user_id === user?.id && Number(d?.month) === m.num)
+              ).length;
+              const dueCount = monthList.filter((m) =>
+                !isFutureMonth(m.num) && !dues.some((d) => d?.user_id === user?.id && Number(d?.month) === m.num)
+              ).length;
+
+              return (
+                <div key={user.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                  {/* Header: Name, Division & Status Summary */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                        {user?.name || 'Tanpa Nama'}
+                      </h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                        {user?.nim && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 dark:bg-white/10">{user.nim}</span>}
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-3 w-3 text-emerald-500" />
+                          {user?.division?.name || 'BPH Pusat'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      {dueCount === 0 ? (
+                        <span className="rounded-lg bg-emerald-500/10 px-2 py-0.5 text-[11px] font-bold text-emerald-600 border border-emerald-500/20 dark:text-emerald-400">
+                          {paidCount} Lunas
+                        </span>
+                      ) : (
+                        <span className="rounded-lg bg-rose-500/10 px-2 py-0.5 text-[11px] font-bold text-rose-600 border border-rose-500/20 dark:text-rose-400">
+                          {dueCount} Tunggak
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Monthly Status Grid Chips */}
+                  <div className="grid grid-cols-6 gap-1.5 pt-1">
+                    {monthList.map((m) => {
+                      const isPaidObj = dues.find((d) => d?.user_id === user?.id && Number(d?.month) === m.num);
+                      const isFuture = isFutureMonth(m.num);
+
+                      return (
+                        <div
+                          key={m.num}
+                          className={`flex flex-col items-center justify-center rounded-xl p-1.5 text-center border transition-all ${
+                            isPaidObj
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                              : isFuture
+                              ? 'bg-slate-50 border-slate-200/60 text-slate-400 dark:bg-white/5 dark:border-white/5 dark:text-slate-500'
+                              : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'
+                          }`}
+                        >
+                          <span className="text-[9px] font-bold uppercase tracking-wider">
+                            {m.name.slice(0, 3)}
+                          </span>
+                          <div className="mt-1">
+                            {isPaidObj ? (
+                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            ) : isFuture ? (
+                              <Minus className="h-3.5 w-3.5 text-slate-300 dark:text-slate-600" />
+                            ) : (
+                              <XCircle className="h-3.5 w-3.5 text-rose-500" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-8 text-center text-sm font-semibold text-slate-400">
+              Tidak ada pengurus yang cocok dengan kriteria filter.
+            </div>
+          )}
         </div>
       </div>
     </div>

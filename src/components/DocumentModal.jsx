@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { X, Loader2, ArrowUpRight, ArrowDownLeft, FileText, ExternalLink, Calendar, Building2 } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 
@@ -144,99 +144,211 @@ export default function DocumentModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5 px-6 py-5">
-
-          {/* TIPE SURAT TOGGLE */}
-          <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tipe Surat</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                disabled={isReadOnly}
-                onClick={() => handleTypeToggle('outgoing')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition-all ${
+        {isReadOnly ? (
+          /* READ-ONLY DETAIL INFORMATION SHEET */
+          <div className="space-y-4 p-6 text-slate-700 dark:text-slate-200">
+            {/* Header Card: Tipe & Nomor Surat */}
+            <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/5 dark:bg-white/[0.02]">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Nomor Surat
+                </span>
+                <p className="mt-0.5 font-mono text-base font-bold text-slate-900 dark:text-white">
+                  {form.letter_number || '-'}
+                </p>
+              </div>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
                   form.type === 'outgoing'
-                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-500/50 dark:bg-primary-500/20 dark:text-primary-300'
-                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400'
+                    ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
+                    : 'bg-indigo-500/15 text-indigo-600 border border-indigo-500/20 dark:text-indigo-400'
                 }`}
               >
-                <ArrowUpRight className="h-4 w-4" /> Surat Keluar
-              </button>
+                {form.type === 'outgoing' ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownLeft className="h-3.5 w-3.5" />}
+                {form.type === 'outgoing' ? 'Surat Keluar' : 'Surat Masuk'}
+              </span>
+            </div>
+
+            {/* Perihal / Judul Surat */}
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4 dark:border-white/5 dark:bg-white/[0.02]">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Perihal / Judul Surat
+              </span>
+              <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white leading-relaxed">
+                {form.title || '-'}
+              </p>
+            </div>
+
+            {/* Grid Detail: Asal / Tujuan & Tanggal */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.02]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  {form.type === 'outgoing' ? 'Tujuan / Penerima' : 'Asal / Pengirim'}
+                </span>
+                <p className="mt-1 text-xs font-bold text-slate-900 dark:text-white">
+                  {(form.type === 'outgoing' ? form.destination : form.origin) || '-'}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.02]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Tanggal Kegiatan / Surat
+                </span>
+                <p className="mt-1 text-xs font-bold text-slate-900 dark:text-white">
+                  {form.activity_date ? new Date(form.activity_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                </p>
+              </div>
+            </div>
+
+            {/* Berkas & Tautan Digital */}
+            <div className="space-y-2 pt-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                Berkas Digital
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {form.letter_link ? (
+                  <a
+                    href={form.letter_link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-blue-500" />
+                      <span>Draft Surat (Word)</span>
+                    </div>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-400 dark:border-white/10">
+                    <FileText className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+                    <span>Draft Word tidak tersedia</span>
+                  </div>
+                )}
+
+                {form.scan_link ? (
+                  <a
+                    href={form.scan_link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-emerald-500" />
+                      <span>Scan Surat (PDF)</span>
+                    </div>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-400 dark:border-white/10">
+                    <FileText className="h-4 w-4 text-slate-300 dark:text-slate-600" />
+                    <span>Scan PDF tidak tersedia</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer Button */}
+            <div className="flex justify-end border-t border-slate-200 pt-4 dark:border-white/10">
               <button
                 type="button"
-                disabled={isReadOnly}
-                onClick={() => handleTypeToggle('incoming')}
-                className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition-all ${
-                  form.type === 'incoming'
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-500/50 dark:bg-indigo-500/20 dark:text-indigo-300'
-                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400'
-                }`}
+                onClick={onClose}
+                className="rounded-xl bg-slate-100 px-6 py-2.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
               >
-                <ArrowDownLeft className="h-4 w-4" /> Surat Masuk
+                Tutup
               </button>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-5 px-6 py-5">
+            {/* TIPE SURAT TOGGLE */}
             <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Nomor Surat <span className="text-red-500">*</span></label>
-              <input type="text" name="letter_number" required value={form.letter_number} onChange={handleChange} disabled={isReadOnly} placeholder="001/PROTIK/2026" className={inputClass('letter_number')} />
-              {errors.letter_number && <p className="mt-1 text-xs text-red-400">{errors.letter_number[0]}</p>}
+              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Tipe Surat</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleTypeToggle('outgoing')}
+                  className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition-all ${
+                    form.type === 'outgoing'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 dark:border-primary-500/50 dark:bg-primary-500/20 dark:text-primary-300'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <ArrowUpRight className="h-4 w-4" /> Surat Keluar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTypeToggle('incoming')}
+                  className={`flex items-center justify-center gap-2 rounded-xl border p-3 text-sm font-semibold transition-all ${
+                    form.type === 'incoming'
+                      ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:border-indigo-500/50 dark:bg-indigo-500/20 dark:text-indigo-300'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <ArrowDownLeft className="h-4 w-4" /> Surat Masuk
+                </button>
+              </div>
             </div>
 
-            {form.type === 'outgoing' ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Tujuan / Penerima</label>
-                <input type="text" name="destination" value={form.destination} onChange={handleChange} disabled={isReadOnly} placeholder="Yth. Direktur PNC..." className={inputClass('destination')} />
-                {errors.destination && <p className="mt-1 text-xs text-red-400">{errors.destination[0]}</p>}
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Nomor Surat <span className="text-red-500">*</span></label>
+                <input type="text" name="letter_number" required value={form.letter_number} onChange={handleChange} placeholder="001/PROTIK/2026" className={inputClass('letter_number')} />
+                {errors.letter_number && <p className="mt-1 text-xs text-red-400">{errors.letter_number[0]}</p>}
               </div>
-            ) : (
+
+              {form.type === 'outgoing' ? (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Tujuan / Penerima</label>
+                  <input type="text" name="destination" value={form.destination} onChange={handleChange} placeholder="Yth. Direktur PNC..." className={inputClass('destination')} />
+                  {errors.destination && <p className="mt-1 text-xs text-red-400">{errors.destination[0]}</p>}
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Asal / Pengirim <span className="text-red-500">*</span></label>
+                  <input type="text" name="origin" required value={form.origin} onChange={handleChange} placeholder="Dari BEM PNC..." className={inputClass('origin')} />
+                  {errors.origin && <p className="mt-1 text-xs text-red-400">{errors.origin[0]}</p>}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Perihal / Judul Surat <span className="text-red-500">*</span></label>
+              <input type="text" name="title" required value={form.title} onChange={handleChange} placeholder="Peminjaman Alat..." className={inputClass('title')} />
+              {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Tanggal Kegiatan (Opsional)</label>
+              <input type="date" name="activity_date" value={form.activity_date} onChange={handleChange} className={inputClass('activity_date')} />
+              {errors.activity_date && <p className="mt-1 text-xs text-red-400">{errors.activity_date[0]}</p>}
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Asal / Pengirim <span className="text-red-500">*</span></label>
-                <input type="text" name="origin" required value={form.origin} onChange={handleChange} disabled={isReadOnly} placeholder="Dari BEM PNC..." className={inputClass('origin')} />
-                {errors.origin && <p className="mt-1 text-xs text-red-400">{errors.origin[0]}</p>}
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Link Draft (Word)</label>
+                <input type="url" name="letter_link" value={form.letter_link} onChange={handleChange} placeholder="https://docs..." className={inputClass('letter_link')} />
+                {errors.letter_link && <p className="mt-1 text-xs text-red-400">{errors.letter_link[0]}</p>}
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Link Scan (PDF)</label>
+                <input type="url" name="scan_link" value={form.scan_link} onChange={handleChange} placeholder="https://drive..." className={inputClass('scan_link')} />
+                {errors.scan_link && <p className="mt-1 text-xs text-red-400">{errors.scan_link[0]}</p>}
+              </div>
+            </div>
+
+            {!activeEventId && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Event ID (Opsional)</label>
+                <input type="number" name="event_id" value={form.event_id} onChange={handleChange} placeholder="Biarkan kosong jika BPH Pusat" className={inputClass('event_id')} />
+                {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
               </div>
             )}
-          </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Perihal / Judul Surat <span className="text-red-500">*</span></label>
-            <input type="text" name="title" required value={form.title} onChange={handleChange} disabled={isReadOnly} placeholder="Peminjaman Alat..." className={inputClass('title')} />
-            {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title[0]}</p>}
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Tanggal Kegiatan (Opsional)</label>
-            <input type="date" name="activity_date" value={form.activity_date} onChange={handleChange} disabled={isReadOnly} className={inputClass('activity_date')} />
-            {errors.activity_date && <p className="mt-1 text-xs text-red-400">{errors.activity_date[0]}</p>}
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Link Draft (Word)</label>
-              <input type="url" name="letter_link" value={form.letter_link} onChange={handleChange} disabled={isReadOnly} placeholder="https://docs..." className={inputClass('letter_link')} />
-              {errors.letter_link && <p className="mt-1 text-xs text-red-400">{errors.letter_link[0]}</p>}
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Link Scan (PDF)</label>
-              <input type="url" name="scan_link" value={form.scan_link} onChange={handleChange} disabled={isReadOnly} placeholder="https://drive..." className={inputClass('scan_link')} />
-              {errors.scan_link && <p className="mt-1 text-xs text-red-400">{errors.scan_link[0]}</p>}
-            </div>
-          </div>
-
-          {!activeEventId && (
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Event ID (Opsional)</label>
-              <input type="number" name="event_id" value={form.event_id} onChange={handleChange} disabled={isReadOnly} placeholder="Biarkan kosong jika BPH Pusat" className={inputClass('event_id')} />
-              {errors.event_id && <p className="mt-1 text-xs text-red-400">{errors.event_id[0]}</p>}
-            </div>
-          )}
-
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-5 dark:border-white/10">
-            <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">
-              {isReadOnly ? 'Tutup' : 'Batal'}
-            </button>
-            {!isReadOnly && (
+            <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-5 dark:border-white/10">
+              <button type="button" onClick={onClose} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-white/10 dark:text-slate-300 dark:hover:bg-white/5">
+                Batal
+              </button>
               <button
                 type="submit"
                 disabled={submitting}
@@ -249,9 +361,9 @@ export default function DocumentModal({
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {submitting ? 'Menyimpan...' : 'Simpan Dokumen'}
               </button>
-            )}
-          </div>
-        </form>
+            </div>
+          </form>
+        )}
       </div>
     </div>,
     document.body

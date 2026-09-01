@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import * as XLSX from 'xlsx';
 import {
@@ -25,9 +26,9 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Fetch Users
+  // Fetch Users (All users for committee selection)
   const { data: usersData, isLoading: usersLoading } = useSWR(
-    isOpen ? '/api/users' : null, paginatedFetcher
+    isOpen ? '/api/users?all=true' : null, fetcher
   );
 
   // Fetch Master Data Jabatan (Dynamic)
@@ -67,7 +68,7 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
   if (!isOpen || !event) return null;
 
   // Data parsers
-  const usersList = usersData?.data?.data || (Array.isArray(usersData?.data) ? usersData.data : []) || [];
+  const usersList = Array.isArray(usersData) ? usersData : (usersData?.data?.data || usersData?.data || []);
   const committeesList = committeesData?.data?.data || (Array.isArray(committeesData?.data) ? committeesData.data : []) || [];
   const masterPositions = Array.isArray(posRes) ? posRes : (posRes?.data || []);
 
@@ -242,7 +243,7 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
     );
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
@@ -377,5 +378,5 @@ export default function CommitteeModal({ isOpen, onClose, event }) {
         isDanger={true}
       />
     </div>
-  );
+  , document.body);
 }

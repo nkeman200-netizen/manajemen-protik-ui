@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, UserCog } from 'lucide-react';
+import useSWR from 'swr';
 import api from '../api/axios';
+import { fetcher } from '../api/fetcher';
 import toast from 'react-hot-toast';
 
 const ROLES = [
@@ -21,6 +24,14 @@ export default function UserModal({
   initialData = null,
   divisions = [],
 }) {
+  const { data: fetchedDivData } = useSWR(isOpen ? '/api/divisions' : null, fetcher);
+
+  const divisionOptions = useMemo(() => {
+    const apiList = fetchedDivData?.data || (Array.isArray(fetchedDivData) ? fetchedDivData : null);
+    if (Array.isArray(apiList) && apiList.length > 0) return apiList;
+    return Array.isArray(divisions) ? divisions : [];
+  }, [fetchedDivData, divisions]);
+
   const [divisionId, setDivisionId] = useState('');
   const [role, setRole] = useState('member');
   const [status, setStatus] = useState('active');
@@ -77,7 +88,7 @@ export default function UserModal({
         : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
     }`;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* Backdrop */}
       <div
@@ -135,15 +146,19 @@ export default function UserModal({
               <option value="" className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white">
                 -- Tanpa Divisi (Umum) --
               </option>
-              {divisions.map((div) => (
-                <option
-                  key={div.id}
-                  value={div.id}
-                  className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
-                >
-                  {div.name}
-                </option>
-              ))}
+              {divisionOptions.map((div, idx) => {
+                const id = typeof div === 'object' && div !== null ? (div.id ?? div.name ?? idx) : div;
+                const name = typeof div === 'object' && div !== null ? (div.name ?? div.id ?? div) : div;
+                return (
+                  <option
+                    key={id || idx}
+                    value={id}
+                    className="bg-white text-slate-900 dark:bg-slate-900 dark:text-white"
+                  >
+                    {name}
+                  </option>
+                );
+              })}
             </select>
             {errors.division_id && (
               <p className="mt-1 text-xs text-red-400">{errors.division_id[0]}</p>
@@ -242,5 +257,5 @@ export default function UserModal({
         </form>
       </div>
     </div>
-  );
+  , document.body);
 }

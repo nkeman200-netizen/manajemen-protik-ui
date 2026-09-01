@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2 } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { formatRupiahInput, parseRupiahInput } from '../utils/currency';
 
 const initialForm = {
   name: '',
@@ -32,7 +34,7 @@ export default function EventModal({
         name: initialData.name || '',
         abbreviation: initialData.abbreviation || '',
         description: initialData.description || '',
-        budget_approved: initialData.budget_approved ?? '',
+        budget_approved: formatRupiahInput(initialData.budget_approved ?? ''),
         drive_folder_url: initialData.drive_folder_url || '',
         start_date: initialData.start_date ? initialData.start_date.substring(0, 10) : '',
         end_date: initialData.end_date ? initialData.end_date.substring(0, 10) : '',
@@ -50,7 +52,11 @@ export default function EventModal({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    if (name === 'budget_approved') {
+      setForm((prev) => ({ ...prev, [name]: formatRupiahInput(value) }));
+    } else {
+      setForm((prev) => ({ ...prev, [name]: value }));
+    }
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
@@ -64,7 +70,7 @@ export default function EventModal({
         name: form.name,
         abbreviation: form.abbreviation || null,
         description: form.description || null,
-        budget_approved: form.budget_approved !== '' ? Number(form.budget_approved) : 0,
+        budget_approved: parseRupiahInput(form.budget_approved),
         drive_folder_url: form.drive_folder_url || null,
         start_date: form.start_date,
         end_date: form.end_date || null,
@@ -108,13 +114,13 @@ export default function EventModal({
   const modalTitle = initialData?.id ? 'Edit Event' : 'Tambah Event';
 
   const inputClass = (field) =>
-    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none backdrop-blur-sm transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 dark:bg-white/5 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-white/5 dark:disabled:text-slate-500 ${
+    `w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 focus:ring-2 disabled:bg-slate-100 disabled:text-slate-400 dark:bg-slate-800 dark:text-white dark:placeholder-slate-500 dark:disabled:bg-slate-800/50 dark:disabled:text-slate-500 ${
       errors[field]
         ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
         : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
     }`;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       {/* Backdrop */}
       <div
@@ -192,15 +198,19 @@ export default function EventModal({
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Anggaran Disetujui (Rp)
             </label>
-            <input
-              type="number"
-              name="budget_approved"
-              value={form.budget_approved}
-              onChange={handleChange}
-              placeholder="0"
-              min="0"
-              className={inputClass('budget_approved')}
-            />
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 dark:text-slate-400 select-none">
+                Rp
+              </span>
+              <input
+                type="text"
+                name="budget_approved"
+                value={form.budget_approved}
+                onChange={handleChange}
+                placeholder="0"
+                className={`pl-10 ${inputClass('budget_approved')}`}
+              />
+            </div>
             {errors.budget_approved && <p className="mt-1 text-xs text-red-400">{errors.budget_approved[0]}</p>}
           </div>
 
@@ -318,5 +328,5 @@ export default function EventModal({
         </form>
       </div>
     </div>
-  );
+  , document.body);
 }

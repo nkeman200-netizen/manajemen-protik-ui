@@ -9,6 +9,8 @@ import { id as localeID } from 'date-fns/locale';
 import EventModal from '../components/EventModal';
 import CommitteeModal from '../components/CommitteeModal';
 import ConfirmModal from '../components/ConfirmModal';
+import ActionMenu from '../components/ActionMenu';
+import { TableSkeleton } from '../components/SkeletonLoader';
 import {
   CalendarRange,
   Plus,
@@ -80,18 +82,6 @@ export default function EventManagement() {
     );
   }
 
-  // Loading State
-  if (eventsLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary-500 dark:text-primary-400" />
-          <p className="text-sm text-slate-500 dark:text-slate-400">Memuat manajemen event...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Error State
   if (eventsError) {
     return (
@@ -158,9 +148,10 @@ export default function EventManagement() {
         </button>
       </div>
 
-      {/* Table Container */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
-        <div className="overflow-x-auto">
+      {/* Content Container (Dual View: Desktop Table + Mobile Cards) */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        {/* VIEW 1: DESKTOP TABLE (hidden md:block) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
@@ -179,7 +170,9 @@ export default function EventManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-              {eventsList.length > 0 ? (
+              {eventsLoading ? (
+                <TableSkeleton rows={5} cols={4} />
+              ) : eventsList.length > 0 ? (
                 eventsList.map((item) => {
                   const startDate = item.start_date || item.date;
                   const endDate = item.end_date;
@@ -232,40 +225,57 @@ export default function EventManagement() {
 
                       {/* Actions */}
                       <td className="whitespace-nowrap px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Panitia Button */}
-                          <button
-                            onClick={() => {
-                              setCommitteeTargetEvent(item);
-                              setCommitteeModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-600 transition hover:bg-indigo-100 hover:text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 dark:hover:text-indigo-300"
-                          >
-                            <Users className="h-3.5 w-3.5" />
-                            Panitia
-                          </button>
-
-                          {/* Edit Button */}
-                          <button
-                            onClick={() => {
-                              setSelectedEvent(item);
-                              setEventModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => setDeleteTarget(item)}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 hover:text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:text-red-300"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Hapus
-                          </button>
-                        </div>
+                        <ActionMenu
+                          groups={[
+                            {
+                              title: 'Tautan Event',
+                              items: [
+                                {
+                                  label: 'Folder Google Drive',
+                                  icon: ExternalLink,
+                                  iconColor: 'text-blue-500',
+                                  href: item.drive_folder_url,
+                                  hidden: !item.drive_folder_url,
+                                },
+                              ],
+                            },
+                            {
+                              title: 'Kepanitiaan',
+                              items: [
+                                {
+                                  label: 'Kelola Panitia Event',
+                                  icon: Users,
+                                  iconColor: 'text-indigo-500',
+                                  onClick: () => {
+                                    setCommitteeTargetEvent(item);
+                                    setCommitteeModalOpen(true);
+                                  },
+                                },
+                              ],
+                            },
+                            {
+                              title: 'Aksi Data',
+                              items: [
+                                {
+                                  label: 'Edit Event',
+                                  icon: Pencil,
+                                  iconColor: 'text-amber-500',
+                                  onClick: () => {
+                                    setSelectedEvent(item);
+                                    setEventModalOpen(true);
+                                  },
+                                },
+                                {
+                                  label: 'Hapus Event',
+                                  icon: Trash2,
+                                  iconColor: 'text-rose-500',
+                                  isDanger: true,
+                                  onClick: () => setDeleteTarget(item),
+                                },
+                              ],
+                            },
+                          ]}
+                        />
                       </td>
                     </tr>
                   );
@@ -282,6 +292,143 @@ export default function EventManagement() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* VIEW 2: MOBILE CARD LIST (block md:hidden) */}
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5">
+          {eventsLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse rounded-2xl border border-slate-200/60 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="h-4 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 w-16 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-2" />
+                  <div className="h-3 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+              ))}
+            </div>
+          ) : eventsList.length > 0 ? (
+            eventsList.map((item) => {
+              const startDate = item.start_date || item.date;
+              const endDate = item.end_date;
+
+              return (
+                <div key={item.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                  {/* Top: Name, Badge & Action Menu */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                          {item.name}
+                        </h3>
+                        {item.abbreviation && (
+                          <span className="rounded-md bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                            {item.abbreviation}
+                          </span>
+                        )}
+                      </div>
+                      {item.description && (
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                          {item.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 -mr-1 -mt-1">
+                      <ActionMenu
+                        groups={[
+                          {
+                            title: 'Tautan Event',
+                            items: [
+                              {
+                                label: 'Folder Google Drive',
+                                icon: ExternalLink,
+                                iconColor: 'text-blue-500',
+                                href: item.drive_folder_url,
+                                hidden: !item.drive_folder_url,
+                              },
+                            ],
+                          },
+                          {
+                            title: 'Kepanitiaan',
+                            items: [
+                              {
+                                label: 'Kelola Panitia Event',
+                                icon: Users,
+                                iconColor: 'text-indigo-500',
+                                onClick: () => {
+                                  setCommitteeTargetEvent(item);
+                                  setCommitteeModalOpen(true);
+                                },
+                              },
+                            ],
+                          },
+                          {
+                            title: 'Aksi Data',
+                            items: [
+                              {
+                                label: 'Edit Event',
+                                icon: Pencil,
+                                iconColor: 'text-amber-500',
+                                onClick: () => {
+                                  setSelectedEvent(item);
+                                  setEventModalOpen(true);
+                                },
+                              },
+                              {
+                                label: 'Hapus Event',
+                                icon: Trash2,
+                                iconColor: 'text-rose-500',
+                                isDanger: true,
+                                onClick: () => setDeleteTarget(item),
+                              },
+                            ],
+                          },
+                        ]}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Mid: Date & Budget */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
+                      <span>
+                        {formatTanggal(startDate)}
+                        {endDate && ` — ${formatTanggal(endDate)}`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="inline-flex rounded-lg bg-emerald-500/10 px-2.5 py-1 text-xs font-bold text-emerald-600 border border-emerald-500/20 dark:text-emerald-400">
+                        {formatRupiah(item.budget_approved)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom: Drive Folder Link */}
+                  {item.drive_folder_url && (
+                    <div className="pt-2 border-t border-dashed border-slate-100 dark:border-white/5">
+                      <a
+                        href={item.drive_folder_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:underline dark:text-primary-400"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        <span>Buka Folder Google Drive</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">
+              Belum ada data event terdaftar.
+            </div>
+          )}
         </div>
 
         {/* Pagination */}

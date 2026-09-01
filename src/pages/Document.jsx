@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { useAuth } from '../contexts/AuthContext';
 import { paginatedFetcher, fetcher } from '../api/fetcher';
@@ -7,12 +7,15 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { id as localeID } from 'date-fns/locale';
 import DocumentModal from '../components/DocumentModal';
-import ConfirmModal from '../components/ConfirmModal';
 import GenerateDocumentModal from '../components/GenerateDocumentModal';
+import ConfirmModal from '../components/ConfirmModal';
+import ActionMenu from '../components/ActionMenu';
+import { TableSkeleton, DirectoryCardSkeleton } from '../components/SkeletonLoader';
+import SyncHeaderActions from '../components/SyncHeaderActions';
 import {
   Plus, ChevronLeft, ChevronRight, Loader2, AlertCircle, FileText, FileBadge,
   ArrowLeft, Calendar, User, Pencil, Trash2, Eye, Layers,
-  ChevronRight as ChevronRightIcon, Search, RefreshCw, MoreVertical, Send, Inbox,
+  ChevronRight as ChevronRightIcon, Search, RefreshCw, Send, Inbox,
   Filter, Tag, Building2, MapPin
 } from 'lucide-react';
 
@@ -24,6 +27,7 @@ function formatTanggal(dateStr) {
 
 export default function Document() {
   const { user } = useAuth();
+  const { data: settingsData } = useSWR('/api/settings', fetcher);
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [activeTab, setActiveTab] = useState('outgoing');
   const [page, setPage] = useState(1);
@@ -37,7 +41,6 @@ export default function Document() {
   const [destinationFilter, setDestinationFilter] = useState('');
 
   const [isSyncing, setIsSyncing] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -120,13 +123,24 @@ export default function Document() {
     finally { setIsDeleting(false); setDeleteTarget(null); }
   };
 
+  const documents = documentsData?.data?.data || (Array.isArray(documentsData?.data) ? documentsData.data : []) || [];
+  const meta = documentsData?.meta || (documentsData?.data && !Array.isArray(documentsData?.data) ? documentsData.data : null);
+
+  const lastSyncedAt = useMemo(() => {
+    if (documentsData?.last_synced_at) return documentsData.last_synced_at;
+    if (documents?.length > 0) {
+      const timestamps = documents.map(d => d?.updated_at || d?.created_at).filter(Boolean);
+      if (timestamps.length > 0) return timestamps.sort().reverse()[0];
+    }
+    return null;
+  }, [documentsData, documents]);
+
   const inputClass = "w-full rounded-xl border border-slate-300 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-primary-500 dark:border-white/10 dark:bg-slate-800 dark:text-white";
 
   // ==========================================
   // VIEW 1: DIRECTORY MODE
   // ==========================================
   if (!activeWorkspace) {
-    if (eventsLoading) return <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary-500" /></div>;
     if (eventsError) return <div className="text-center text-red-500 py-16">Gagal memuat direktori.</div>;
 
     const eventList = eventsData?.data?.data || (Array.isArray(eventsData?.data) ? eventsData.data : []) || [];
@@ -136,21 +150,25 @@ export default function Document() {
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-violet-700 shadow-lg"><Layers className="h-5 w-5 text-white" /></div>
           <div><h1 className="text-xl font-bold text-slate-900 dark:text-white">Direktori Dokumen & Surat</h1><p className="text-xs text-slate-500 dark:text-slate-400">Pilih ruang kerja dokumen umum atau kepanitiaan event.</p></div>
         </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div onClick={() => { setActiveWorkspace({ id: null, name: 'Dokumen Umum BPH Pusat', type: 'global' }); setPage(1); setSearch(''); setActiveTab('outgoing'); }} className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-xl hover:shadow-violet-500/10 dark:border-violet-500/20 dark:from-violet-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-violet-500/15">
-            <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-violet-500/30 dark:bg-violet-500/10" />
-            <div className="flex items-center justify-between"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-600 dark:text-violet-400"><FileText className="h-6 w-6" /></div><span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase text-violet-600 dark:text-violet-400">BPH Pusat</span></div>
-            <h3 className="mt-4 text-lg font-bold text-slate-900 dark:text-white">Dokumen Umum BPH Pusat</h3>
-            <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400">Pencatatan dan arsip operasional umum organisasi.</p>
-          </div>
-          {eventList.map((event) => (
-            <div key={event.id} onClick={() => { setActiveWorkspace(event); setPage(1); setSearch(''); setActiveTab('outgoing'); }} className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-primary-500/40 hover:shadow-xl dark:border-white/10 dark:bg-white/5">
-              <div className="flex items-center justify-between"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-600/15 text-primary-600 dark:text-primary-400"><Calendar className="h-6 w-6" /></div><span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold uppercase text-primary-600 dark:text-primary-400">Event</span></div>
-              <h3 className="mt-4 text-lg font-bold text-slate-900 line-clamp-1 dark:text-white">{event.name}</h3>
-              <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400">Ruang kerja surat menyurat kepanitiaan.</p>
+        {eventsLoading ? (
+          <DirectoryCardSkeleton count={3} />
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div onClick={() => { setActiveWorkspace({ id: null, name: 'Dokumen Umum BPH Pusat', type: 'global' }); setPage(1); setSearch(''); setActiveTab('outgoing'); }} className="group relative cursor-pointer overflow-hidden rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-50 via-white to-slate-50 p-6 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-violet-500/60 hover:shadow-xl hover:shadow-violet-500/10 dark:border-violet-500/20 dark:from-violet-950/40 dark:via-slate-900/70 dark:to-slate-950/80 dark:shadow-none dark:hover:shadow-2xl dark:hover:shadow-violet-500/15">
+              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-violet-500/20 blur-2xl transition-opacity duration-300 group-hover:bg-violet-500/30 dark:bg-violet-500/10" />
+              <div className="flex items-center justify-between"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/20 text-violet-600 dark:text-violet-400"><FileText className="h-6 w-6" /></div><span className="rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold uppercase text-violet-600 dark:text-violet-400">BPH Pusat</span></div>
+              <h3 className="mt-4 text-lg font-bold text-slate-900 dark:text-white">Dokumen Umum BPH Pusat</h3>
+              <p className="mt-1.5 text-xs text-slate-600 dark:text-slate-400">Pencatatan dan arsip operasional umum organisasi.</p>
             </div>
-          ))}
-        </div>
+            {eventList.map((event) => (
+              <div key={event.id} onClick={() => { setActiveWorkspace(event); setPage(1); setSearch(''); setActiveTab('outgoing'); }} className="group cursor-pointer rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-primary-500/40 hover:shadow-xl dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center justify-between"><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-500/10 text-primary-600 dark:text-primary-400"><FileBadge className="h-6 w-6" /></div><span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold uppercase text-primary-600">Event</span></div>
+                <h3 className="mt-4 text-lg font-bold text-slate-900 line-clamp-1 dark:text-white">{event.name}</h3>
+                <p className="mt-1.5 text-xs text-slate-500">Ruang kerja surat-menyurat kepanitiaan.</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -158,8 +176,6 @@ export default function Document() {
   // ==========================================
   // VIEW 2: WORKSPACE MODE
   // ==========================================
-  const documents = documentsData?.data?.data || (Array.isArray(documentsData?.data) ? documentsData.data : []) || [];
-  const meta = documentsData?.meta || (documentsData?.data && !Array.isArray(documentsData?.data) ? documentsData.data : null);
 
   return (
     <div className="space-y-6 animate-slide-up-fade">
@@ -170,13 +186,22 @@ export default function Document() {
           <div className={`flex h-10 w-10 items-center justify-center rounded-2xl shadow-lg ${activeWorkspace.id === null ? 'bg-gradient-to-br from-violet-500 to-violet-700' : 'bg-gradient-to-br from-primary-500 to-primary-700'}`}><FileText className="h-5 w-5 text-white" /></div>
           <div><h1 className="text-xl font-bold text-slate-900 dark:text-white">{activeWorkspace.name}</h1><p className="text-xs text-slate-500 dark:text-slate-400">Pusat arsip dokumen.</p></div>
         </div>
-        {canEdit && (
-          <div className="flex items-center gap-3">
-            <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-50 dark:border-white/10 dark:bg-white/5 dark:text-white"><RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Sync</span></button>
-            <button onClick={() => setGenerateModalOpen(true)} className="flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-2.5 text-sm font-semibold text-primary-700 shadow-sm hover:bg-primary-100 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-400"><FileText className="h-4 w-4" /> Dapur Surat</button>
-            <button onClick={() => { setSelectedDocument(null); setIsReadOnlyModal(false); setModalOpen(true); }} className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:shadow-xl"><Plus className="h-4 w-4" /> Arsipkan</button>
-          </div>
-        )}
+        
+        <SyncHeaderActions
+          onSync={handleSync}
+          isSyncing={isSyncing}
+          lastSyncedAt={lastSyncedAt}
+          canSync={canEdit}
+        >
+          <button
+            type="button"
+            onClick={() => setGenerateModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2.5 text-xs font-semibold text-primary-700 shadow-sm transition hover:bg-primary-100 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-400"
+          >
+            <FileText className="h-4 w-4" />
+            <span>Dapur Surat</span>
+          </button>
+        </SyncHeaderActions>
       </div>
 
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2 dark:border-white/10">
@@ -233,49 +258,211 @@ export default function Document() {
         )}
       </div>
 
-      {/* TABLE */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/5">
-        <div className="overflow-x-auto pb-32 min-h-[300px]">
-          {documentsLoading ? (
-            <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary-500" /></div>
-          ) : documents.length > 0 ? (
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Detail Surat</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{activeTab === 'outgoing' ? 'Tujuan / Penerima' : 'Asal / Pengirim'}</th>
-                  <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Staff / Pembuat</th>
-                  <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                {documents.map((item) => (
+      {/* TABLE CONTAINER (Dual View: Desktop Table + Mobile Cards) */}
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
+        {/* VIEW 1: DESKTOP TABLE (hidden md:block) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-transparent">
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Detail Surat</th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">{activeTab === 'outgoing' ? 'Tujuan / Penerima' : 'Asal / Pengirim'}</th>
+                <th className="px-6 py-3.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Staff / Pembuat</th>
+                <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {documentsLoading ? (
+                <TableSkeleton rows={5} cols={4} />
+              ) : documents.length > 0 ? (
+                documents.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-white/5">
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1.5"><span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-mono font-bold text-slate-700 w-max dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/5">{item.letter_number}</span><p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">{item.title}</p>{item.activity_date && (<div className="flex items-center gap-1 text-[10px] font-medium text-slate-500"><Calendar className="h-3 w-3" /> Pelaksanaan: {formatTanggal(item.activity_date)}</div>)}</div>
                     </td>
                     <td className="px-6 py-4"><span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{activeTab === 'outgoing' ? (item.destination || '-') : (item.origin || '-')}</span></td>
                     <td className="whitespace-nowrap px-6 py-4 text-xs font-medium text-slate-600 dark:text-slate-400"><div className="flex items-center gap-1.5"><User className="h-3.5 w-3.5" />{item.creator?.name ?? 'Sistem'}</div></td>
-                    <td className="relative whitespace-nowrap px-6 py-4 text-right">
-                      <button onClick={(e) => { e.stopPropagation(); setOpenDropdownId(openDropdownId === item.id ? null : item.id); }} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 dark:text-white"><MoreVertical className="h-4 w-4" /></button>
-                      {openDropdownId === item.id && (
-                        <div onClick={(e) => e.stopPropagation()} className="absolute right-10 top-4 z-50 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-white/10 dark:bg-slate-800">
-                          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Tautan Dokumen</div>
-                          {item.letter_link && <a href={item.letter_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"><FileText className="h-4 w-4 text-blue-500" /> Draft (Word)</a>}
-                          {item.scan_link && <a href={item.scan_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5"><FileBadge className="h-4 w-4 text-red-500" /> Scan Valid (PDF)</a>}
-                          <div className="my-1 h-px bg-slate-100 dark:bg-white/10"></div>
-                          <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Aksi Data</div>
-                          <button onClick={() => { setOpenDropdownId(null); setSelectedDocument(item); setIsReadOnlyModal(!canEdit); setModalOpen(true); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/5">{canEdit ? <><Pencil className="h-4 w-4 text-amber-500" /> Edit Metadata</> : <><Eye className="h-4 w-4 text-indigo-500" /> Detail Surat</>}</button>
-                          {canEdit && <button onClick={() => { setOpenDropdownId(null); setDeleteTarget(item); }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"><Trash2 className="h-4 w-4" /> Hapus Surat</button>}
-                        </div>
-                      )}
+                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                      <ActionMenu
+                        groups={[
+                          {
+                            title: 'Tautan Dokumen',
+                            items: [
+                              {
+                                label: 'Draft (Word)',
+                                icon: FileText,
+                                iconColor: 'text-blue-500',
+                                href: item.letter_link,
+                                hidden: !item.letter_link,
+                              },
+                              {
+                                label: 'Scan Valid (PDF)',
+                                icon: FileBadge,
+                                iconColor: 'text-rose-500',
+                                href: item.scan_link,
+                                hidden: !item.scan_link,
+                              },
+                            ],
+                          },
+                          {
+                            title: 'Aksi Data',
+                            items: [
+                              {
+                                label: 'Detail Surat',
+                                icon: Eye,
+                                iconColor: 'text-indigo-500',
+                                onClick: () => {
+                                  setSelectedDocument(item);
+                                  setIsReadOnlyModal(true);
+                                  setModalOpen(true);
+                                },
+                              },
+                            ],
+                          },
+                        ]}
+                      />
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">
+                    Tidak ada dokumen yang cocok dengan filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* VIEW 2: MOBILE CARD LIST (block md:hidden) */}
+        <div className="block md:hidden divide-y divide-slate-100 dark:divide-white/5">
+          {documentsLoading ? (
+            <div className="p-4 space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse rounded-2xl border border-slate-200/60 bg-slate-50 p-4 dark:border-white/5 dark:bg-white/5">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="h-4 w-32 rounded bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-4 w-12 rounded bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700 mb-2" />
+                  <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+                </div>
+              ))}
+            </div>
+          ) : documents.length > 0 ? (
+            documents.map((item) => (
+              <div key={item.id} className="p-4 space-y-3 transition-colors hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                {/* Top: Letter Number Badge & Action Menu */}
+                <div className="flex items-start justify-between gap-2">
+                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-mono font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/5">
+                    {item.letter_number}
+                  </span>
+
+                  <div className="shrink-0 -mr-1 -mt-1">
+                    <ActionMenu
+                      groups={[
+                        {
+                          title: 'Tautan Dokumen',
+                          items: [
+                            {
+                              label: 'Draft (Word)',
+                              icon: FileText,
+                              iconColor: 'text-blue-500',
+                              href: item.letter_link,
+                              hidden: !item.letter_link,
+                            },
+                            {
+                              label: 'Scan Valid (PDF)',
+                              icon: FileBadge,
+                              iconColor: 'text-rose-500',
+                              href: item.scan_link,
+                              hidden: !item.scan_link,
+                            },
+                          ],
+                        },
+                        {
+                          title: 'Aksi Data',
+                          items: [
+                            {
+                              label: 'Detail Surat',
+                              icon: Eye,
+                              iconColor: 'text-indigo-500',
+                              onClick: () => {
+                                setSelectedDocument(item);
+                                setIsReadOnlyModal(true);
+                                setModalOpen(true);
+                              },
+                            },
+                          ],
+                        },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {/* Perihal / Title */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                    {item.title}
+                  </h3>
+                </div>
+
+                {/* Info Metas (Instansi & Pembuat & Tanggal) */}
+                <div className="grid grid-cols-1 gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                    {activeTab === 'outgoing' ? <MapPin className="h-3.5 w-3.5 text-primary-500 shrink-0" /> : <Building2 className="h-3.5 w-3.5 text-primary-500 shrink-0" />}
+                    <span className="truncate">{activeTab === 'outgoing' ? (item.destination || '-') : (item.origin || '-')}</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                      <User className="h-3 w-3 text-slate-400 dark:text-slate-500 shrink-0" />
+                      <span>{item.creator?.name ?? 'Sistem'}</span>
+                    </div>
+
+                    {item.activity_date && (
+                      <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+                        <Calendar className="h-3 w-3 text-slate-400 dark:text-slate-500 shrink-0" />
+                        <span>{formatTanggal(item.activity_date)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Tautan Lampiran Cepat (Jika ada Word / PDF) */}
+                {(item.letter_link || item.scan_link) && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-dashed border-slate-100 dark:border-white/5">
+                    {item.letter_link && (
+                      <a
+                        href={item.letter_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-2.5 py-1 text-[11px] font-semibold text-blue-600 border border-blue-500/20 hover:bg-blue-500/20 dark:text-blue-400"
+                      >
+                        <FileText className="h-3 w-3" />
+                        <span>Draft Word</span>
+                      </a>
+                    )}
+                    {item.scan_link && (
+                      <a
+                        href={item.scan_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-600 border border-rose-500/20 hover:bg-rose-500/20 dark:text-rose-400"
+                      >
+                        <FileBadge className="h-3 w-3" />
+                        <span>Scan PDF</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
           ) : (
-            <div className="flex items-center justify-center py-12 text-sm text-slate-400">Tidak ada dokumen yang cocok dengan filter.</div>
+            <div className="p-8 text-center text-sm text-slate-400 dark:text-slate-500">
+              Tidak ada dokumen yang cocok dengan filter.
+            </div>
           )}
         </div>
         

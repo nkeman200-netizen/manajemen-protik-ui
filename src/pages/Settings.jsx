@@ -20,6 +20,7 @@ export default function Settings() {
   const [form, setForm] = useState({
     org_name: '',
     org_logo: '',
+    bph_master_sync_url: '',
     bph_agenda_sync_url: '',
     bph_document_sync_url: '',
     bph_finance_sync_url: '',
@@ -35,6 +36,7 @@ export default function Settings() {
       setForm({
         org_name: settingsData.org_name || '',
         org_logo: settingsData.org_logo || '',
+        bph_master_sync_url: settingsData.bph_master_sync_url || '',
         bph_agenda_sync_url: settingsData.bph_agenda_sync_url || '',
         bph_document_sync_url: settingsData.bph_document_sync_url || '',
         bph_finance_sync_url: settingsData.bph_finance_sync_url || '',
@@ -102,6 +104,7 @@ export default function Settings() {
     const payload = {
       settings: [
         { key: 'org_name', value: form.org_name },
+        { key: 'bph_master_sync_url', value: form.bph_master_sync_url },
         { key: 'bph_agenda_sync_url', value: form.bph_agenda_sync_url },
         { key: 'bph_document_sync_url', value: form.bph_document_sync_url },
         { key: 'bph_finance_sync_url', value: form.bph_finance_sync_url },
@@ -199,6 +202,20 @@ export default function Settings() {
               </h2>
               
               <div className="space-y-5">
+                <div>
+                  <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <LinkIcon className="h-3.5 w-3.5"/> URL Sync Master Data (BPH Pusat)
+                  </label>
+                  <input
+                    type="url"
+                    name="bph_master_sync_url"
+                    value={form.bph_master_sync_url}
+                    onChange={handleChange}
+                    placeholder="https://docs.google.com/spreadsheets/..."
+                    className={inputClass}
+                  />
+                </div>
+
                 <div>
                   <label className="mb-1.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500">
                     <LinkIcon className="h-3.5 w-3.5"/> URL Sync Agenda (BPH Pusat)

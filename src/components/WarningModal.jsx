@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import useSWR from 'swr';
 import { X, Loader2, Search, CheckCircle2 } from 'lucide-react';
 import api from '../api/axios';
@@ -116,7 +117,7 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
         : 'border-slate-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-white/10'
     }`;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
@@ -237,5 +238,5 @@ export default function WarningModal({ isOpen, onClose, onSuccess, currentUserId
         </form>
       </div>
     </div>
-  );
+  , document.body);
 }
